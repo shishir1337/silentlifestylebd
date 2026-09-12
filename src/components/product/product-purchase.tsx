@@ -1,0 +1,241 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCart } from "@/lib/cart";
+import { Taka } from "@/components/ui/price";
+import { PriceTag } from "./price-tag";
+import { BagIcon, CheckIcon, MinusIcon, PlusIcon } from "@/components/ui/icons";
+import { cn } from "@/lib/cn";
+import type { Product } from "@/types/catalog";
+
+/**
+ * Buy box: variant choice, quantity, and the two actions.
+ *
+ * Size is required when a product has sizes and there is no default — picking
+ * one for the shopper is how you turn a sale into a return, and on cash on
+ * delivery a return is a round trip you paid for twice. The requirement is
+ * enforced on submit, with the error tied to the field by `aria-describedby`
+ * and focus moved to the size group rather than left where it was.
+ */
+export function ProductPurchase({ product }: { product: Product }) {
+  const { add, openDrawer } = useCart();
+  const router = useRouter();
+
+  const [size, setSize] = useState<string | undefined>();
+  const [color, setColor] = useState<string | undefined>(product.colors?.[0]);
+  const [qty, setQty] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const [added, setAdded] = useState(false);
+
+  const sizeGroupRef = useRef<HTMLDivElement>(null);
+  const needsSize = Boolean(product.sizes?.length);
+
+  function validate() {
+    if (needsSize && !size) {
+      setError("Please choose a size first.");
+      sizeGroupRef.current?.focus();
+      return false;
+    }
+    setError(null);
+    return true;
+  }
+
+  function addToBag() {
+    if (!validate()) return;
+    add(product, size, qty);
+    setAdded(true);
+    openDrawer();
+    window.setTimeout(() => setAdded(false), 2000);
+  }
+
+  function buyNow() {
+    if (!validate()) return;
+    add(product, size, qty);
+    router.push("/checkout");
+  }
+
+  const disabled = !product.inStock;
+
+  return (
+    <div>
+      <PriceTag
+        price={product.price}
+        compareAtPrice={product.compareAtPrice}
+        size="lg"
+      />
+
+      {/* --- Colour ---------------------------------------------------------- */}
+      {product.colors?.length ? (
+        <fieldset className="mt-6">
+          <legend className="text-[13px] font-medium">
+            Colour: <span className="text-ink-muted">{color}</span>
+          </legend>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {product.colors.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setColor(c)}
+                aria-pressed={c === color}
+                className={cn(
+                  "inline-flex h-11 items-center justify-center rounded-[var(--radius-sm)] border px-3.5 text-[13px] font-medium transition-[background-color,border-color,color,scale] duration-[var(--dur-base)] active:scale-[0.97]",
+                  c === color
+                    ? "border-ink bg-ink text-white"
+                    : "border-line-strong bg-surface text-ink hover:border-ink",
+                )}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
+
+      {/* --- Size ------------------------------------------------------------ */}
+      {needsSize ? (
+        <fieldset className="mt-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <legend className="text-[13px] font-medium">
+              Size{size ? <span className="text-ink-muted">: {size}</span> : null}
+            </legend>
+            <a
+              href="/size-guide"
+              className="inline-flex min-h-6 items-center text-[12px] font-medium text-brand underline underline-offset-2"
+            >
+              Size guide
+            </a>
+          </div>
+
+          <div
+            ref={sizeGroupRef}
+            tabIndex={-1}
+            aria-describedby={error ? "size-error" : undefined}
+            aria-invalid={error ? true : undefined}
+            className="mt-2 flex flex-wrap gap-2 outline-none"
+          >
+            {product.sizes?.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => {
+                  setSize(s);
+                  setError(null);
+                }}
+                aria-pressed={s === size}
+                className={cn(
+                  "inline-flex h-11 min-w-[56px] items-center justify-center rounded-[var(--radius-sm)] border px-3 text-sm font-medium transition-[background-color,border-color,color,scale] duration-[var(--dur-base)] active:scale-[0.95]",
+                  s === size
+                    ? "border-ink bg-ink text-white"
+                    : "border-line-strong bg-surface text-ink hover:border-ink",
+                  error && !size && "border-sale",
+                )}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
+          {error ? (
+            <p id="size-error" role="alert" className="mt-2 text-[13px] text-sale">
+              {error}
+            </p>
+          ) : null}
+        </fieldset>
+      ) : null}
+
+      {/* --- Quantity -------------------------------------------------------- */}
+      <div className="mt-5">
+        <p className="text-[13px] font-medium">Quantity</p>
+        <div className="mt-2 inline-flex items-center rounded-[var(--radius-sm)] border border-line-strong">
+          <button
+            type="button"
+            onClick={() => setQty((q) => Math.max(1, q - 1))}
+            aria-label="Decrease quantity"
+            disabled={qty <= 1}
+            className="inline-flex size-11 items-center justify-center text-ink-soft transition-colors duration-[var(--dur-base)] hover:bg-muted hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <MinusIcon className="size-4" />
+          </button>
+          <span className="tabular w-10 text-center text-sm font-medium" aria-live="polite">
+            {qty}
+          </span>
+          <button
+            type="button"
+            onClick={() => setQty((q) => Math.min(10, q + 1))}
+            aria-label="Increase quantity"
+            disabled={qty >= 10}
+            className="inline-flex size-11 items-center justify-center text-ink-soft transition-colors duration-[var(--dur-base)] hover:bg-muted hover:text-ink disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <PlusIcon className="size-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* --- Actions (inline; the phone also gets a sticky copy below) -------- */}
+      {/*
+        `flex-1` is scoped to `sm` deliberately. In the column layout below that
+        breakpoint, flex-1 resolves against the *main* axis — height — setting
+        `flex-basis: 0%` and overriding `h-[52px]`, which collapsed both CTAs to
+        about 23px. Row layout is the only place it should apply.
+      */}
+      <div className="mt-6 flex flex-col gap-2.5 sm:flex-row">
+        <button
+          type="button"
+          onClick={addToBag}
+          disabled={disabled}
+          className={cn(
+            "inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] border text-[15px] font-medium sm:w-auto sm:flex-1 transition-[background-color,border-color,color,scale] duration-[var(--dur-base)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50",
+            added
+              ? "border-brand bg-brand-tint text-brand"
+              : "border-ink bg-surface text-ink hover:bg-ink hover:text-white",
+          )}
+        >
+          {added ? <CheckIcon className="size-[18px]" /> : <BagIcon className="size-[18px]" />}
+          {added ? "Added to bag" : "Add to bag"}
+        </button>
+
+        <button
+          type="button"
+          onClick={buyNow}
+          disabled={disabled}
+          className="inline-flex h-[52px] w-full items-center justify-center rounded-[var(--radius-sm)] bg-ink text-[15px] font-medium text-white sm:w-auto sm:flex-1 transition-[background-color,scale] duration-[var(--dur-base)] hover:bg-ink/90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+        >
+          Order now
+        </button>
+      </div>
+
+      {disabled ? (
+        <p className="mt-3 text-[13px] text-ink-muted">
+          This item is out of stock. Call us and we will tell you when it is back.
+        </p>
+      ) : null}
+
+      {/*
+        Sticky buy bar for phones. It sits directly above the tab bar rather
+        than replacing it — on a long product page the action has to stay
+        within thumb reach without costing the shopper their way back out.
+      */}
+      {!disabled ? (
+        <div className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom,0px))] z-[var(--z-sticky)] flex items-center gap-3 border-t border-line bg-canvas/95 px-4 py-2.5 backdrop-blur-sm lg:hidden">
+          <div className="min-w-0">
+            <Taka amount={product.price * qty} className="text-base font-semibold" />
+            {size ? (
+              <p className="text-[11px] text-ink-muted">Size {size}</p>
+            ) : needsSize ? (
+              <p className="text-[11px] text-ink-muted">Choose a size</p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={addToBag}
+            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[var(--radius-sm)] bg-ink text-[14px] font-medium text-white transition-[background-color,scale] duration-[var(--dur-base)] active:scale-[0.98]"
+          >
+            <BagIcon className="size-[17px]" />
+            Add to bag
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}

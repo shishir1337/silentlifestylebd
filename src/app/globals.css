@@ -1,26 +1,316 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ==========================================================================
+   Silent Lifestyle BD — Design tokens
+   Style: Minimalism / Swiss. Warm neutral base + one brand accent.
+   Light mode only by design: product photography is shot on white, and a
+   single, predictable surface keeps colour fidelity honest for shoppers.
+   ========================================================================== */
+
+@theme {
+  /* --- Surfaces (warm neutrals read as "fashion", cool greys read as "tech") */
+  --color-canvas: #ffffff;
+  --color-surface: #ffffff;
+  --color-subtle: #f8f7f5;
+  --color-muted: #efedea;
+  --color-line: #e5e2dd;
+  --color-line-strong: #d5d1ca;
+
+  /* --- Text */
+  --color-ink: #1a1917;
+  --color-ink-soft: #55524c;
+  --color-ink-muted: #6b6862;
+
+  /* --- Brand: deep bottle green. Nods to the national palette without
+         resorting to flag cliché, and passes AA (6.2:1) on white. */
+  --color-brand: #0b6e4f;
+  --color-brand-hover: #095b41;
+  --color-brand-tint: #e9f3ef;
+  --color-on-brand: #ffffff;
+
+  /* --- Semantic */
+  --color-sale: #c1121f;
+  --color-sale-tint: #fdecee;
+
+  /* --- Type */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --font-display: var(--font-jakarta), var(--font-inter), ui-sans-serif,
+    system-ui, sans-serif;
+
+  /* --- Radius: small and consistent. Big radii read "app", not "atelier". */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* --- Elevation: one soft step. Swiss minimalism earns depth, never sprays it. */
+  --shadow-card: 0 1px 2px rgb(26 25 23 / 0.04), 0 1px 3px rgb(26 25 23 / 0.06);
+  --shadow-pop: 0 4px 6px -1px rgb(26 25 23 / 0.07),
+    0 10px 24px -6px rgb(26 25 23 / 0.12);
+
+  /* --- Motion.
+     One rhythm for the whole storefront. Entrances are decelerated and a beat
+     longer than exits — a panel that flies away as slowly as it arrived feels
+     sluggish, while one that snaps in feels cheap. */
+  --ease-out-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+
+  --dur-fast: 180ms;
+  --dur-base: 260ms;
+  --dur-slow: 420ms;
+  --dur-panel-in: 340ms;
+  --dur-panel-out: 240ms;
+
+  /* --- Layering scale */
+  --z-sticky: 40;
+  --z-header: 50;
+  --z-overlay: 90;
+  --z-drawer: 100;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    /* Sticky header clearance for in-page anchors */
+    scroll-padding-top: 5.5rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Prices, counts and delivery charges must not reflow as digits change. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  /*
+   * The taka sign (U+09F3) lives in the Bengali block, which Inter does not
+   * cover — left alone, every price silently falls back to whatever Bengali
+   * font the OS happens to have, at a different weight and baseline to the
+   * digits beside it. Naming the fallbacks makes the glyph deterministic, and
+   * the optical nudge lines it up with Inter's cap height.
+   */
+  .taka {
+    font-family: var(--font-inter), "Nirmala UI", "Noto Sans Bengali",
+      "Kalpurush", "Vrinda", sans-serif;
+    font-feature-settings: normal;
+    letter-spacing: 0.01em;
+    padding-inline-end: 0.02em;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Visible, consistent focus for keyboard users on every interactive element. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+
+  /* Native controls inherit the brand */
+  ::selection {
+    background-color: var(--color-brand);
+    color: var(--color-on-brand);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  /*
+   * Horizontal product rails: native scroll, snap, zero JavaScript.
+   *
+   * Scoped to below `sm` on purpose. `.rail` and Tailwind's `sm:grid` are both
+   * single-class utilities in the same cascade layer, so specificity ties and
+   * source order decides — and this file is emitted last. Left unscoped,
+   * `display:flex` beat `sm:grid` at every width and desktop category tiles
+   * collapsed to 45px. The media query removes the conflict rather than
+   * papering over it with `!important`.
+   */
+  @media (width < 40rem) {
+    .rail {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      scroll-behavior: smooth;
+      scrollbar-width: none;
+      overscroll-behavior-x: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .rail::-webkit-scrollbar {
+      display: none;
+    }
+
+    .rail > * {
+      scroll-snap-align: start;
+      flex: 0 0 auto;
+    }
+
+    /* Edge-to-edge on phones, with the container gutter as scroll lead-in.
+       Must be scoped too: these negative margins would push the desktop grid
+       outside the container and reintroduce horizontal overflow. */
+    .rail-bleed {
+      margin-inline: calc(var(--gutter, 1rem) * -1);
+      padding-inline: var(--gutter, 1rem);
+    }
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+
+/* --------------------------------------------------------------------------
+   Overlay motion
+   --------------------------------------------------------------------------
+   A native <dialog> has no transition of its own: `showModal()` flips it from
+   `display: none` straight to visible, which is why the drawer and the size
+   sheet appeared instantly.
+
+   `transition-behavior: allow-discrete` lets `display` and `overlay` animate
+   as discrete properties, and `@starting-style` supplies the "before-open"
+   values that CSS otherwise has no way to read on a freshly shown element.
+   Together they give a real enter *and* exit without keeping every dialog
+   mounted or hand-rolling animation state in React.
+
+   Duration lives on each state, so the browser picks the exit duration when
+   transitioning to closed and the enter duration when transitioning to open.
+   -------------------------------------------------------------------------- */
+
+@layer components {
+  .overlay {
+    opacity: 0;
+    transition:
+      opacity var(--dur-panel-out) var(--ease-out-soft),
+      translate var(--dur-panel-out) var(--ease-out-soft),
+      scale var(--dur-panel-out) var(--ease-out-soft),
+      overlay var(--dur-panel-out) allow-discrete,
+      display var(--dur-panel-out) allow-discrete;
+  }
+
+  .overlay[open] {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+    transition-duration: var(--dur-panel-in);
+    transition-timing-function: var(--ease-emphasized);
+  }
+
+  /* Backdrops fade with the panel rather than blinking on. */
+  .overlay::backdrop {
+    background-color: rgb(26 25 23 / 0);
+    transition:
+      background-color var(--dur-panel-out) var(--ease-out-soft),
+      overlay var(--dur-panel-out) allow-discrete,
+      display var(--dur-panel-out) allow-discrete;
+  }
+
+  .overlay[open]::backdrop {
+    background-color: rgb(26 25 23 / 0.5);
+    transition-duration: var(--dur-panel-in);
+  }
+
+  @starting-style {
+    .overlay[open]::backdrop {
+      background-color: rgb(26 25 23 / 0);
+    }
+  }
+
+  /* --- Side panels: travel in from their own edge. */
+  .overlay-right {
+    translate: 100% 0;
+  }
+  .overlay-left {
+    translate: -100% 0;
+  }
+
+  @starting-style {
+    .overlay-right[open] {
+      opacity: 0;
+      translate: 100% 0;
+    }
+    .overlay-left[open] {
+      opacity: 0;
+      translate: -100% 0;
+    }
+  }
+
+  /*
+     The size picker is a bottom sheet on phones and a centred modal from `sm`.
+     It is already translated -50%/-50% for centring at that breakpoint, so its
+     motion has to be expressed as a scale rather than a translate or it would
+     fight the positioning transform.
+  */
+  .overlay-sheet {
+    translate: 0 100%;
+  }
+
+  @starting-style {
+    .overlay-sheet[open] {
+      opacity: 0;
+      translate: 0 100%;
+    }
+  }
+
+  @media (width >= 40rem) {
+    .overlay-sheet {
+      translate: 0 0;
+      scale: 0.96;
+    }
+    .overlay-sheet[open] {
+      scale: 1;
+    }
+    @starting-style {
+      .overlay-sheet[open] {
+        opacity: 0;
+        scale: 0.96;
+      }
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Motion preferences
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  *::backdrop {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Overlays still need to appear and disappear — just without travel. */
+  .overlay,
+  .overlay[open] {
+    translate: 0 0 !important;
+    scale: 1 !important;
+  }
 }
