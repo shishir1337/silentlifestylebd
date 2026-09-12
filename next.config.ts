@@ -2,6 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+
+  /**
+   * Emits a self-contained server at `.next/standalone` with only the traced
+   * dependencies, which is what the Dockerfile ships. Note it does NOT copy
+   * `public/` or `.next/static` — the Dockerfile places both by hand.
+   */
+  output: "standalone",
   images: {
     /**
      * Catalogue imagery is vendored into `src/assets/catalog` and statically

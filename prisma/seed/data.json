@@ -1,0 +1,968 @@
+{
+  "products": [
+    {
+      "id": "p-101",
+      "slug": "premium-cotton-panjabi-off-white",
+      "name": "Premium Cotton Panjabi — Off White",
+      "sku": "SLB-PNJ-101",
+      "categorySlug": "panjabi",
+      "price": 2290,
+      "compareAtPrice": 2990,
+      "description": "A full-sleeve cotton panjabi cut for Dhaka heat — light enough for a workday, finished well enough for Eid. Subtle tonal embroidery at the placket.",
+      "details": [
+        "100% combed cotton",
+        "Regular fit, full sleeve",
+        "Tonal thread work on placket",
+        "Machine wash cold, do not bleach"
+      ],
+      "image": "cat-panjabi.jpg",
+      "hoverImage": null,
+      "badge": "bestseller",
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [
+        "Off White",
+        "Black",
+        "Navy"
+      ],
+      "sizes": [
+        "38",
+        "40",
+        "42",
+        "44"
+      ]
+    },
+    {
+      "id": "p-102",
+      "slug": "slim-fit-formal-shirt-sky",
+      "name": "Slim Fit Formal Shirt — Sky Blue",
+      "sku": "SLB-SHT-102",
+      "categorySlug": "formal-shirt",
+      "price": 1390,
+      "compareAtPrice": 1790,
+      "description": "A slim-fit formal shirt in a breathable poplin weave. Holds a crease through a full working day without feeling stiff.",
+      "details": [
+        "Cotton-rich poplin",
+        "Slim fit through chest and waist",
+        "Single-button barrel cuff",
+        "Machine wash warm, iron medium"
+      ],
+      "image": "shirt-formal-sky.jpg",
+      "hoverImage": "shirt-formal-folded.jpg",
+      "badge": "bestseller",
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [
+        "Sky",
+        "White",
+        "Grey"
+      ],
+      "sizes": [
+        "M",
+        "L",
+        "XL",
+        "XXL"
+      ]
+    },
+    {
+      "id": "p-103",
+      "slug": "essential-cotton-tshirt-white",
+      "name": "Essential Cotton T-Shirt — White",
+      "sku": "SLB-TSH-103",
+      "categorySlug": "t-shirt",
+      "price": 690,
+      "compareAtPrice": 890,
+      "description": "The plain cotton tee, done properly. Mid-weight jersey that keeps its shape after repeated washes.",
+      "details": [
+        "180 GSM cotton jersey",
+        "Regular fit, ribbed crew neck",
+        "Pre-shrunk",
+        "Machine wash cold, tumble dry low"
+      ],
+      "image": "tshirt-white.jpg",
+      "hoverImage": "cat-tshirt.jpg",
+      "badge": "bestseller",
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [
+        "White",
+        "Black",
+        "Olive"
+      ],
+      "sizes": [
+        "M",
+        "L",
+        "XL"
+      ]
+    },
+    {
+      "id": "p-104",
+      "slug": "pique-polo-dusty-rose",
+      "name": "Pique Knit Polo — Dusty Rose",
+      "sku": "SLB-POL-104",
+      "categorySlug": "polo",
+      "price": 990,
+      "compareAtPrice": null,
+      "description": "A pique-knit polo with a soft collar that stays flat. Breathable enough for humid afternoons.",
+      "details": [
+        "Cotton pique knit",
+        "Two-button placket",
+        "Ribbed collar and cuffs",
+        "Machine wash cold"
+      ],
+      "image": "polo-rose.jpg",
+      "hoverImage": "polo-black.jpg",
+      "badge": "new",
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [
+        "Rose",
+        "Navy",
+        "Black"
+      ],
+      "sizes": [
+        "M",
+        "L",
+        "XL"
+      ]
+    },
+    {
+      "id": "p-105",
+      "slug": "genuine-leather-belt-brown",
+      "name": "Genuine Leather Belt — Tan Brown",
+      "sku": "SLB-BLT-105",
+      "categorySlug": "belts",
+      "price": 890,
+      "compareAtPrice": 1290,
+      "description": "Full-grain leather belt with a brushed metal buckle. Softens and darkens with wear rather than cracking.",
+      "details": [
+        "Genuine full-grain leather",
+        "35mm width",
+        "Brushed nickel buckle",
+        "Wipe clean with a dry cloth"
+      ],
+      "image": "belt-leather-tan.jpg",
+      "hoverImage": null,
+      "badge": null,
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [
+        "Tan",
+        "Black"
+      ],
+      "sizes": [
+        "34",
+        "36",
+        "38",
+        "40"
+      ]
+    },
+    {
+      "id": "p-106",
+      "slug": "bifold-leather-wallet",
+      "name": "Bifold Leather Wallet — Money Bag",
+      "sku": "SLB-WLT-106",
+      "categorySlug": "wallets",
+      "price": 790,
+      "compareAtPrice": 1190,
+      "description": "A slim bifold that holds cards and notes without bulking out a back pocket.",
+      "details": [
+        "Genuine leather",
+        "Six card slots, two note compartments",
+        "Slim profile",
+        "Wipe clean with a dry cloth"
+      ],
+      "image": "wallet-bifold.jpg",
+      "hoverImage": null,
+      "badge": "bestseller",
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [
+        "Brown",
+        "Black"
+      ],
+      "sizes": []
+    },
+    {
+      "id": "p-107",
+      "slug": "oxford-leather-formal-shoes",
+      "name": "Oxford Leather Formal Shoes",
+      "sku": "SLB-SHO-107",
+      "categorySlug": "shoes",
+      "price": 2890,
+      "compareAtPrice": 3690,
+      "description": "Leather oxfords on a cushioned sole. Formal enough for office, comfortable enough to wear all day.",
+      "details": [
+        "Genuine leather upper",
+        "Cushioned insole",
+        "Rubber outsole with grip",
+        "Use a shoe tree to keep shape"
+      ],
+      "image": "shoes-oxford-brown.jpg",
+      "hoverImage": "shoes-chukka-black.jpg",
+      "badge": null,
+      "freeDelivery": true,
+      "inStock": true,
+      "colors": [
+        "Brown",
+        "Black"
+      ],
+      "sizes": [
+        "39",
+        "40",
+        "41",
+        "42",
+        "43"
+      ]
+    },
+    {
+      "id": "p-108",
+      "slug": "chronograph-watch-leather-strap",
+      "name": "Chronograph Watch — Leather Strap",
+      "sku": "SLB-WCH-108",
+      "categorySlug": "watches",
+      "price": 3490,
+      "compareAtPrice": 4990,
+      "description": "A chronograph on a leather strap — a clean dial that reads at a glance, with a case slim enough to sit under a cuff.",
+      "details": [
+        "Quartz chronograph movement",
+        "Stainless steel case, 42mm",
+        "Genuine leather strap",
+        "30m water resistant — splash safe, not for swimming"
+      ],
+      "image": "watch-chronograph.jpg",
+      "hoverImage": "watch-steel.jpg",
+      "badge": "limited",
+      "freeDelivery": true,
+      "inStock": true,
+      "colors": [
+        "Brown",
+        "Steel"
+      ],
+      "sizes": []
+    },
+    {
+      "id": "p-109",
+      "slug": "pakistani-stitched-three-piece",
+      "name": "Pakistani Stitched Three Piece",
+      "sku": "SLB-PAK-109",
+      "categorySlug": "pakistani-stitched",
+      "price": 3890,
+      "compareAtPrice": 4900,
+      "description": "A ready-to-wear three piece — kameez, salwar and dupatta — in a soft lawn with detailed thread work across the yoke.",
+      "details": [
+        "Premium lawn fabric",
+        "Three piece: kameez, salwar, dupatta",
+        "Thread work on yoke and sleeves",
+        "Dry clean recommended"
+      ],
+      "image": "pakistani-stitched.jpg",
+      "hoverImage": "ladies-mint.jpg",
+      "badge": "bestseller",
+      "freeDelivery": true,
+      "inStock": true,
+      "colors": [],
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ]
+    },
+    {
+      "id": "p-110",
+      "slug": "structured-ladies-handbag",
+      "name": "Structured Ladies Handbag",
+      "sku": "SLB-PUR-110",
+      "categorySlug": "purses",
+      "price": 2190,
+      "compareAtPrice": 2890,
+      "description": "A structured top-handle bag that holds its shape when set down. Fits a phone, purse and everyday essentials.",
+      "details": [
+        "Faux leather with structured panels",
+        "Top handle with detachable sling",
+        "Lined interior with zip pocket",
+        "Wipe clean with a damp cloth"
+      ],
+      "image": "purse-structured.jpg",
+      "hoverImage": null,
+      "badge": "new",
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [
+        "Red",
+        "Black",
+        "Beige"
+      ],
+      "sizes": []
+    },
+    {
+      "id": "p-111",
+      "slug": "gabardine-pant-beige",
+      "name": "Gabardine Pant — Beige",
+      "sku": "SLB-PNT-111",
+      "categorySlug": "pants",
+      "price": 1290,
+      "compareAtPrice": 1690,
+      "description": "Gabardine trousers with a clean, straight leg. Sturdy weave that resists wrinkling through the day.",
+      "details": [
+        "Cotton gabardine twill",
+        "Straight fit, mid rise",
+        "Four pockets, button closure",
+        "Machine wash cold, warm iron"
+      ],
+      "image": "pant-gabardine-beige.jpg",
+      "hoverImage": "pant-formal-charcoal.jpg",
+      "badge": null,
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [
+        "Beige",
+        "Olive",
+        "Black"
+      ],
+      "sizes": [
+        "30",
+        "32",
+        "34",
+        "36"
+      ]
+    },
+    {
+      "id": "p-112",
+      "slug": "rose-gold-cuff-bracelet",
+      "name": "Rose Gold Cuff Bracelet",
+      "sku": "SLB-BRC-112",
+      "categorySlug": "bracelets",
+      "price": 890,
+      "compareAtPrice": null,
+      "description": "A rose-gold tone cuff with a hinged opening, sized to sit close to the wrist.",
+      "details": [
+        "Rose gold tone alloy",
+        "Hinged cuff, adjustable",
+        "Nickel free",
+        "Keep away from perfume and water"
+      ],
+      "image": "bracelet-rose-gold.jpg",
+      "hoverImage": "bracelet-gold-chain.jpg",
+      "badge": "new",
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [],
+      "sizes": []
+    },
+    {
+      "id": "p-113",
+      "slug": "chambray-casual-shirt",
+      "name": "Chambray Casual Shirt",
+      "sku": "SLB-SHT-113",
+      "categorySlug": "formal-shirt",
+      "price": 1190,
+      "compareAtPrice": null,
+      "description": "A chambray shirt that works open over a tee or buttoned with a collar. Softens with every wash.",
+      "details": [
+        "100% cotton chambray",
+        "Regular fit",
+        "Curved hem, chest pocket",
+        "Machine wash cold"
+      ],
+      "image": "shirt-chambray.jpg",
+      "hoverImage": "shirt-check.jpg",
+      "badge": null,
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [
+        "Chambray",
+        "Check"
+      ],
+      "sizes": [
+        "M",
+        "L",
+        "XL"
+      ]
+    },
+    {
+      "id": "p-114",
+      "slug": "formal-pant-charcoal",
+      "name": "Formal Pant — Charcoal",
+      "sku": "SLB-PNT-114",
+      "categorySlug": "pants",
+      "price": 1590,
+      "compareAtPrice": 1990,
+      "description": "Charcoal formal trousers with a flat front and a clean break over the shoe.",
+      "details": [
+        "Poly-viscose blend suiting",
+        "Flat front, straight leg",
+        "Hook and bar closure",
+        "Dry clean or gentle machine wash"
+      ],
+      "image": "pant-formal-charcoal.jpg",
+      "hoverImage": null,
+      "badge": "bestseller",
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [],
+      "sizes": [
+        "30",
+        "32",
+        "34",
+        "36",
+        "38"
+      ]
+    },
+    {
+      "id": "p-115",
+      "slug": "graphic-tee-black",
+      "name": "Oversized Graphic Tee — Black",
+      "sku": "SLB-TSH-115",
+      "categorySlug": "t-shirt",
+      "price": 790,
+      "compareAtPrice": null,
+      "description": "An oversized tee with a dropped shoulder and a heavier body than a standard fit.",
+      "details": [
+        "220 GSM cotton jersey",
+        "Oversized fit, dropped shoulder",
+        "Ribbed crew neck",
+        "Machine wash cold, dry flat"
+      ],
+      "image": "tshirt-black.jpg",
+      "hoverImage": null,
+      "badge": "new",
+      "freeDelivery": false,
+      "inStock": true,
+      "colors": [
+        "Black",
+        "Sand"
+      ],
+      "sizes": [
+        "M",
+        "L",
+        "XL"
+      ]
+    },
+    {
+      "id": "p-116",
+      "slug": "suede-chukka-boot",
+      "name": "Suede Chukka Boot — Black",
+      "sku": "SLB-SHO-116",
+      "categorySlug": "shoes",
+      "price": 3290,
+      "compareAtPrice": 4200,
+      "description": "A suede chukka on a crepe sole — the boot that sits between trainers and formal shoes.",
+      "details": [
+        "Suede leather upper",
+        "Two-eyelet lace",
+        "Crepe rubber sole",
+        "Brush with a suede brush; keep dry"
+      ],
+      "image": "shoes-chukka-black.jpg",
+      "hoverImage": null,
+      "badge": "limited",
+      "freeDelivery": true,
+      "inStock": false,
+      "colors": [],
+      "sizes": [
+        "40",
+        "41",
+        "42",
+        "43"
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "slug": "panjabi",
+      "name": "Panjabi",
+      "tagline": "Festive & everyday",
+      "image": "panjabi-off-white.jpg",
+      "group": "men"
+    },
+    {
+      "slug": "formal-shirt",
+      "name": "Formal Shirt",
+      "tagline": "Office ready",
+      "image": "cat-formal-shirt.jpg",
+      "group": "men"
+    },
+    {
+      "slug": "t-shirt",
+      "name": "T-Shirt",
+      "tagline": "Cotton, breathable",
+      "image": "cat-tshirt.jpg",
+      "group": "men"
+    },
+    {
+      "slug": "polo",
+      "name": "Polo",
+      "tagline": "Pique knit",
+      "image": "polo-rose.jpg",
+      "group": "men"
+    },
+    {
+      "slug": "pants",
+      "name": "Pants",
+      "tagline": "Formal & gabardine",
+      "image": "pant-gabardine-beige.jpg",
+      "group": "men"
+    },
+    {
+      "slug": "shoes",
+      "name": "Shoes",
+      "tagline": "Formal & casual",
+      "image": "shoes-oxford-brown.jpg",
+      "group": "accessories"
+    },
+    {
+      "slug": "watches",
+      "name": "Watches",
+      "tagline": "Analog & chrono",
+      "image": "watch-chronograph.jpg",
+      "group": "accessories"
+    },
+    {
+      "slug": "belts",
+      "name": "Belts",
+      "tagline": "Genuine leather",
+      "image": "belt-leather-tan.jpg",
+      "group": "accessories"
+    },
+    {
+      "slug": "wallets",
+      "name": "Wallets",
+      "tagline": "Money bags",
+      "image": "wallet-bifold.jpg",
+      "group": "accessories"
+    },
+    {
+      "slug": "purses",
+      "name": "Purses",
+      "tagline": "Ladies handbags",
+      "image": "purse-structured.jpg",
+      "group": "women"
+    },
+    {
+      "slug": "bracelets",
+      "name": "Bracelets",
+      "tagline": "Gold & steel tone",
+      "image": "bracelet-rose-gold.jpg",
+      "group": "accessories"
+    },
+    {
+      "slug": "pakistani-stitched",
+      "name": "Pakistani Stitched",
+      "tagline": "Ready to wear",
+      "image": "pakistani-stitched.jpg",
+      "group": "women"
+    }
+  ],
+  "heroSlides": [
+    {
+      "id": "new-season",
+      "alt": "New season — everyday essentials, quietly well made. Shop new arrivals.",
+      "href": "/collections/new",
+      "label": "New season",
+      "image": "hero-1-new-season.jpg",
+      "imageMobile": "hero-1-new-season-mobile.jpg"
+    },
+    {
+      "id": "pakistani",
+      "alt": "Just landed — the Pakistani collection, stitched and unstitched three-piece sets. Shop the collection.",
+      "href": "/collections/pakistani-stitched",
+      "label": "Pakistani collection",
+      "image": "hero-2-ladies.jpg",
+      "imageMobile": "hero-2-ladies-mobile.jpg"
+    },
+    {
+      "id": "formals",
+      "alt": "Office ready — formal shirts, pants and shoes. Shop formals.",
+      "href": "/collections/men",
+      "label": "Formals",
+      "image": "hero-3-formals.jpg",
+      "imageMobile": "hero-3-formals-mobile.jpg"
+    }
+  ],
+  "sizeCharts": [
+    {
+      "id": "shirts",
+      "title": "Shirts, t-shirts & polos",
+      "note": "Measured flat across the garment, then doubled for chest.",
+      "columns": [
+        "Size",
+        "Chest",
+        "Length",
+        "Shoulder",
+        "Sleeve"
+      ],
+      "rows": [
+        [
+          "M",
+          "38",
+          "27.5",
+          "17",
+          "24"
+        ],
+        [
+          "L",
+          "40",
+          "28.5",
+          "18",
+          "24.5"
+        ],
+        [
+          "XL",
+          "42",
+          "29.5",
+          "19",
+          "25"
+        ],
+        [
+          "XXL",
+          "44",
+          "30.5",
+          "20",
+          "25.5"
+        ]
+      ]
+    },
+    {
+      "id": "panjabi",
+      "title": "Panjabi",
+      "note": "Panjabi sizes follow chest measurement in inches.",
+      "columns": [
+        "Size",
+        "Chest",
+        "Length",
+        "Shoulder",
+        "Sleeve"
+      ],
+      "rows": [
+        [
+          "38",
+          "38",
+          "40",
+          "16.5",
+          "23"
+        ],
+        [
+          "40",
+          "40",
+          "41",
+          "17.5",
+          "23.5"
+        ],
+        [
+          "42",
+          "42",
+          "42",
+          "18.5",
+          "24"
+        ],
+        [
+          "44",
+          "44",
+          "43",
+          "19.5",
+          "24.5"
+        ]
+      ]
+    },
+    {
+      "id": "pants",
+      "title": "Formal & gabardine pants",
+      "note": "Waist is the finished garment waist, not your body waist.",
+      "columns": [
+        "Size",
+        "Waist",
+        "Hip",
+        "Inseam",
+        "Bottom"
+      ],
+      "rows": [
+        [
+          "30",
+          "30",
+          "38",
+          "40",
+          "13.5"
+        ],
+        [
+          "32",
+          "32",
+          "40",
+          "40",
+          "14"
+        ],
+        [
+          "34",
+          "34",
+          "42",
+          "41",
+          "14.5"
+        ],
+        [
+          "36",
+          "36",
+          "44",
+          "41",
+          "15"
+        ],
+        [
+          "38",
+          "38",
+          "46",
+          "41.5",
+          "15.5"
+        ]
+      ]
+    },
+    {
+      "id": "shoes",
+      "title": "Shoes",
+      "note": "If you are between sizes, take the larger one.",
+      "columns": [
+        "Size (EU)",
+        "UK",
+        "Foot length (cm)"
+      ],
+      "rows": [
+        [
+          "39",
+          "6",
+          "24.5"
+        ],
+        [
+          "40",
+          "6.5",
+          "25"
+        ],
+        [
+          "41",
+          "7.5",
+          "25.5"
+        ],
+        [
+          "42",
+          "8",
+          "26.5"
+        ],
+        [
+          "43",
+          "9",
+          "27"
+        ]
+      ]
+    },
+    {
+      "id": "ladies",
+      "title": "Pakistani stitched three piece",
+      "note": "Kameez measurements. Salwar length is 38 inches on all sizes.",
+      "columns": [
+        "Size",
+        "Bust",
+        "Waist",
+        "Kameez length"
+      ],
+      "rows": [
+        [
+          "S",
+          "36",
+          "34",
+          "40"
+        ],
+        [
+          "M",
+          "38",
+          "36",
+          "41"
+        ],
+        [
+          "L",
+          "40",
+          "38",
+          "42"
+        ],
+        [
+          "XL",
+          "42",
+          "40",
+          "42"
+        ]
+      ]
+    }
+  ],
+  "collections": [
+    {
+      "slug": "men",
+      "name": "Men Collection",
+      "description": "Panjabi, formal shirts, t-shirts, polos, pants, shoes, belts and wallets."
+    },
+    {
+      "slug": "women",
+      "name": "Women Collection",
+      "description": "Pakistani stitched and unstitched sets, purses and bracelets."
+    },
+    {
+      "slug": "accessories",
+      "name": "Accessories",
+      "description": "Watches, belts, wallets and bracelets to finish the outfit."
+    },
+    {
+      "slug": "new",
+      "name": "New In",
+      "description": "Fresh stock, added every week."
+    },
+    {
+      "slug": "offers",
+      "name": "Offers",
+      "description": "Genuine markdowns — no inflated was-prices."
+    },
+    {
+      "slug": "bestsellers",
+      "name": "Bestsellers",
+      "description": "What customers across Bangladesh are ordering most."
+    }
+  ],
+  "collectionMembers": {
+    "men": [
+      "panjabi",
+      "formal-shirt",
+      "t-shirt",
+      "polo",
+      "pants",
+      "shoes",
+      "belts",
+      "wallets",
+      "watches"
+    ],
+    "women": [
+      "pakistani-stitched",
+      "purses",
+      "bracelets"
+    ],
+    "accessories": [
+      "watches",
+      "belts",
+      "wallets",
+      "bracelets",
+      "purses"
+    ]
+  },
+  "promoTiles": [
+    {
+      "title": "Men Collection",
+      "subtitle": "Panjabi, formal shirts, pants, shoes, belts and watches.",
+      "href": "/collections/men",
+      "cta": "Shop men",
+      "image": "promo-mens-formal.jpg"
+    },
+    {
+      "title": "Women Collection",
+      "subtitle": "Pakistani stitched and unstitched sets, purses and bracelets.",
+      "href": "/collections/women",
+      "cta": "Shop women",
+      "image": "pakistani-stitched.jpg"
+    }
+  ],
+  "site": {
+    "name": "Silent Lifestyle BD",
+    "legalName": "Silent Lifestyle BD",
+    "tagline": "Everyday essentials, quietly well made.",
+    "description": "Shop men's and women's fashion in Bangladesh — panjabi, formal shirts, pants, shoes, watches, belts, wallets and Pakistani ladies collections. Cash on delivery nationwide.",
+    "url": "https://silentlifestylebd.com",
+    "phone": "+8801711000000",
+    "phoneDisplay": "+880 1711-000000",
+    "email": "hello@silentlifestylebd.com",
+    "address": "Bashundhara City, Panthapath, Dhaka 1215"
+  },
+  "delivery": {
+    "insideDhaka": 60,
+    "outsideDhaka": 120,
+    "freeThreshold": 3000,
+    "returnWindowDays": 7,
+    "insideDhakaDays": "1–2 days",
+    "outsideDhakaDays": "2–4 days"
+  },
+  "nav": {
+    "primary": [
+      {
+        "label": "Men",
+        "href": "/collections/men",
+        "highlight": false
+      },
+      {
+        "label": "Women",
+        "href": "/collections/women",
+        "highlight": false
+      },
+      {
+        "label": "Accessories",
+        "href": "/collections/accessories",
+        "highlight": false
+      },
+      {
+        "label": "Shoes",
+        "href": "/collections/shoes",
+        "highlight": false
+      },
+      {
+        "label": "New In",
+        "href": "/collections/new",
+        "highlight": false
+      },
+      {
+        "label": "Offers",
+        "href": "/collections/offers",
+        "highlight": true
+      }
+    ],
+    "help": [
+      {
+        "label": "Track your order",
+        "href": "/track",
+        "highlight": false
+      },
+      {
+        "label": "Delivery & charges",
+        "href": "/delivery",
+        "highlight": false
+      },
+      {
+        "label": "Returns & exchange",
+        "href": "/returns",
+        "highlight": false
+      },
+      {
+        "label": "Size guide",
+        "href": "/size-guide",
+        "highlight": false
+      },
+      {
+        "label": "Contact us",
+        "href": "/contact",
+        "highlight": false
+      }
+    ],
+    "company": [
+      {
+        "label": "About us",
+        "href": "/about",
+        "highlight": false
+      },
+      {
+        "label": "Store locations",
+        "href": "/stores",
+        "highlight": false
+      },
+      {
+        "label": "Privacy policy",
+        "href": "/privacy",
+        "highlight": false
+      },
+      {
+        "label": "Terms & conditions",
+        "href": "/terms",
+        "highlight": false
+      }
+    ]
+  }
+}

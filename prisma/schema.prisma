@@ -1,0 +1,619 @@
+// Silent Lifestyle BD — data model
+//
+// Conventions used throughout:
+//
+//  * Money is Int, in whole BDT. The storefront already rounds every amount
+//    (src/lib/currency.ts) and Bangladeshi retail does not price in paisa.
+//    Float would introduce rounding error; Decimal would return a class
+//    instance that complicates serialisation for no benefit here.
+//  * `position` columns exist wherever display order is editable in the admin.
+//    The current data files encode order implicitly by array index — that order
+//    is meaningful (the category rail is merchandised) and must survive.
+//  * Content the client edits is soft-controlled with `isActive` rather than
+//    deleted, so an accidental removal is one click to undo.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7 removed `url` from the datasource block. The connection string for
+// migrate/introspect now lives in `prisma.config.ts`, and the runtime client
+// gets an explicit driver adapter (see src/lib/db.ts).
+datasource db {
+  provider = "postgresql"
+}
+
+// ===========================================================================
+// Media
+// ===========================================================================
+
+/// Uploaded image, stored on ImageKit.
+///
+/// A table rather than a URL column on each record, because images are
+/// deliberately shared: pakistani-stitched.jpg is currently used by a category,
+/// a product and a promo tile at once.
+///
+/// `width`/`height`/`blurDataURL` are not optional decoration — static imports
+/// supply them today, and next/image needs them to reserve layout space and
+/// render the blur placeholder. Dropping them reintroduces layout shift.
+model Asset {
+  id             String   @id @default(cuid())
+  imagekitFileId String   @unique
+  url            String
+  /// ImageKit path, kept so the file can be deleted or re-transformed later.
+  filePath       String
+  width          Int
+  height         Int
+  blurDataURL    String?
+  /// Default alt text. Per-use alt overrides live on the referencing row.
+  alt            String?
+  bytes          Int
+  mimeType       String
+  createdAt      DateTime @default(now())
+
+  categories     Category[]
+  productImages  ProductImage[]
+  heroDesktop    HeroSlide[]    @relation("HeroDesktop")
+  heroMobile     HeroSlide[]    @relation("HeroMobile")
+  promoTiles     PromoTile[]
+
+  @@index([createdAt])
+}
+
+// ===========================================================================
+// Catalog
+// ===========================================================================
+
+model Category {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  /// Short line under the name on category tiles.
+  tagline   String?
+  imageId   String?
+  /// Order in the mobile category rail — merchandised, highest intent first.
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  image       Asset?               @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  products    Product[]
+  collections CategoryCollection[]
+
+  @@index([position])
+  @@index([isActive])
+}
+
+/// Curated sets that are not categories: men, women, accessories, new, offers,
+/// bestsellers.
+///
+/// `kind` distinguishes membership by category (CATEGORY — men/women/accessories)
+/// from membership by product attribute (RULE — new/offers/bestsellers, which
+/// are derived from badge and compareAtPrice rather than stored).
+model Collection {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  name        String
+  description String
+  kind        CollectionKind
+  /// For RULE collections: which rule. Null for CATEGORY collections.
+  rule        CollectionRule?
+  position    Int            @default(0)
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  categories CategoryCollection[]
+
+  @@index([position])
+}
+
+enum CollectionKind {
+  CATEGORY
+  RULE
+}
+
+enum CollectionRule {
+  NEW
+  ON_OFFER
+  BESTSELLER
+}
+
+/// Join table for CATEGORY collections.
+///
+/// Required, not incidental: the current code keeps three overlapping hardcoded
+/// Sets (MEN/WOMEN/ACCESSORY_CATEGORIES) where `watches` belongs to both men and
+/// accessories. `Category.group` — a single enum column — cannot express that,
+/// which is why it exists in the type today but is never read at runtime.
+model CategoryCollection {
+  categoryId   String
+  collectionId String
+  position     Int    @default(0)
+
+  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([categoryId, collectionId])
+  @@index([collectionId, position])
+}
+
+model Product {
+  id             String       @id @default(cuid())
+  slug           String       @unique
+  name           String
+  sku            String       @unique
+  categoryId     String
+  /// Selling price, whole BDT.
+  price          Int
+  /// Was-price. Set only when genuinely discounted — an inflated was-price is
+  /// the thing the storefront copy explicitly promises not to do.
+  compareAtPrice Int?
+  description    String
+  badge          ProductBadge?
+  /// Overrides the global free-delivery threshold for this item.
+  freeDelivery   Boolean      @default(false)
+  isActive       Boolean      @default(true)
+  position       Int          @default(0)
+  /// Optional SEO overrides; fall back to name/description when null.
+  seoTitle       String?
+  seoDescription String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  category   Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  details    ProductDetail[]
+  variants   ProductVariant[]
+  colors     ProductColor[]
+  images     ProductImage[]
+  orderItems OrderItem[]
+
+  @@index([categoryId, isActive])
+  @@index([badge])
+  @@index([position])
+}
+
+enum ProductBadge {
+  NEW
+  BESTSELLER
+  LIMITED
+}
+
+/// The scannable spec bullets (fabric, fit, construction, care).
+/// A table rather than String[] so the admin can reorder and add rows.
+model ProductDetail {
+  id        String @id @default(cuid())
+  productId String
+  text      String
+  position  Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, position])
+}
+
+/// Per-size stock — the capability the storefront does not have today.
+///
+/// A product with no sizes still gets exactly one variant (size ""), so every
+/// stock read goes through the same path and there is no second code branch for
+/// "sizeless" products.
+model ProductVariant {
+  id            String @id @default(cuid())
+  productId     String
+  /// "M", "40", or "" for products sold without a size.
+  size          String
+  stock         Int    @default(0)
+  /// Variant SKU. Falls back to the product SKU when null.
+  sku           String?
+  /// Rarely used; null means "same as the product price".
+  priceOverride Int?
+  position      Int    @default(0)
+
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@unique([productId, size])
+  @@index([productId, position])
+}
+
+/// Display-only colour labels. Deliberately not inventory-bearing: the current
+/// product page tracks a colour selection but never attaches it to the cart
+/// line, and per-colour stock was explicitly ruled out of scope.
+model ProductColor {
+  id        String @id @default(cuid())
+  productId String
+  name      String
+  position  Int    @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, position])
+}
+
+model ProductImage {
+  id        String           @id @default(cuid())
+  productId String
+  assetId   String
+  role      ProductImageRole @default(GALLERY)
+  /// Per-use alt override; falls back to Asset.alt then the product name.
+  alt       String?
+  position  Int              @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  asset   Asset   @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@index([productId, position])
+}
+
+enum ProductImageRole {
+  /// The card and gallery lead image.
+  PRIMARY
+  /// Revealed on card hover/focus.
+  HOVER
+  GALLERY
+}
+
+// ===========================================================================
+// Identity
+//
+// better-auth owns User / Session / Account / Verification. Its Prisma adapter
+// expects these exact model and field names, so they are written out rather
+// than renamed to house style.
+// ===========================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  /// Null for ordinary shoppers. Any non-null value grants admin access, so
+  /// this is the single most security-sensitive column in the schema.
+  staffRole StaffRole?
+
+  sessions    Session[]
+  accounts    Account[]
+  addresses   CustomerAddress[]
+  orders      Order[]
+  orderEvents OrderEvent[]
+
+  @@index([staffRole])
+}
+
+enum StaffRole {
+  /// Everything, including staff management and settings.
+  OWNER
+  /// Catalog, orders and content. No staff or settings.
+  MANAGER
+  /// Orders only.
+  STAFF
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  userId                String
+  accountId             String
+  providerId            String
+  accessToken           String?
+  refreshToken          String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  idToken               String?
+  /// Hashed by better-auth. Null for OAuth-only accounts.
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+}
+
+/// Saved delivery addresses for signed-in customers.
+///
+/// The storefront enforces "exactly one default, always" in the browser today
+/// (src/lib/account.ts). Postgres cannot express "exactly one true per user" as
+/// a plain constraint, so the partial unique index below enforces *at most* one,
+/// and the server action promotes a replacement when the default is deleted.
+model CustomerAddress {
+  id        String       @id @default(cuid())
+  userId    String
+  /// What the customer calls it — "Home", "Office".
+  label     String
+  recipient String
+  phone     String
+  address   String
+  area      DeliveryArea
+  isDefault Boolean      @default(false)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum DeliveryArea {
+  INSIDE_DHAKA
+  OUTSIDE_DHAKA
+}
+
+// ===========================================================================
+// Orders
+// ===========================================================================
+
+/// A placed order.
+///
+/// Customer contact details are snapshotted rather than joined: an order must
+/// still show the address it was actually shipped to after the customer edits
+/// their address book. `customerId` is null for guest checkout, which stays the
+/// default path.
+model Order {
+  id       String      @id @default(cuid())
+  /// Human-readable, read aloud over the phone: SLB-YYMMDD-XXXX.
+  orderNo  String      @unique
+  status   OrderStatus @default(PENDING)
+
+  customerId String?
+
+  // --- contact snapshot
+  customerName  String
+  customerPhone String
+  altPhone      String?
+  address       String
+  note          String?
+  area          DeliveryArea
+
+  // --- money, all recomputed server-side at placement, never trusted from the client
+  subtotal       Int
+  deliveryCharge Int
+  total          Int
+  paymentMethod  PaymentMethod @default(COD)
+
+  placedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  customer User?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  items    OrderItem[]
+  events   OrderEvent[]
+
+  @@index([status, placedAt])
+  @@index([customerId])
+  /// Guest order lookup is by order number plus phone.
+  @@index([customerPhone])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PACKED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum PaymentMethod {
+  COD
+}
+
+/// A line on an order.
+///
+/// Name, price, size and image are snapshotted at purchase time — the cart
+/// already denormalises these today, which is correct: renaming or repricing a
+/// product must not rewrite history on an order already placed.
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  /// Nullable so deleting a product does not destroy order history.
+  productId String?
+  variantId String?
+
+  name      String
+  size      String?
+  unitPrice Int
+  qty       Int
+  imageUrl  String
+  /// Kept so the confirmation page can still link to the product.
+  slug      String
+
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+/// Append-only audit trail. Never updated, never deleted — it is the record of
+/// who changed what, which is the whole reason staff have individual logins.
+model OrderEvent {
+  id         String       @id @default(cuid())
+  orderId    String
+  fromStatus OrderStatus?
+  toStatus   OrderStatus?
+  note       String?
+  /// Null for system-generated events such as order placement.
+  actorId    String?
+  createdAt  DateTime     @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+}
+
+// ===========================================================================
+// Site content — everything the client edits without a developer
+// ===========================================================================
+
+/// Scalar settings: delivery rates, free-delivery threshold, phone, address.
+///
+/// Key-value rather than a one-row table so adding a setting needs no migration.
+/// `type` tells the admin form which control to render and how to parse.
+model Setting {
+  key       String      @id
+  value     String
+  type      SettingType @default(STRING)
+  /// Groups settings into admin form sections.
+  group     String      @default("general")
+  label     String
+  helpText  String?
+  position  Int         @default(0)
+  updatedAt DateTime    @updatedAt
+
+  @@index([group, position])
+}
+
+enum SettingType {
+  STRING
+  INT
+  BOOLEAN
+  TEXT
+}
+
+/// Homepage carousel banner.
+///
+/// All wording lives inside the artwork, so `alt` is the only machine-readable
+/// copy — it carries the headline for screen readers and search engines, and is
+/// required for that reason.
+///
+/// Both images are required and their dimensions are fixed (desktop 1920x600,
+/// mobile 1000x700). Slides of differing ratios change the carousel track
+/// height mid-scroll, so the admin validates dimensions on upload.
+model HeroSlide {
+  id             String   @id @default(cuid())
+  desktopAssetId String
+  mobileAssetId  String
+  alt            String
+  href           String
+  /// Short label for the dot control, e.g. "New season".
+  label          String
+  position       Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  desktopAsset Asset @relation("HeroDesktop", fields: [desktopAssetId], references: [id], onDelete: Restrict)
+  mobileAsset  Asset @relation("HeroMobile", fields: [mobileAssetId], references: [id], onDelete: Restrict)
+
+  @@index([position])
+  @@index([isActive])
+}
+
+/// The two editorial tiles under the bestsellers rail.
+model PromoTile {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String
+  href      String
+  cta       String
+  assetId   String
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Restrict)
+
+  @@index([position])
+}
+
+/// Editable content pages: delivery, returns, privacy, terms, about, stores,
+/// contact. Slugs match existing routes, which render the stored body.
+model Page {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  lead           String?
+  /// Rich text as HTML, produced by the admin editor and sanitised on save.
+  body           String
+  seoTitle       String?
+  seoDescription String?
+  /// Policy pages show "last updated"; a real date beats a hardcoded string.
+  isActive       Boolean  @default(true)
+  updatedAt      DateTime @updatedAt
+
+  @@index([slug])
+}
+
+/// Size chart. Column count varies per chart (3-5) and cells mix text and
+/// numbers ("M", 38, 27.5), so cells are stored as strings and rendered
+/// verbatim. Typing them more strictly would buy nothing and break the shoe
+/// chart, which mixes EU, UK and centimetres.
+model SizeChart {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  note      String
+  columns   String[]
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  rows SizeChartRow[]
+
+  @@index([position])
+}
+
+model SizeChartRow {
+  id       String   @id @default(cuid())
+  chartId  String
+  cells    String[]
+  position Int      @default(0)
+
+  chart SizeChart @relation(fields: [chartId], references: [id], onDelete: Cascade)
+
+  @@index([chartId, position])
+}
+
+/// Header and footer navigation.
+model NavItem {
+  id        String   @id @default(cuid())
+  group     NavGroup
+  label     String
+  href      String
+  /// Renders in the sale colour — currently used for "Offers".
+  highlight Boolean  @default(false)
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@index([group, position])
+}
+
+enum NavGroup {
+  PRIMARY
+  HELP
+  COMPANY
+}

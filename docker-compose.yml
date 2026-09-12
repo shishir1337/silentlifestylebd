@@ -1,0 +1,86 @@
+# Silent Lifestyle BD — single-VPS stack.
+#
+#   docker compose up -d              start everything
+#   docker compose logs -f app        follow app logs
+#   docker compose exec app sh        shell into the app container
+#
+# Postgres and Redis are NOT published to the host by default — only the app
+# talks to them, over the private compose network. Uncomment the `ports` blocks
+# if you need to connect from your machine (e.g. Prisma Studio), and never leave
+# them open on a public server.
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Postgres defaults to the host locale; pin it so ordering and collation
+      # behave identically on every machine this is deployed to.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` alone returns true before the DB accepts writes; naming the
+      # user and database makes this an honest readiness signal.
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    # ports:
+    #   - "127.0.0.1:5432:5432"
+
+  cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Rate-limit counters are recoverable state, but appendonly keeps limits
+    # honest across a restart instead of handing everyone a fresh quota.
+    command: ["redis-server", "--appendonly", "yes", "--save", ""]
+    volumes:
+      - cache-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    # ports:
+    #   - "127.0.0.1:6379:6379"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Baked into the bundle by `next build` — see .env.example.
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
+        NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT: ${NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT}
+        NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY: ${NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY}
+        NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      IMAGEKIT_PRIVATE_KEY: ${IMAGEKIT_PRIVATE_KEY}
+      NEXT_SERVER_ACTIONS_ENCRYPTION_KEY: ${NEXT_SERVER_ACTIONS_ENCRYPTION_KEY}
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "3000:3000"
+    # Next needs time to finish in-flight requests and pending `after()` work.
+    # Docker's 10s default can cut a response off mid-flight.
+    stop_grace_period: 30s
+
+volumes:
+  db-data:
+  cache-data:

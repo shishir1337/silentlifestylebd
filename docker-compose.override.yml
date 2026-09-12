@@ -1,0 +1,22 @@
+# Local development overrides.
+#
+# Docker Compose merges this file automatically, so `docker compose up -d db cache`
+# gives you a database you can point Prisma Studio, migrations and `pnpm dev` at
+# from the host.
+#
+# Ports are bound to 127.0.0.1 deliberately — not 0.0.0.0. If this file ever ends
+# up on a server by accident, Postgres and Redis still are not reachable from the
+# internet. Production should run `docker compose -f docker-compose.yml up -d` to
+# ignore this file entirely.
+
+services:
+  db:
+    ports:
+      # 55432, not 5432: this machine already runs a local PostgreSQL on the
+      # default port. Using a distinct host port means the two can coexist and
+      # removes any chance of pointing migrations at the wrong database.
+      - "127.0.0.1:55432:5432"
+
+  cache:
+    ports:
+      - "127.0.0.1:6379:6379"

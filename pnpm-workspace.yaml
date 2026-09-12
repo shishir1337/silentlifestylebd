@@ -1,3 +1,23 @@
+# Which dependencies may run install scripts.
+#
+# pnpm blocks postinstall scripts by default, which is the right default — but
+# Prisma genuinely needs its to fetch the query engine binaries, and without
+# them the client generates yet cannot connect at runtime.
 allowBuilds:
+  # Required: downloads the Prisma query engines.
+  '@prisma/engines': true
+  prisma: true
+
+  # Required: esbuild ships a platform-specific binary it installs itself.
+  esbuild: true
+
+  # Not needed. Image transformation is handled by ImageKit's CDN via a custom
+  # next/image loader, so nothing on the server resizes an image.
   sharp: false
+
+  # Optional native speedups; the JS fallbacks are fine here.
+  msgpackr-extract: false
   unrs-resolver: false
+
+  # Cloudflare Workers runtime — unused, this deploys as a Node server.
+  workerd: false
