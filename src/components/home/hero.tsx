@@ -1,7 +1,8 @@
 import { getImageProps } from "next/image";
 import Link from "next/link";
 import { HeroCarousel } from "./hero-carousel";
-import { heroSlides, type HeroSlide } from "@/data/hero-slides";
+import { getHeroSlides } from "@/lib/catalog";
+import type { HeroSlide } from "@/types/catalog";
 
 /** Phones and small tablets get the taller crop; everything else the wide one. */
 const DESKTOP_MEDIA = "(min-width: 768px)";
@@ -20,7 +21,10 @@ const DESKTOP_MEDIA = "(min-width: 768px)";
  * headline off the edge. Width/height still ship on the element, so the box is
  * reserved before the image lands and CLS stays at zero.
  */
-export function Hero() {
+export async function Hero() {
+  const heroSlides = await getHeroSlides();
+  if (heroSlides.length === 0) return null;
+
   return (
     <HeroCarousel slideLabels={heroSlides.map((s) => s.label)}>
       {heroSlides.map((slide, i) => (
@@ -52,13 +56,28 @@ function Banner({ slide, first }: { slide: HeroSlide; first: boolean }) {
     loading,
   };
 
+  /**
+   * Width and height now come off the row rather than off a static import.
+   * They are not cosmetic: they land on the <img> as attributes and are what
+   * reserves the banner's box before a byte of artwork arrives.
+   */
   const {
     props: { srcSet: desktopSrcSet },
-  } = getImageProps({ ...common, src: slide.image });
+  } = getImageProps({
+    ...common,
+    src: slide.image.url,
+    width: slide.image.width,
+    height: slide.image.height,
+  });
 
   const {
     props: { srcSet: mobileSrcSet, ...rest },
-  } = getImageProps({ ...common, src: slide.imageMobile });
+  } = getImageProps({
+    ...common,
+    src: slide.imageMobile.url,
+    width: slide.imageMobile.width,
+    height: slide.imageMobile.height,
+  });
 
   return (
     <picture>

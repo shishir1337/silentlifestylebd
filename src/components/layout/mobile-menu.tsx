@@ -4,9 +4,21 @@ import { useEffect, useState } from "react";
 import { useOverlay } from "@/lib/use-overlay";
 import Link from "next/link";
 import { CloseIcon, MenuIcon, PhoneIcon } from "@/components/ui/icons";
-import { categories } from "@/data/categories";
-import { countInCategory } from "@/lib/catalog";
 import { nav, site } from "@/data/site";
+
+/**
+ * Just enough of a category to draw a menu row.
+ *
+ * Deliberately not the full `Category`: this is a client component, so every
+ * field crosses into the RSC payload on every page. The image alone — URL plus
+ * its inlined blur placeholder — is about 400 bytes a row that this menu never
+ * renders.
+ */
+export interface MenuCategory {
+  slug: string;
+  name: string;
+  count: number;
+}
 
 /**
  * The only meaningful client-side JavaScript on this page.
@@ -14,8 +26,11 @@ import { nav, site } from "@/data/site";
  * Uses a native <dialog> so the browser gives us the focus trap, the Escape
  * handler and inert background for free — an inlined re-implementation of all
  * three would be more code and worse behaviour.
+ *
+ * Categories are a prop because this runs in the browser and the catalogue is
+ * in Postgres. `SiteHeader` reads them on the server and passes them down.
  */
-export function MobileMenu() {
+export function MobileMenu({ categories }: { categories: MenuCategory[] }) {
   const [open, setOpen] = useState(false);
   const { mounted, ref: attach, node } = useOverlay(open);
 
@@ -93,7 +108,7 @@ export function MobileMenu() {
                   className="flex min-h-11 items-center justify-between rounded-[var(--radius-sm)] px-3 text-sm transition-colors duration-[var(--dur-base)] hover:bg-muted"
                 >
                   <span>{c.name}</span>
-                  <span className="tabular text-xs text-ink-muted">{countInCategory(c.slug)}</span>
+                  <span className="tabular text-xs text-ink-muted">{c.count}</span>
                 </Link>
               </li>
             ))}

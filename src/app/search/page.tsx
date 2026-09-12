@@ -5,8 +5,9 @@ import { Container } from "@/components/ui/container";
 import { ProductCard } from "@/components/product/product-card";
 import { SearchIcon } from "@/components/ui/icons";
 import { POPULAR_SEARCHES, searchProducts } from "@/lib/search";
-import { categories } from "@/data/categories";
-import { countInCategory } from "@/lib/catalog";
+import { getCategories, getCategoryCounts } from "@/lib/catalog";
+import { fillProps } from "@/lib/image";
+import type { Category } from "@/types/catalog";
 
 export const metadata: Metadata = {
   title: "Search",
@@ -26,7 +27,9 @@ export const metadata: Metadata = {
 export default async function SearchPage(props: PageProps<"/search">) {
   const params = await props.searchParams;
   const raw = Array.isArray(params.q) ? params.q[0] : params.q;
-  const { query, tooShort, products, categories: matched } = searchProducts(raw);
+
+  const [{ query, tooShort, products, categories: matched }, categories, counts] =
+    await Promise.all([searchProducts(raw), getCategories(), getCategoryCounts()]);
 
   return (
     <Container>
@@ -82,11 +85,19 @@ export default async function SearchPage(props: PageProps<"/search">) {
                   className="inline-flex h-10 items-center gap-2 rounded-full border border-line-strong bg-surface px-3.5 text-[13px] font-medium transition-colors duration-[var(--dur-base)] hover:border-ink"
                 >
                   <span className="relative size-6 overflow-hidden rounded-full bg-subtle">
-                    <Image src={c.image} alt="" fill sizes="24px" quality={60} className="object-cover" />
+                    {c.image ? (
+                      <Image
+                        {...fillProps(c.image)}
+                        alt=""
+                        sizes="24px"
+                        quality={60}
+                        className="object-cover"
+                      />
+                    ) : null}
                   </span>
                   {c.name}
                   <span className="tabular text-[11px] text-ink-muted">
-                    {countInCategory(c.slug)}
+                    {counts[c.slug] ?? 0}
                   </span>
                 </Link>
               </li>
@@ -99,11 +110,13 @@ export default async function SearchPage(props: PageProps<"/search">) {
         <EmptyPrompt
           title="What are you looking for?"
           body="Type at least two letters, or start from one of these."
+          categories={categories}
         />
       ) : products.length === 0 ? (
         <EmptyPrompt
           title={`No products match “${query}”`}
           body="Check the spelling, try a shorter word, or browse a category instead."
+          categories={categories}
         />
       ) : (
         <>
@@ -124,8 +137,20 @@ export default async function SearchPage(props: PageProps<"/search">) {
 /**
  * Shared no-results / no-query state. Both cases need the same thing: a way
  * out that does not involve typing again.
+ *
+ * Categories arrive as a prop rather than being read here: the page has
+ * already awaited them for the chips above, and fetching again would be a
+ * second read of the same cached list.
  */
-function EmptyPrompt({ title, body }: { title: string; body: string }) {
+function EmptyPrompt({
+  title,
+  body,
+  categories,
+}: {
+  title: string;
+  body: string;
+  categories: Category[];
+}) {
   return (
     <div className="pb-10">
       <div className="rounded-[var(--radius-md)] border border-line bg-subtle px-5 py-8 text-center">
@@ -158,15 +183,16 @@ function EmptyPrompt({ title, body }: { title: string; body: string }) {
                 className="group block rounded-[var(--radius-md)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
               >
                 <div className="relative aspect-square overflow-hidden rounded-[var(--radius-md)] bg-subtle">
-                  <Image
-                    src={c.image}
-                    alt=""
-                    fill
-                    sizes="(min-width:1024px) 15vw, (min-width:640px) 22vw, 45vw"
-                    quality={60}
-                    loading="lazy"
-                    className="object-cover transition-transform duration-[var(--dur-slow)] [transition-timing-function:var(--ease-out-soft)] group-hover:scale-[1.07]"
-                  />
+                  {c.image ? (
+                    <Image
+                      {...fillProps(c.image)}
+                      alt=""
+                      sizes="(min-width:1024px) 15vw, (min-width:640px) 22vw, 45vw"
+                      quality={60}
+                      loading="lazy"
+                      className="object-cover transition-transform duration-[var(--dur-slow)] [transition-timing-function:var(--ease-out-soft)] group-hover:scale-[1.07]"
+                    />
+                  ) : null}
                 </div>
                 <p className="mt-2 text-[13px] leading-tight font-medium">{c.name}</p>
               </Link>

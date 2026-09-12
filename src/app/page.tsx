@@ -7,7 +7,7 @@ import { ProductGrid } from "@/components/home/product-grid";
 import { PromoTiles } from "@/components/home/promo-tiles";
 import { DeliveryNote } from "@/components/home/delivery-note";
 import { Newsletter } from "@/components/home/newsletter";
-import { bestSellers, newArrivals, onOffer } from "@/data/products";
+import { getBestSellers, getNewArrivals, getOnOffer } from "@/lib/catalog";
 import { delivery, site } from "@/data/site";
 
 export const metadata: Metadata = {
@@ -29,8 +29,18 @@ export const metadata: Metadata = {
  *
  * Every section is a Server Component. The only client JS on this route is the
  * mobile menu, the tab bar's active state, and the SMS form.
+ *
+ * The three rails are fetched together rather than section by section: they
+ * read the same cached product list, so awaiting them in parallel costs one
+ * round trip instead of three.
  */
-export default function HomePage() {
+export default async function HomePage() {
+  const [bestSellers, onOffer, newArrivals] = await Promise.all([
+    getBestSellers(),
+    getOnOffer(),
+    getNewArrivals(),
+  ]);
+
   return (
     <>
       {/*

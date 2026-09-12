@@ -1,6 +1,7 @@
-import { products } from "@/data/products";
-import { categories } from "@/data/categories";
-import type { Product } from "@/types/catalog";
+import "server-only";
+
+import { getAllProducts, getCategories } from "@/lib/catalog";
+import type { Category, Product } from "@/types/catalog";
 
 /**
  * Catalogue search.
@@ -10,8 +11,11 @@ import type { Product } from "@/types/catalog";
  * tolerant matcher returns confident nonsense far more often than it rescues a
  * near-miss, and "no results" with good suggestions beats the wrong product.
  *
- * This runs on the server against the in-memory catalogue. Swapping it for a
- * real search service means replacing `searchProducts` and nothing else.
+ * Scoring runs in the server process against the cached product list rather
+ * than in SQL. With a catalogue of this size that is faster than a query — the
+ * list is already in memory for every other page — and it keeps the ranking
+ * rules readable. Swapping in a real search service means replacing
+ * `searchProducts` and nothing else.
  */
 
 const MIN_QUERY = 2;
@@ -30,11 +34,18 @@ function tokenise(query: string): string[] {
     .filter((t) => t.length > 0 && !STOP_WORDS.has(t));
 }
 
-const categoryNameFor = new Map(categories.map((c) => [c.slug, c.name.toLowerCase()]));
+function categoryNameLookup(categories: Category[]) {
+  return new Map(categories.map((c) => [c.slug, c.name.toLowerCase()]));
+}
 
-function scoreProduct(product: Product, query: string, tokens: string[]): number {
+function scoreProduct(
+  product: Product,
+  query: string,
+  tokens: string[],
+  categoryNames: Map<string, string>,
+): number {
   const name = product.name.toLowerCase();
-  const category = categoryNameFor.get(product.categorySlug) ?? product.categorySlug;
+  const category = categoryNames.get(product.categorySlug) ?? product.categorySlug;
   const description = product.description.toLowerCase();
   const extras = [
     ...(product.colors ?? []),
@@ -83,10 +94,10 @@ export interface SearchResult {
   tooShort: boolean;
   products: Product[];
   /** Categories whose name matches, offered as a shortcut above the results. */
-  categories: typeof categories;
+  categories: Category[];
 }
 
-export function searchProducts(raw: string | undefined): SearchResult {
+export async function searchProducts(raw: string | undefined): Promise<SearchResult> {
   const query = normaliseQuery(raw);
   const tokens = tokenise(query);
 
@@ -94,8 +105,14 @@ export function searchProducts(raw: string | undefined): SearchResult {
     return { query, tooShort: true, products: [], categories: [] };
   }
 
+  const [products, categories] = await Promise.all([
+    getAllProducts(),
+    getCategories(),
+  ]);
+  const categoryNames = categoryNameLookup(categories);
+
   const scored = products
-    .map((p) => ({ product: p, score: scoreProduct(p, query, tokens) }))
+    .map((p) => ({ product: p, score: scoreProduct(p, query, tokens, categoryNames) }))
     .filter((s) => s.score > 0)
     .sort((a, b) => b.score - a.score);
 

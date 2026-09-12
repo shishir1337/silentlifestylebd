@@ -5,6 +5,7 @@ import { PriceTag } from "./price-tag";
 import { AddToCartButton } from "./add-to-cart-button";
 import { TruckIcon } from "@/components/ui/icons";
 import { cn } from "@/lib/cn";
+import { fillProps } from "@/lib/image";
 
 const badgeCopy = {
   new: { label: "New", className: "bg-ink text-white" },
@@ -36,20 +37,16 @@ export function ProductCard({
       {/* 4:5 portrait — the standard for apparel, and it reserves height
           before the image lands, so the grid never jumps. */}
       <div className="relative aspect-4/5 overflow-hidden rounded-[var(--radius-md)] bg-subtle">
+        {/* Blur-up on every card. The placeholder is stored on the asset and
+            is ~400 bytes; measured against turning it off across the grid, the
+            saving was 146 bytes gzipped. Not a trade worth making. */}
         <Image
-          src={product.image}
+          {...fillProps(product.image)}
           alt={product.name}
-          fill
           sizes={sizes}
           quality={60}
           priority={priority}
           loading={priority ? undefined : "lazy"}
-          /* Blur-up on every card. `next/image` is a client component, so the
-             StaticImageData prop — blurDataURL included — is serialised into
-             the RSC payload whether or not we render a placeholder. Measured:
-             turning it off across the grid saved 146 bytes gzipped. Not a
-             trade worth making. */
-          placeholder="blur"
           className={cn(
             "object-cover transition-[opacity,scale] duration-[var(--dur-slow)] [transition-timing-function:var(--ease-out-soft)]",
             product.hoverImage
@@ -60,10 +57,9 @@ export function ProductCard({
 
         {product.hoverImage ? (
           <Image
-            src={product.hoverImage}
+            {...fillProps(product.hoverImage)}
             alt=""
             aria-hidden
-            fill
             sizes={sizes}
             quality={60}
             loading="lazy"

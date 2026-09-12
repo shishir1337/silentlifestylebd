@@ -3,9 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@/components/ui/container";
 import { ChevronRightIcon } from "@/components/ui/icons";
-import { categories } from "@/data/categories";
-import { curatedCollections } from "@/data/collections";
-import { countInCategory, resolveCollection } from "@/lib/catalog";
+import {
+  getCategories,
+  getCategoryCounts,
+  getCuratedCollections,
+} from "@/lib/catalog";
+import { fillProps } from "@/lib/image";
 
 export const metadata: Metadata = {
   title: "Shop all collections",
@@ -21,7 +24,13 @@ export const metadata: Metadata = {
  * for a shopper who knows the occasion ("what's new", "what's on offer"), the
  * category grid is for one who knows the garment.
  */
-export default function CollectionsPage() {
+export default async function CollectionsPage() {
+  const [curated, categories, counts] = await Promise.all([
+    getCuratedCollections(),
+    getCategories(),
+    getCategoryCounts(),
+  ]);
+
   return (
     <Container>
       <header className="py-6">
@@ -41,28 +50,25 @@ export default function CollectionsPage() {
           Featured
         </h2>
         <ul className="mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-          {curatedCollections.map((c) => {
-            const count = resolveCollection(c.slug)?.products.length ?? 0;
-            return (
-              <li key={c.slug}>
-                <Link
-                  href={`/collections/${c.slug}`}
-                  className="group flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-line bg-surface px-4 py-3.5 transition-colors duration-[var(--dur-base)] hover:border-ink"
-                >
-                  <span className="min-w-0">
-                    <span className="block text-[15px] font-medium">{c.name}</span>
-                    <span className="mt-0.5 block line-clamp-1 text-[12px] text-ink-muted">
-                      {c.description}
-                    </span>
+          {curated.map((c) => (
+            <li key={c.slug}>
+              <Link
+                href={`/collections/${c.slug}`}
+                className="group flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-line bg-surface px-4 py-3.5 transition-colors duration-[var(--dur-base)] hover:border-ink"
+              >
+                <span className="min-w-0">
+                  <span className="block text-[15px] font-medium">{c.name}</span>
+                  <span className="mt-0.5 block line-clamp-1 text-[12px] text-ink-muted">
+                    {c.description}
                   </span>
-                  <span className="flex shrink-0 items-center gap-1.5">
-                    <span className="tabular text-[12px] text-ink-muted">{count}</span>
-                    <ChevronRightIcon className="size-4 text-ink-muted transition-transform duration-[var(--dur-base)] group-hover:translate-x-0.5 group-hover:text-ink" />
-                  </span>
-                </Link>
-              </li>
-            );
-          })}
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5">
+                  <span className="tabular text-[12px] text-ink-muted">{c.count}</span>
+                  <ChevronRightIcon className="size-4 text-ink-muted transition-transform duration-[var(--dur-base)] group-hover:translate-x-0.5 group-hover:text-ink" />
+                </span>
+              </Link>
+            </li>
+          ))}
         </ul>
       </section>
 
@@ -81,19 +87,20 @@ export default function CollectionsPage() {
                 className="group block rounded-[var(--radius-md)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
               >
                 <div className="relative aspect-square overflow-hidden rounded-[var(--radius-md)] bg-subtle">
-                  <Image
-                    src={c.image}
-                    alt=""
-                    fill
-                    sizes="(min-width:1024px) 15vw, (min-width:640px) 22vw, 45vw"
-                    quality={60}
-                    loading={i < 4 ? "eager" : "lazy"}
-                    className="object-cover transition-transform duration-[var(--dur-slow)] [transition-timing-function:var(--ease-out-soft)] group-hover:scale-[1.07]"
-                  />
+                  {c.image ? (
+                    <Image
+                      {...fillProps(c.image)}
+                      alt=""
+                      sizes="(min-width:1024px) 15vw, (min-width:640px) 22vw, 45vw"
+                      quality={60}
+                      loading={i < 4 ? "eager" : "lazy"}
+                      className="object-cover transition-transform duration-[var(--dur-slow)] [transition-timing-function:var(--ease-out-soft)] group-hover:scale-[1.07]"
+                    />
+                  ) : null}
                 </div>
                 <p className="mt-2 text-[13px] leading-tight font-medium">{c.name}</p>
                 <p className="tabular mt-0.5 text-[11px] text-ink-muted">
-                  {countInCategory(c.slug)} items
+                  {counts[c.slug] ?? 0} items
                 </p>
               </Link>
             </li>

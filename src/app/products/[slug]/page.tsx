@@ -24,15 +24,15 @@ import { formatBDT } from "@/lib/currency";
  * static HTML — a product page is the single most performance-sensitive route
  * in a store, and there is nothing here that needs a server round trip.
  */
-export function generateStaticParams() {
-  return allProductSlugs().map((slug) => ({ slug }));
+export async function generateStaticParams() {
+  return (await allProductSlugs()).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata(
   props: PageProps<"/products/[slug]">,
 ): Promise<Metadata> {
   const { slug } = await props.params;
-  const product = getProduct(slug);
+  const product = await getProduct(slug);
   if (!product) return { title: "Product not found" };
 
   return {
@@ -43,7 +43,7 @@ export async function generateMetadata(
       type: "website",
       title: `${product.name} — ${formatBDT(product.price)}`,
       description: product.description,
-      images: [{ url: product.image.src }],
+      images: [{ url: product.image.url }],
     },
   };
 }
@@ -56,12 +56,14 @@ const badgeCopy = {
 
 export default async function ProductPage(props: PageProps<"/products/[slug]">) {
   const { slug } = await props.params;
-  const product = getProduct(slug);
+  const product = await getProduct(slug);
   if (!product) notFound();
 
-  const category = getCategory(product.categorySlug);
+  const [category, related] = await Promise.all([
+    getCategory(product.categorySlug),
+    getRelated(product),
+  ]);
   const gallery = getGallery(product);
-  const related = getRelated(product);
 
   return (
     <>
@@ -141,7 +143,7 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
         name={product.name}
         description={product.description}
         sku={product.sku}
-        image={product.image.src}
+        image={product.image.url}
         price={product.price}
         inStock={product.inStock}
         slug={product.slug}

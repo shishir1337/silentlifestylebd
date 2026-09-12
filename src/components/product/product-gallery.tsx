@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import Image, { type StaticImageData } from "next/image";
+import Image from "next/image";
 import { cn } from "@/lib/cn";
+import { fillProps } from "@/lib/image";
+import type { ImageRef } from "@/types/catalog";
 
 /**
  * Product gallery.
@@ -21,7 +23,7 @@ export function ProductGallery({
   badge,
   soldOut,
 }: {
-  images: StaticImageData[];
+  images: ImageRef[];
   alt: string;
   badge?: { label: string; className: string } | null;
   soldOut?: boolean;
@@ -35,7 +37,7 @@ export function ProductGallery({
       {!single ? (
         <ul className="hidden shrink-0 flex-col gap-2 sm:flex">
           {images.map((img, i) => (
-            <li key={img.src}>
+            <li key={img.url}>
               <button
                 type="button"
                 onClick={() => setActive(i)}
@@ -47,9 +49,8 @@ export function ProductGallery({
                 )}
               >
                 <Image
-                  src={img}
+                  {...fillProps(img)}
                   alt=""
-                  fill
                   sizes="80px"
                   quality={60}
                   className="object-cover"
@@ -71,7 +72,7 @@ export function ProductGallery({
         >
           {images.map((img, i) => (
             <div
-              key={img.src}
+              key={img.url}
               className={cn(
                 "relative aspect-4/5 w-full shrink-0 snap-start overflow-hidden rounded-[var(--radius-md)] bg-subtle",
                 // Above `sm` only the selected image occupies the frame.
@@ -79,15 +80,13 @@ export function ProductGallery({
               )}
             >
               <Image
-                src={img}
+                {...fillProps(img)}
                 alt={i === 0 ? alt : ""}
-                fill
                 // The first product image is the LCP element on this route.
                 priority={i === 0}
                 fetchPriority={i === 0 ? "high" : "auto"}
                 sizes="(min-width:1024px) 42vw, (min-width:640px) 55vw, 100vw"
                 quality={75}
-                placeholder="blur"
                 className="object-cover"
               />
             </div>

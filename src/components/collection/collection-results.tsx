@@ -2,7 +2,7 @@
 
 import { Children, isValidElement, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { SORT_OPTIONS, isSortValue, type SortValue } from "@/data/collections";
+import { SORT_OPTIONS, isSortValue, type SortValue } from "@/lib/sort";
 
 /**
  * Toolbar + grid for a collection.

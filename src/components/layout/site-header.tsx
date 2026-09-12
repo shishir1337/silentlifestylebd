@@ -5,6 +5,7 @@ import { CartButton } from "./cart-button";
 import { Logo } from "./logo";
 import { MobileMenu } from "./mobile-menu";
 import { nav } from "@/data/site";
+import { getCategories, getCategoryCounts } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 
 /**
@@ -12,13 +13,27 @@ import { cn } from "@/lib/cn";
  * rather than an icon that opens an overlay: search is the second-highest
  * intent action after tapping a category, and hiding it behind a tap costs
  * more than the 44px it occupies.
+ *
+ * The header is in the root layout, so this read happens once per prerendered
+ * page. It is cached and tagged, so a category rename is one `revalidateTag`
+ * away from appearing in every menu on the site.
  */
-export function SiteHeader() {
+export async function SiteHeader() {
+  const [categories, counts] = await Promise.all([
+    getCategories(),
+    getCategoryCounts(),
+  ]);
+  const menuCategories = categories.map((c) => ({
+    slug: c.slug,
+    name: c.name,
+    count: counts[c.slug] ?? 0,
+  }));
+
   return (
     <header className="sticky top-0 z-[var(--z-header)] border-b border-line bg-canvas/95 backdrop-blur-sm supports-[backdrop-filter]:bg-canvas/80">
       <Container>
         <div className="flex h-14 items-center gap-2 sm:h-16 sm:gap-4">
-          <MobileMenu />
+          <MobileMenu categories={menuCategories} />
 
           <Logo className="mr-auto" />
 

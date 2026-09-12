@@ -6,8 +6,12 @@ import { ProductCard } from "@/components/product/product-card";
 import { CollectionResults } from "@/components/collection/collection-results";
 import { ButtonLink } from "@/components/ui/button";
 import { ChevronRightIcon } from "@/components/ui/icons";
-import { allCollectionSlugs, countInCategory, resolveCollection } from "@/lib/catalog";
-import { categories } from "@/data/categories";
+import {
+  allCollectionSlugs,
+  getCategories,
+  getCategoryCounts,
+  resolveCollection,
+} from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 import { site } from "@/data/site";
 
@@ -23,15 +27,15 @@ import { site } from "@/data/site";
  * cards are rendered on the server and reordered on the client instead — see
  * `CollectionResults`.
  */
-export function generateStaticParams() {
-  return allCollectionSlugs().map((slug) => ({ slug }));
+export async function generateStaticParams() {
+  return (await allCollectionSlugs()).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata(
   props: PageProps<"/collections/[slug]">,
 ): Promise<Metadata> {
   const { slug } = await props.params;
-  const collection = resolveCollection(slug);
+  const collection = await resolveCollection(slug);
   if (!collection) return { title: "Collection not found" };
 
   return {
@@ -45,9 +49,13 @@ export default async function CollectionPage(
   props: PageProps<"/collections/[slug]">,
 ) {
   const { slug } = await props.params;
-  const collection = resolveCollection(slug);
+  const collection = await resolveCollection(slug);
   if (!collection) notFound();
 
+  const [categories, counts] = await Promise.all([
+    getCategories(),
+    getCategoryCounts(),
+  ]);
   const items = collection.products;
 
   return (
@@ -109,7 +117,7 @@ export default async function CollectionPage(
                 >
                   {c.name}
                   <span className={cn("tabular text-[11px]", active ? "text-white/70" : "text-ink-muted")}>
-                    {countInCategory(c.slug)}
+                    {counts[c.slug] ?? 0}
                   </span>
                 </Link>
               </li>

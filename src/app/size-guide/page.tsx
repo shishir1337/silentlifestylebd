@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Container } from "@/components/ui/container";
 import { PageHeader, Section, Bullets } from "@/components/ui/page-header";
 import { ButtonLink } from "@/components/ui/button";
-import { sizeCharts } from "@/data/size-guides";
+import { getSizeCharts } from "@/lib/catalog";
 import { delivery } from "@/data/site";
 
 export const metadata: Metadata = {
@@ -21,7 +21,9 @@ export const metadata: Metadata = {
  * conventions differ by several inches and the confusion is what causes the
  * wrong size to be ordered in the first place.
  */
-export default function SizeGuidePage() {
+export default async function SizeGuidePage() {
+  const sizeCharts = await getSizeCharts();
+
   return (
     <Container>
       <PageHeader

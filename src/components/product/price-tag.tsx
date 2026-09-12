@@ -14,7 +14,8 @@ export function PriceTag({
   className,
 }: {
   price: number;
-  compareAtPrice?: number;
+  /** `null` when there is no markdown — the shape the database stores. */
+  compareAtPrice?: number | null;
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
