@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Taka } from "@/components/ui/price";
 import { CashIcon, CheckIcon, PhoneIcon, SearchIcon, TruckIcon } from "@/components/ui/icons";
-import { formatOrderDate, getOrder, type Order } from "@/lib/orders";
+import { formatOrderDate, type Order } from "@/lib/orders";
+import { getOrder } from "@/lib/order-storage";
+import { useDeviceOrders } from "@/lib/use-device-orders";
 import { delivery, site } from "@/data/site";
 
 type Status = "idle" | "found" | "missing";
@@ -21,22 +23,11 @@ export function OrderTracker() {
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<Status>("idle");
   const [order, setOrder] = useState<Order | undefined>();
-  const [recent, setRecent] = useState<Order[]>([]);
   const fieldRef = useRef<HTMLInputElement>(null);
 
   // Offer whatever this device already knows about, so most people never have
   // to type an order number at all.
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem("slbd.orders.v1");
-      const all: Record<string, Order> = raw ? JSON.parse(raw) : {};
-      setRecent(
-        Object.values(all).sort((a, b) => b.placedAt.localeCompare(a.placedAt)).slice(0, 3),
-      );
-    } catch {
-      setRecent([]);
-    }
-  }, []);
+  const recent = useDeviceOrders().orders.slice(0, 3);
 
   function lookup(id: string) {
     const trimmed = id.trim().toUpperCase();

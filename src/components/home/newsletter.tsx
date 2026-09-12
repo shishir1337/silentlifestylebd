@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Container } from "@/components/ui/container";
 import { Button } from "@/components/ui/button";
 import { CheckIcon } from "@/components/ui/icons";
+import { isBDMobile } from "@/lib/phone";
 
 /**
  * Deliberately asks for a phone number, not an email.
@@ -20,11 +21,7 @@ export function Newsletter() {
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    // BD mobile numbers: 01XXXXXXXXX, optionally +880 / 880 prefixed.
-    const cleaned = phone.replace(/[\s-]/g, "");
-    const valid = /^(?:\+?880|0)1[3-9]\d{8}$/.test(cleaned);
-
-    if (!valid) {
+    if (!isBDMobile(phone)) {
       setError("Enter an 11-digit mobile number starting with 01, e.g. 01712345678.");
       return;
     }

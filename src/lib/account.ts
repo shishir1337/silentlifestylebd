@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { DeliveryArea } from "@/lib/orders";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 
 /**
  * Customer profile and address book.
@@ -12,8 +13,8 @@ import type { DeliveryArea } from "@/lib/orders";
  * `load`/`persist` helpers and nothing in the components.
  */
 
-const PROFILE_KEY = "slbd.profile.v1";
-const ADDRESS_KEY = "slbd.addresses.v1";
+const PROFILE_KEY = STORAGE_KEYS.profile;
+const ADDRESS_KEY = STORAGE_KEYS.addresses;
 
 export interface Profile {
   name: string;

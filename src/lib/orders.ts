@@ -1,7 +1,20 @@
 import type { CartLine } from "@/lib/cart";
 import { delivery } from "@/data/site";
+import { BD_MOBILE, normalisePhone } from "@/lib/phone";
 
-const STORAGE_KEY = "slbd.orders.v1";
+/**
+ * Order shapes, pricing and validation.
+ *
+ * Everything here runs in either environment. That was not true before: this
+ * module also held the `localStorage` persistence, with no `"use client"` to
+ * say so, and worked only because every importer happened to be a client
+ * component. The first Server Action to import it would have crashed on
+ * `window`. The persistence now lives in `order-storage.ts`, which says what
+ * it is, and Phase 2 deletes it outright.
+ *
+ * Pricing stays here because the checkout Server Action has to recompute it:
+ * amounts that arrive from a browser are a statement of intent, not a fact.
+ */
 
 export type DeliveryArea = "inside-dhaka" | "outside-dhaka";
 
@@ -44,8 +57,11 @@ export function deliveryChargeFor(area: DeliveryArea, subtotal: number): number 
  *
  * Customers read this out over the phone when they call about a parcel, so it
  * favours being short and unambiguous over being cryptographically random.
- * A real backend should own this — this exists so the front end can be
- * demonstrated end to end without one.
+ *
+ * "Reasonably unique" is doing real work in that sentence: 30^4 tails per day
+ * is roughly 810,000 combinations, which is fine for a demo and not fine for a
+ * record. Phase 2 mints this server-side and checks it against the unique
+ * index on `Order.orderNo` before committing.
  */
 export function makeOrderId(now = new Date()): string {
   const yy = String(now.getFullYear()).slice(2);
@@ -58,35 +74,6 @@ export function makeOrderId(now = new Date()): string {
     tail += alphabet[Math.floor(Math.random() * alphabet.length)];
   }
   return `SLB-${yy}${mm}${dd}-${tail}`;
-}
-
-/* --- Persistence ---------------------------------------------------------- */
-/* Browser-only. There is no backend yet, so a placed order is kept locally so
-   the confirmation page has something real to render. Swapping this for an API
-   call means changing `saveOrder` and `getOrder` and nothing else.            */
-
-function readAll(): Record<string, Order> {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    const parsed: unknown = raw ? JSON.parse(raw) : {};
-    return parsed && typeof parsed === "object" ? (parsed as Record<string, Order>) : {};
-  } catch {
-    return {};
-  }
-}
-
-export function saveOrder(order: Order): void {
-  try {
-    const all = readAll();
-    all[order.id] = order;
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-  } catch {
-    // Private mode or quota. The confirmation will fall back to its empty state.
-  }
-}
-
-export function getOrder(id: string): Order | undefined {
-  return readAll()[id];
 }
 
 /** `2026-09-12T10:04:00Z` -> `12 Sep 2026`. Fixed format, no locale surprises. */
@@ -107,13 +94,6 @@ export interface CheckoutErrors {
   name?: string;
   phone?: string;
   address?: string;
-}
-
-/** Bangladeshi mobile: 01XXXXXXXXX, optionally +880 / 880 prefixed. */
-const BD_MOBILE = /^(?:\+?880|0)1[3-9]\d{8}$/;
-
-export function normalisePhone(input: string): string {
-  return input.replace(/[\s-]/g, "");
 }
 
 export function validateCheckout(values: {

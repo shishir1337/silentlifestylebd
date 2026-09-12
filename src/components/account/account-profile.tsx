@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckIcon } from "@/components/ui/icons";
 import { emptyProfile, useProfile, type Profile } from "@/lib/account";
-import { normalisePhone } from "@/lib/orders";
+import { BD_MOBILE, normalisePhone } from "@/lib/phone";
 import { cn } from "@/lib/cn";
 
-const BD_MOBILE = /^(?:\+?880|0)1[3-9]\d{8}$/;
 
 /**
  * Profile details.

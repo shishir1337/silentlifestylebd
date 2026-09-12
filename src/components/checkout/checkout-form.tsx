@@ -11,12 +11,12 @@ import { BagIcon, CashIcon, CheckIcon, ReturnIcon, TruckIcon } from "@/component
 import {
   deliveryChargeFor,
   makeOrderId,
-  normalisePhone,
-  saveOrder,
   validateCheckout,
   type CheckoutErrors,
   type DeliveryArea,
 } from "@/lib/orders";
+import { saveOrder } from "@/lib/order-storage";
+import { normalisePhone } from "@/lib/phone";
 import { delivery } from "@/data/site";
 import { defaultAddress, useAddresses, useProfile } from "@/lib/account";
 import { cn } from "@/lib/cn";

@@ -6,7 +6,8 @@ import Link from "next/link";
 import { Taka } from "@/components/ui/price";
 import { ButtonLink } from "@/components/ui/button";
 import { CashIcon, CheckIcon, PhoneIcon, TruckIcon } from "@/components/ui/icons";
-import { formatOrderDate, getOrder, type Order } from "@/lib/orders";
+import { formatOrderDate, type Order } from "@/lib/orders";
+import { getOrder } from "@/lib/order-storage";
 import { delivery, site } from "@/data/site";
 
 /**

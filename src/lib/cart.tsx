@@ -10,8 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import type { Product } from "@/types/catalog";
+import { STORAGE_KEYS } from "@/lib/storage-keys";
 
-const STORAGE_KEY = "slbd.cart.v1";
+const STORAGE_KEY = STORAGE_KEYS.cart;
 
 export interface CartLine {
   /** productId + size — two sizes of one shirt are two lines. */

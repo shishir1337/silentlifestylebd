@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { listOrders } from "@/lib/order-storage";
 import type { Order } from "@/lib/orders";
 
 /**
@@ -15,15 +16,7 @@ export function useDeviceOrders() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem("slbd.orders.v1");
-      const all: Record<string, Order> = raw ? JSON.parse(raw) : {};
-      setOrders(
-        Object.values(all).sort((a, b) => b.placedAt.localeCompare(a.placedAt)),
-      );
-    } catch {
-      setOrders([]);
-    }
+    setOrders(listOrders());
     setReady(true);
   }, []);
 
