@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { requireUser } from "@/lib/dal";
 import { AccountOrders } from "@/components/account/account-orders";
 
 export const metadata: Metadata = {
@@ -6,6 +7,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: true },
 };
 
-export default function AccountOrdersPage() {
+/** Gated in the page rather than the layout — see the note on the overview. */
+export default async function AccountOrdersPage() {
+  await requireUser();
   return <AccountOrders />;
 }

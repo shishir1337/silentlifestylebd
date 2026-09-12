@@ -13,15 +13,18 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:reset": "prisma migrate reset --force && pnpm db:seed",
-    "db:seed": "node --experimental-strip-types prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:seed": "node --experimental-strip-types --disable-warning=ExperimentalWarning prisma/seed.mts",
+    "db:studio": "prisma studio",
+    "admin:grant": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/grant-staff.mts"
   },
   "dependencies": {
     "@prisma/client": "^7.10.0",
+    "better-auth": "1.7.4",
     "next": "16.3.5",
     "pg": "^8.23.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "redis": "6.2.1",
     "server-only": "^0.0.1"
   },
   "devDependencies": {

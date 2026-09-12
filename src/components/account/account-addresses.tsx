@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { Taka } from "@/components/ui/price";
 import { CheckIcon, PinIcon, PlusIcon, TrashIcon } from "@/components/ui/icons";
-import { newAddressId, useAddresses, type Address } from "@/lib/account";
+import { useAddresses, type Address } from "@/lib/account";
 import { validateCheckout, type CheckoutErrors } from "@/lib/orders";
+import { Field, inputClass } from "@/components/ui/field";
 import { delivery } from "@/data/site";
 import { cn } from "@/lib/cn";
 
+/** An empty id means "not saved yet" — whichever store owns it mints its own. */
 const blank = (): Address => ({
-  id: newAddressId(),
+  id: "",
   label: "Home",
   recipient: "",
   phone: "",
@@ -23,17 +25,29 @@ const blank = (): Address => ({
  *
  * Reuses the checkout validator rather than carrying a second copy of the
  * phone rules — an address saved here is the same address checkout will use,
- * so the two must accept exactly the same input.
+ * so the two must accept exactly the same input. For a signed-in customer the
+ * server validates again before writing; this is the courtesy, that is the
+ * decision.
  */
 export function AccountAddresses() {
-  const { addresses, ready, upsert, remove, makeDefault } = useAddresses();
+  const { addresses, ready, signedIn, upsert, remove, makeDefault } = useAddresses();
   const [draft, setDraft] = useState<Address | null>(null);
   const [errors, setErrors] = useState<CheckoutErrors>({});
+  const [failure, setFailure] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   if (!ready) return <div className="py-20" aria-busy="true" />;
 
-  function save() {
+  /**
+   * A real submit handler on a real form. This used to be a click handler on a
+   * `type="button"` outside any form, which meant no Enter-to-submit, no
+   * native required-field semantics, and nothing for a password manager to
+   * recognise — all of which people expect from an address form.
+   */
+  async function save(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     if (!draft) return;
+
     const found = validateCheckout({
       name: draft.recipient,
       phone: draft.phone,
@@ -41,9 +55,28 @@ export function AccountAddresses() {
     });
     setErrors(found);
     if (Object.keys(found).length > 0) return;
-    upsert({ ...draft, label: draft.label.trim() || "Address" });
-    setDraft(null);
-    setErrors({});
+
+    setBusy(true);
+    setFailure(null);
+    try {
+      await upsert({ ...draft, label: draft.label.trim() || "Address" });
+      setDraft(null);
+      setErrors({});
+    } catch {
+      setFailure("Could not save that address. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Server actions can fail; a silent no-op would look like a bug. */
+  async function run(action: Promise<void>) {
+    setFailure(null);
+    try {
+      await action;
+    } catch {
+      setFailure("That did not go through. Check your connection and try again.");
+    }
   }
 
   return (
@@ -54,7 +87,9 @@ export function AccountAddresses() {
             Addresses
           </h1>
           <p className="mt-1.5 text-[14px] text-ink-soft">
-            Saved addresses fill in your details at checkout.
+            {signedIn
+              ? "Saved to your account, so they follow you to any device."
+              : "Saved in this browser and used to fill in checkout."}
           </p>
         </div>
         {!draft ? (
@@ -72,23 +107,36 @@ export function AccountAddresses() {
         ) : null}
       </div>
 
+      {failure ? (
+        <p
+          role="alert"
+          className="mt-4 rounded-[var(--radius-sm)] border border-sale/40 bg-sale/5 px-3.5 py-2.5 text-[13px] text-sale"
+        >
+          {failure}
+        </p>
+      ) : null}
+
       {draft ? (
-        <div className="mt-5 rounded-[var(--radius-md)] border-2 border-ink p-4">
+        <form
+          onSubmit={save}
+          noValidate
+          className="mt-5 rounded-[var(--radius-md)] border-2 border-ink p-4"
+        >
           <h2 className="text-[15px] font-semibold">
-            {addresses.some((a) => a.id === draft.id) ? "Edit address" : "New address"}
+            {draft.id ? "Edit address" : "New address"}
           </h2>
 
           <div className="mt-4 space-y-4">
-            <Row label="Label" id="label" hint="Home, Office — whatever you call it.">
+            <Field label="Label" id="label" hint="Home, Office — whatever you call it.">
               <input
                 id="label"
                 value={draft.label}
                 onChange={(e) => setDraft({ ...draft, label: e.target.value })}
-                className={field(false)}
+                className={inputClass()}
               />
-            </Row>
+            </Field>
 
-            <Row label="Recipient name" id="recipient" error={errors.name}>
+            <Field label="Recipient name" id="recipient" error={errors.name}>
               <input
                 id="recipient"
                 autoComplete="name"
@@ -96,11 +144,11 @@ export function AccountAddresses() {
                 onChange={(e) => setDraft({ ...draft, recipient: e.target.value })}
                 aria-invalid={errors.name ? true : undefined}
                 aria-describedby={errors.name ? "recipient-error" : undefined}
-                className={field(Boolean(errors.name))}
+                className={inputClass(Boolean(errors.name))}
               />
-            </Row>
+            </Field>
 
-            <Row label="Mobile number" id="addr-phone" error={errors.phone}>
+            <Field label="Mobile number" id="addr-phone" error={errors.phone}>
               <input
                 id="addr-phone"
                 type="tel"
@@ -111,11 +159,11 @@ export function AccountAddresses() {
                 onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
                 aria-invalid={errors.phone ? true : undefined}
                 aria-describedby={errors.phone ? "addr-phone-error" : undefined}
-                className={field(Boolean(errors.phone))}
+                className={inputClass(Boolean(errors.phone))}
               />
-            </Row>
+            </Field>
 
-            <Row label="Full address" id="addr-line" error={errors.address}>
+            <Field label="Full address" id="addr-line" error={errors.address}>
               <textarea
                 id="addr-line"
                 rows={3}
@@ -124,9 +172,9 @@ export function AccountAddresses() {
                 onChange={(e) => setDraft({ ...draft, address: e.target.value })}
                 aria-invalid={errors.address ? true : undefined}
                 aria-describedby={errors.address ? "addr-line-error" : undefined}
-                className={cn(field(Boolean(errors.address)), "h-auto py-2.5")}
+                className={cn(inputClass(Boolean(errors.address)), "h-auto py-2.5")}
               />
-            </Row>
+            </Field>
 
             <fieldset>
               <legend className="text-[13px] font-medium">Delivery area</legend>
@@ -175,24 +223,25 @@ export function AccountAddresses() {
 
           <div className="mt-5 flex flex-col gap-2.5 sm:flex-row">
             <button
-              type="button"
-              onClick={save}
-              className="inline-flex h-11 items-center justify-center rounded-[var(--radius-sm)] bg-ink px-5 text-[14px] font-medium text-white transition-[background-color,scale] duration-[var(--dur-base)] hover:bg-ink/90 active:scale-[0.98] sm:flex-1"
+              type="submit"
+              disabled={busy}
+              className="inline-flex h-11 items-center justify-center rounded-[var(--radius-sm)] bg-ink px-5 text-[14px] font-medium text-white transition-[background-color,scale] duration-[var(--dur-base)] hover:bg-ink/90 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 sm:flex-1"
             >
-              Save address
+              {busy ? "Saving…" : "Save address"}
             </button>
             <button
               type="button"
               onClick={() => {
                 setDraft(null);
                 setErrors({});
+                setFailure(null);
               }}
               className="inline-flex h-11 items-center justify-center rounded-[var(--radius-sm)] border border-line-strong px-5 text-[14px] font-medium transition-colors duration-[var(--dur-base)] hover:border-ink sm:flex-1"
             >
               Cancel
             </button>
           </div>
-        </div>
+        </form>
       ) : null}
 
       {addresses.length === 0 && !draft ? (
@@ -252,7 +301,7 @@ export function AccountAddresses() {
                 {!a.isDefault ? (
                   <button
                     type="button"
-                    onClick={() => makeDefault(a.id)}
+                    onClick={() => run(makeDefault(a.id))}
                     className="inline-flex h-9 items-center rounded-[var(--radius-sm)] border border-line-strong px-3 text-[12px] font-medium transition-colors duration-[var(--dur-base)] hover:border-ink"
                   >
                     Make default
@@ -260,7 +309,7 @@ export function AccountAddresses() {
                 ) : null}
                 <button
                   type="button"
-                  onClick={() => remove(a.id)}
+                  onClick={() => run(remove(a.id))}
                   aria-label={`Delete ${a.label} address`}
                   className="inline-flex size-9 items-center justify-center rounded-[var(--radius-sm)] text-ink-muted transition-colors duration-[var(--dur-base)] hover:bg-sale-tint hover:text-sale"
                 >
@@ -270,45 +319,6 @@ export function AccountAddresses() {
             </li>
           ))}
         </ul>
-      ) : null}
-    </div>
-  );
-}
-
-function field(invalid: boolean) {
-  return cn(
-    // 16px on phones: anything smaller makes iOS Safari zoom the page on focus.
-    "h-11 w-full rounded-[var(--radius-sm)] border bg-surface px-3 text-[16px] sm:text-[14px]",
-    "placeholder:text-ink-muted focus:outline-none",
-    invalid ? "border-sale focus:border-sale" : "border-line-strong focus:border-brand",
-  );
-}
-
-function Row({
-  label,
-  id,
-  hint,
-  error,
-  children,
-}: {
-  label: string;
-  id: string;
-  hint?: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="block text-[13px] font-medium">
-        {label}
-      </label>
-      <div className="mt-1.5">{children}</div>
-      {error ? (
-        <p id={`${id}-error`} role="alert" className="mt-1.5 text-[12px] text-sale">
-          {error}
-        </p>
-      ) : hint ? (
-        <p className="mt-1.5 text-[12px] text-ink-muted">{hint}</p>
       ) : null}
     </div>
   );

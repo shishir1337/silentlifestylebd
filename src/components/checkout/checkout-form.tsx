@@ -13,12 +13,14 @@ import {
   makeOrderId,
   validateCheckout,
   type CheckoutErrors,
+  type Order,
   type DeliveryArea,
 } from "@/lib/orders";
 import { saveOrder } from "@/lib/order-storage";
 import { normalisePhone } from "@/lib/phone";
 import { delivery } from "@/data/site";
 import { defaultAddress, useAddresses, useProfile } from "@/lib/account";
+import { Field, inputClass } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
 
 /**
@@ -45,8 +47,8 @@ export function CheckoutForm() {
   const [placing, setPlacing] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
-  const { profile, ready: profileReady } = useProfile();
-  const { addresses, ready: addressReady } = useAddresses();
+  const { profile, ready: profileReady, save: saveProfile } = useProfile();
+  const { addresses, ready: addressReady, upsert: saveAddress } = useAddresses();
 
   /**
    * Fill the form from the saved profile and default address — once, and only
@@ -107,8 +109,46 @@ export function CheckoutForm() {
     };
 
     saveOrder(order);
+    remember(order.customer, area);
     clear();
     router.push(`/order/${order.id}`);
+  }
+
+  /**
+   * Keep what they just typed, so the next order is two taps instead of a
+   * retyped address.
+   *
+   * This is the only place a guest's details are ever written — the account
+   * area is behind sign-in, so without this a guest would be asked for the
+   * same address on every single order. It runs after the order is recorded
+   * and its failures are swallowed deliberately: the order is already placed,
+   * and nothing about remembering an address for next time is worth showing
+   * an error over, let alone blocking the confirmation.
+   *
+   * Signed in or not makes no difference here. The context decides where it
+   * lands — this browser, or their account.
+   */
+  function remember(customer: Order["customer"], deliveryArea: DeliveryArea) {
+    const existing = defaultAddress(addresses);
+    void Promise.all([
+      saveProfile({
+        name: customer.name,
+        phone: customer.phone,
+        altPhone: customer.altPhone ?? "",
+        email: profile.email,
+      }),
+      saveAddress({
+        id: existing?.id ?? "",
+        label: existing?.label || "Home",
+        recipient: customer.name,
+        phone: customer.phone,
+        address: customer.address,
+        area: deliveryArea,
+        isDefault: true,
+      }),
+    ]).catch(() => {
+      // See above: best effort, never in the customer's way.
+    });
   }
 
   // Until localStorage has been read the cart is unknown — showing "empty"
@@ -398,65 +438,6 @@ export function CheckoutForm() {
 }
 
 /* --- Pieces --------------------------------------------------------------- */
-
-function inputClass(invalid: boolean) {
-  return cn(
-    // 16px on phones: anything smaller makes iOS Safari zoom the whole page on focus.
-    "h-11 w-full rounded-[var(--radius-sm)] border bg-surface px-3 text-[16px] sm:text-[14px]",
-    "placeholder:text-ink-muted focus:outline-none",
-    invalid
-      ? "border-sale focus:border-sale"
-      : "border-line-strong focus:border-brand",
-  );
-}
-
-function Field({
-  label,
-  id,
-  hint,
-  error,
-  required,
-  hideLabel,
-  children,
-}: {
-  label: string;
-  id: string;
-  hint?: string;
-  error?: string;
-  required?: boolean;
-  hideLabel?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className={cn("block text-[13px] font-medium", hideLabel && "sr-only")}
-      >
-        {label}
-        {required ? (
-          <span className="text-sale" aria-hidden>
-            {" "}
-            *
-          </span>
-        ) : null}
-        {required ? <span className="sr-only"> (required)</span> : null}
-      </label>
-
-      <div className={hideLabel ? undefined : "mt-1.5"}>{children}</div>
-
-      {error ? (
-        <p id={`${id}-error`} role="alert" className="mt-1.5 text-[12px] text-sale">
-          {error}
-        </p>
-      ) : hint ? (
-        <p id={`${id}-hint`} className="mt-1.5 text-[12px] text-ink-muted">
-          {hint}
-        </p>
-      ) : null}
-    </div>
-  );
-}
 
 function AreaOption({
   value,

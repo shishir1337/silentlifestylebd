@@ -14,11 +14,14 @@ export const metadata: Metadata = {
 const UPDATED = "13 September 2026";
 
 /**
- * NOTE FOR THE OWNER: this describes what the site as built actually does —
- * no analytics, no third-party tracking, no accounts, data kept in the
- * browser. Every one of those becomes untrue the moment you add Meta Pixel,
- * Google Analytics, a payment gateway or a real backend. Have a lawyer review
- * it, and revisit it whenever the stack changes.
+ * NOTE FOR THE OWNER: this describes what the site as built actually does. It
+ * is a factual claim to your customers, not boilerplate, so it has to be
+ * revised whenever the stack changes — this page was already rewritten once,
+ * when optional accounts shipped and "there is no account to create and no
+ * password to store" stopped being true.
+ *
+ * Things that would make it untrue again: Meta Pixel, Google Analytics, any
+ * payment gateway, an SMS or email marketing provider. Have a lawyer review it.
  */
 export default function PrivacyPage() {
   return (
@@ -32,11 +35,13 @@ export default function PrivacyPage() {
       <Section id="collect" title="What we collect">
         <p>
           We ask for the minimum needed to get a parcel to you and nothing else.
-          There is no account to create and no password to store.
+          You can order without an account; creating one is optional and changes
+          nothing about how your order is handled.
         </p>
         <Bullets
           items={[
             "At checkout: your name, mobile number, optional alternative number, delivery address and any order note you write.",
+            "If you create an account: your name, email address and a password. The password is stored only as a scrambled fingerprint — we cannot read it, and neither can anyone who obtains our database.",
             "If you contact us: whatever you tell us in the call, WhatsApp message or email.",
             "We do not ask for your date of birth, national ID, or any payment card details.",
           ]}
@@ -60,16 +65,46 @@ export default function PrivacyPage() {
 
       <Section id="browser" title="What stays in your browser">
         <p>
-          Your bag and your order history are stored in this browser&apos;s local
-          storage — on your own device, not on our servers. Clearing your browser
-          data removes them, which is also why order tracking only finds orders
-          placed on the same device.
+          Your shopping bag is stored in this browser&apos;s local storage — on
+          your own device, not on our servers. Clearing your browser data
+          empties it.
         </p>
         <Bullets
           items={[
             "We do not use advertising or tracking cookies.",
             "We do not run third-party analytics on this site.",
             "Nothing in local storage is sent to us automatically.",
+          ]}
+        />
+      </Section>
+
+      <Section id="cookies" title="Cookies">
+        <p>
+          We set one cookie, and only if you sign in. It holds a random session
+          identifier — nothing about you, and nothing readable — and it is what
+          keeps you signed in as you move between pages. Signing out removes it,
+          and it expires on its own after thirty days.
+        </p>
+        <Bullets
+          items={[
+            "It is not used to track you, here or anywhere else.",
+            "It is marked HttpOnly, so no script on the page can read it, and Secure, so it is never sent over an unencrypted connection.",
+            "Browsing and ordering as a guest sets no cookie at all.",
+          ]}
+        />
+      </Section>
+
+      <Section id="accounts" title="If you create an account">
+        <p>
+          An account saves your delivery addresses and lets you see the orders
+          you placed while signed in, from any device. It is a convenience —
+          nothing more is collected because you have one.
+        </p>
+        <Bullets
+          items={[
+            "We record when you sign in, with the network address it came from, so we can spot someone trying to break into accounts.",
+            "Ask us to close your account and we will delete it, along with your saved addresses.",
+            "Order records survive that deletion where we are required to keep them for accounting.",
           ]}
         />
       </Section>
@@ -88,7 +123,8 @@ export default function PrivacyPage() {
             "Ask what we hold about you — call or email and we will tell you.",
             "Ask us to correct a wrong number or address.",
             "Ask us to delete your details after an order is settled.",
-            "Clear your browser data to remove your bag and local order history.",
+            "Close your account at any time — ask us and we will delete it and your saved addresses.",
+            "Clear your browser data to empty your shopping bag.",
           ]}
         />
       </Section>

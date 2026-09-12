@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Container } from "@/components/ui/container";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
+import { AccountProvider } from "@/lib/account";
 
 export const metadata: Metadata = {
   title: "Checkout",
@@ -9,6 +10,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * Checkout.
+ *
+ * Still a static page, deliberately. `AccountProvider` fetches the customer's
+ * saved details after mount rather than the page reading the session on the
+ * server — doing that would make checkout render per request for a shopper who,
+ * most of the time, is a guest with nothing to prefill.
+ */
 export default function CheckoutPage() {
   return (
     <Container>
@@ -21,7 +30,9 @@ export default function CheckoutPage() {
         </p>
       </header>
 
-      <CheckoutForm />
+      <AccountProvider>
+        <CheckoutForm />
+      </AccountProvider>
     </Container>
   );
 }

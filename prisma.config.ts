@@ -29,6 +29,6 @@ export default defineConfig({
 
   migrations: {
     // `pnpm db:seed` runs this; `prisma migrate reset` calls it automatically.
-    seed: "node --experimental-strip-types prisma/seed.ts",
+    seed: "node --experimental-strip-types --disable-warning=ExperimentalWarning prisma/seed.mts",
   },
 });

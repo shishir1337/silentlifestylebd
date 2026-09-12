@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BagIcon, GridIcon, PinIcon, UserIcon } from "@/components/ui/icons";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { cn } from "@/lib/cn";
 
 const items = [
@@ -59,6 +60,13 @@ export function AccountNav() {
           );
         })}
       </ul>
+
+      {/* Sidebar only. On a phone the rail is a horizontal scroller, and a
+          destructive-ish control at the end of one is easy to hit by accident
+          while swiping — it lives at the foot of the overview page there. */}
+      <div className="mt-2 hidden border-t border-line pt-2 lg:block">
+        <SignOutButton className="w-full justify-start" />
+      </div>
     </nav>
   );
 }

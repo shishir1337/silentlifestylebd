@@ -270,6 +270,13 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  /// Contact numbers, not credentials. A Bangladeshi shop reaches a customer by
+  /// phone — the courier calls before delivery — so these sit on the account
+  /// rather than being retyped at every checkout. better-auth owns the columns
+  /// above; these two are ours and it ignores them.
+  phone    String?
+  altPhone String?
+
   /// Null for ordinary shoppers. Any non-null value grants admin access, so
   /// this is the single most security-sensitive column in the schema.
   staffRole StaffRole?
