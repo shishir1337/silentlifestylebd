@@ -23,7 +23,10 @@ import type { UploadAuth, RecordUploadInput } from "@/lib/admin/media-types";
  */
 
 const UPLOAD_FOLDER = "/catalog";
-/** Long enough for a slow phone on 3G to finish, short enough to be useless later. */
+/**
+ * Long enough for a slow phone on 3G to finish, short enough to be useless
+ * later. ImageKit refuses anything more than an hour ahead.
+ */
 const SIGNATURE_TTL = 60 * 30;
 
 function client() {
@@ -50,9 +53,20 @@ export async function createUploadAuth(): Promise<UploadAuth> {
     throw new Error("NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY is not set.");
   }
 
+  /*
+    `expire` is an absolute Unix timestamp, not a duration — whatever the SDK's
+    own JSDoc says. It documents the parameter as "expiration time in seconds
+    from now" and then assigns it straight through as the timestamp, so passing
+    1800 asks ImageKit to accept a signature that expired in January 1970 and
+    every upload comes back "invalid expire parameter".
+
+    Which is exactly what happened: the media library filled up from the seed,
+    which uploads server-side through a different path, so nothing here was ever
+    exercised until somebody tried to add a photograph from the panel.
+  */
   const { token, expire, signature } = client().helper.getAuthenticationParameters(
     undefined,
-    SIGNATURE_TTL,
+    Math.floor(Date.now() / 1000) + SIGNATURE_TTL,
   );
 
   return { token, expire, signature, publicKey, uploadUrl, folder: UPLOAD_FOLDER };

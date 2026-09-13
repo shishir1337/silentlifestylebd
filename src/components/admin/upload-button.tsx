@@ -19,29 +19,62 @@ const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/avif"];
  * Afterwards the server is told the file id and reads the real details back
  * from ImageKit itself, so what lands in the database is what ImageKit has,
  * not what a browser claimed.
+ *
+ * Several files at once, and one at a time on the wire. A shop photographs a
+ * garment front, back and detail in one sitting and has no reason to do three
+ * round trips through a file dialog — but each upload still needs its own
+ * signature, and firing ten at a browser's six-connection limit only makes the
+ * last one slower. They go in sequence with a count on the button, so a slow
+ * connection looks like progress rather than a hang.
  */
-export function UploadButton({ onUploaded }: { onUploaded: (asset: AssetRow) => void }) {
+export function UploadButton({
+  onUploaded,
+  multiple = false,
+  label = "Upload",
+  id = "admin-upload",
+}: {
+  onUploaded: (asset: AssetRow) => void;
+  multiple?: boolean;
+  label?: string;
+  id?: string;
+}) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const files = [...(e.target.files ?? [])];
     // Let the same file be chosen again after a failure.
     e.target.value = "";
-    if (!file) return;
-
-    if (!ACCEPTED.includes(file.type)) {
-      setError("Pick a JPG, PNG or WebP picture.");
-      return;
-    }
-    if (file.size > MAX_BYTES) {
-      setError(`That picture is ${Math.round(file.size / 1024 / 1024)} MB. The limit is 25 MB.`);
-      return;
-    }
+    if (files.length === 0) return;
 
     setBusy(true);
     setError(null);
+    setProgress(files.length > 1 ? { done: 0, total: files.length } : null);
+
+    const refused: string[] = [];
+    for (const [i, file] of files.entries()) {
+      if (files.length > 1) setProgress({ done: i, total: files.length });
+      const problem = await upload(file);
+      if (problem) refused.push(`${file.name}: ${problem}`);
+    }
+
+    setBusy(false);
+    setProgress(null);
+    /*
+      One bad file out of five must not throw away the four that worked, so
+      each is reported by name. The others are already on screen.
+    */
+    setError(refused.length > 0 ? refused.join(" · ") : null);
+  }
+
+  /** Uploads one file. Returns a sentence on failure, null on success. */
+  async function upload(file: File): Promise<string | null> {
+    if (!ACCEPTED.includes(file.type)) return "not a JPG, PNG or WebP";
+    if (file.size > MAX_BYTES) {
+      return `${Math.round(file.size / 1024 / 1024)} MB, over the 25 MB limit`;
+    }
 
     try {
       const auth = await createUploadAuth();
@@ -81,10 +114,9 @@ export function UploadButton({ onUploaded }: { onUploaded: (asset: AssetRow) => 
         usedBy: [],
         ...preview,
       });
+      return null;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
-    } finally {
-      setBusy(false);
+      return err instanceof Error ? err.message : "upload failed";
     }
   }
 
@@ -99,16 +131,22 @@ export function UploadButton({ onUploaded }: { onUploaded: (asset: AssetRow) => 
         ref={fileRef}
         type="file"
         accept={ACCEPTED.join(",")}
+        multiple={multiple}
         onChange={onPick}
         className="sr-only"
-        id="admin-upload"
+        id={id}
       />
       <label
-        htmlFor="admin-upload"
+        htmlFor={id}
         className="inline-flex h-9 cursor-pointer items-center rounded-[var(--radius-sm)] bg-ink px-3.5 text-[13px] font-medium text-white transition-[background-color,opacity] duration-[var(--dur-base)] hover:bg-ink/90 aria-disabled:opacity-50"
         aria-disabled={busy}
+        aria-live="polite"
       >
-        {busy ? "Uploading…" : "Upload"}
+        {busy
+          ? progress
+            ? `Uploading ${progress.done + 1} of ${progress.total}…`
+            : "Uploading…"
+          : label}
       </label>
     </div>
   );
