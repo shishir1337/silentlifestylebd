@@ -63,6 +63,20 @@
   --dur-panel-in: 340ms;
   --dur-panel-out: 240ms;
 
+
+  /* --- Admin surfaces.
+     The panel is the same product as the shop and reuses its brand, text and
+     line tokens. These two exist because a back office needs what a storefront
+     never does: a navigation rail that recedes, and a work area that is not
+     paper-white for eight hours a day.
+
+     The rail is the storefront's own ink, two steps darker — related to the
+     brand rather than the generic slate every admin template reaches for. */
+  --admin-nav: #17201c;
+  --admin-nav-ink: #c9d2cd;
+  --admin-nav-dim: #8b968f;
+  --admin-bg: #f6f5f3;
+
   /* --- Layering scale */
   --z-sticky: 40;
   --z-header: 50;
@@ -312,5 +326,57 @@
   .overlay[open] {
     translate: 0 0 !important;
     scale: 1 !important;
+  }
+}
+
+
+/* --- Admin drawer -----------------------------------------------------------
+   Native <dialog> flips `display`, which is not animatable — so the transition
+   needs `@starting-style` for the entry and `allow-discrete` so `display` waits
+   for the exit to finish. Same mechanism as the cart drawer, same easing, so
+   the two feel like one product.
+
+   Entry is a beat longer than exit: a panel that leaves as slowly as it arrived
+   feels sluggish, while one that snaps in feels cheap. */
+dialog.admin-drawer {
+  margin-right: auto;
+  transform: translateX(-100%);
+  opacity: 0;
+  transition:
+    transform var(--dur-panel-out) var(--ease-out-soft),
+    opacity var(--dur-panel-out) var(--ease-out-soft),
+    overlay var(--dur-panel-out) allow-discrete,
+    display var(--dur-panel-out) allow-discrete;
+}
+
+dialog.admin-drawer[open] {
+  transform: translateX(0);
+  opacity: 1;
+  transition-duration: var(--dur-panel-in);
+}
+
+@starting-style {
+  dialog.admin-drawer[open] {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+dialog.admin-drawer::backdrop {
+  opacity: 0;
+  transition:
+    opacity var(--dur-panel-out) var(--ease-out-soft),
+    overlay var(--dur-panel-out) allow-discrete,
+    display var(--dur-panel-out) allow-discrete;
+}
+
+dialog.admin-drawer[open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--dur-panel-in);
+}
+
+@starting-style {
+  dialog.admin-drawer[open]::backdrop {
+    opacity: 0;
   }
 }

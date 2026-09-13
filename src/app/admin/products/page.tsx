@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminShell } from "@/components/admin/admin-shell";
+import { AdminPage } from "@/components/admin/admin-shell";
 import { ProductList } from "@/components/admin/product-list";
 import { ButtonLink } from "@/components/ui/button";
 import { requireCatalogAccess } from "@/lib/admin/access";
@@ -28,8 +28,7 @@ export default async function AdminProductsPage(props: PageProps<"/admin/product
   const products = await listProducts(query);
 
   return (
-    <AdminShell
-      staff={staff}
+    <AdminPage
       title="Products"
       lead="Prices, stock and descriptions. Hidden products stay in your records but disappear from the shop."
       action={
@@ -39,6 +38,6 @@ export default async function AdminProductsPage(props: PageProps<"/admin/product
       }
     >
       <ProductList products={products} query={query ?? ""} />
-    </AdminShell>
+    </AdminPage>
   );
 }

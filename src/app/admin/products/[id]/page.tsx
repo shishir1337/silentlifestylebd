@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { AdminShell } from "@/components/admin/admin-shell";
+import { AdminPage } from "@/components/admin/admin-shell";
 import { ProductForm } from "@/components/admin/product-form";
 import { requireCatalogAccess } from "@/lib/admin/access";
 import { getProduct, listAssets, listCategories } from "@/lib/admin/catalog-reads";
@@ -22,8 +22,7 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
   if (!product) notFound();
 
   return (
-    <AdminShell
-      staff={staff}
+    <AdminPage
       title={product.name}
       lead="Changes show on the shop within a few seconds of saving."
     >
@@ -32,6 +31,6 @@ export default async function EditProductPage(props: PageProps<"/admin/products/
         categories={categories.map((c) => ({ id: c.id, name: c.name }))}
         assets={assets}
       />
-    </AdminShell>
+    </AdminPage>
   );
 }

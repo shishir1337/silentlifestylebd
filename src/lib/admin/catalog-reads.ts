@@ -267,3 +267,64 @@ export async function getAdminCounts() {
 
   return { products, hidden, categories, outOfStock, pendingOrders, assets };
 }
+
+/**
+ * The dashboard feed.
+ *
+ * Deliberately answers what an operator opening this at 9am actually asks:
+ * what needs doing, what sold, what is about to run out. Counts alone make a
+ * pretty screen nobody acts on.
+ */
+export async function getDashboardFeed() {
+  const midnight = new Date();
+  midnight.setHours(0, 0, 0, 0);
+
+  const [pending, delivered, today, recent, lowStockRows] = await Promise.all([
+    db.order.count({ where: { status: "PENDING" } }),
+    db.order.count({ where: { status: "DELIVERED" } }),
+    db.order.aggregate({
+      where: { placedAt: { gte: midnight } },
+      _count: { _all: true },
+      _sum: { total: true },
+    }),
+    db.order.findMany({
+      orderBy: { placedAt: "desc" },
+      take: 6,
+      select: {
+        orderNo: true,
+        customerName: true,
+        status: true,
+        total: true,
+        placedAt: true,
+      },
+    }),
+    /**
+     * Products worth looking at before they embarrass anyone: nothing left at
+     * all, or down to the last few. Only published ones — a hidden product
+     * running out is not a problem anybody needs to hear about.
+     */
+    db.product.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, variants: { select: { stock: true } } },
+    }),
+  ]);
+
+  const lowStock = lowStockRows
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      totalStock: p.variants.reduce((n, v) => n + v.stock, 0),
+    }))
+    .filter((p) => p.totalStock <= 5)
+    .sort((a, b) => a.totalStock - b.totalStock)
+    .slice(0, 6);
+
+  return {
+    pending,
+    delivered,
+    ordersToday: today._count._all,
+    salesToday: today._sum.total ?? 0,
+    recent: recent.map((o) => ({ ...o, placedAt: o.placedAt.toISOString() })),
+    lowStock,
+  };
+}

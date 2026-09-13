@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminShell } from "@/components/admin/admin-shell";
+import { AdminPage } from "@/components/admin/admin-shell";
 import { Card } from "@/components/admin/admin-ui";
 import { requireStaff } from "@/lib/dal";
 import { db } from "@/lib/db";
@@ -40,8 +40,7 @@ export default async function AdminOrdersPage() {
   ]);
 
   return (
-    <AdminShell
-      staff={staff}
+    <AdminPage
       title="Orders"
       lead={`${total} in total, ${pending} waiting to be confirmed.`}
     >
@@ -75,6 +74,6 @@ export default async function AdminOrdersPage() {
           is a read-only view so nothing placed is invisible to you.
         </p>
       </Card>
-    </AdminShell>
+    </AdminPage>
   );
 }

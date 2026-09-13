@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminShell } from "@/components/admin/admin-shell";
+import { AdminPage } from "@/components/admin/admin-shell";
 import { CategoryManager } from "@/components/admin/category-manager";
 import { requireCatalogAccess } from "@/lib/admin/access";
 import { listAssets, listCategories } from "@/lib/admin/catalog-reads";
@@ -21,12 +21,11 @@ export default async function AdminCategoriesPage() {
   const [categories, assets] = await Promise.all([listCategories(), listAssets()]);
 
   return (
-    <AdminShell
-      staff={staff}
+    <AdminPage
       title="Categories"
       lead="The order here is the order customers see on the homepage."
     >
       <CategoryManager categories={categories} assets={assets} />
-    </AdminShell>
+    </AdminPage>
   );
 }
