@@ -23,6 +23,8 @@ export interface PlaceOrderInput {
   address: string;
   note?: string;
   area: DeliveryArea;
+  /** Optional discount code. Priced on the server; never trusted as an amount. */
+  couponCode?: string;
 }
 
 export type PlaceOrderResult =
@@ -35,4 +37,11 @@ export type PlaceOrderResult =
        * making the customer work out which of six items was the problem.
        */
       unavailable?: { productId: string; size: string; available: number }[];
+      /**
+       * The coupon was the problem, not the order.
+       *
+       * Lets the form clear the code and invite another go, rather than
+       * showing a general failure beside a filled-in address.
+       */
+      couponRejected?: boolean;
     };

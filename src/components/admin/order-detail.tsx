@@ -195,6 +195,14 @@ export function OrderDetail({
               <dt className="text-ink-soft">Subtotal</dt>
               <dd><Taka amount={order.subtotal} /></dd>
             </div>
+            {order.discount > 0 ? (
+              <div className="flex justify-between text-brand">
+                <dt>Discount{order.couponCode ? ` · ${order.couponCode}` : ""}</dt>
+                <dd className="font-medium">
+                  −<Taka amount={order.discount} />
+                </dd>
+              </div>
+            ) : null}
             <div className="flex justify-between">
               <dt className="text-ink-soft">
                 Delivery · {order.area === "inside-dhaka" ? "Inside Dhaka" : "Outside Dhaka"}

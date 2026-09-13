@@ -20,6 +20,9 @@ import type { StaffUser } from "@/lib/dal";
  */
 
 export type AuditAction =
+  | "coupon.created"
+  | "coupon.changed"
+  | "coupon.deleted"
   | "settings.updated"
   | "staff.granted"
   | "staff.changed"

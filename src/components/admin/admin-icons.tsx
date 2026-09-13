@@ -101,6 +101,15 @@ export function MediaIcon({ className }: IconProps) {
   );
 }
 
+export function CouponIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M3 9.5V7a1.5 1.5 0 0 1 1.5-1.5h15A1.5 1.5 0 0 1 21 7v2.5a2.5 2.5 0 0 0 0 5V17a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17v-2.5a2.5 2.5 0 0 0 0-5Z" />
+      <path d="M9.5 9.5h.01M14.5 14.5h.01M14.5 9.5l-5 5" />
+    </svg>
+  );
+}
+
 export function SettingsIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className}>

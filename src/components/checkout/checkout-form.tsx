@@ -13,7 +13,7 @@ import {
   type CheckoutErrors,
   type DeliveryArea,
 } from "@/lib/orders";
-import { placeOrder } from "@/lib/order-actions";
+import { placeOrder, previewCoupon } from "@/lib/order-actions";
 import { normalisePhone } from "@/lib/phone";
 import { useDelivery } from "@/lib/site-settings";
 import { defaultAddress, useAddresses, useProfile } from "@/lib/account";
@@ -80,8 +80,74 @@ export function CheckoutForm() {
   const phoneRef = useRef<HTMLInputElement>(null);
   const addressRef = useRef<HTMLTextAreaElement>(null);
 
-  const deliveryCharge = deliveryChargeFor(area, subtotal, delivery);
-  const total = subtotal + deliveryCharge;
+  /*
+    The coupon quote, held as what the server last said rather than recomputed
+    here. The browser does not know what a code is worth — it knows what it was
+    told, and only for the basket it was told about. Changing the bag or the
+    area clears it, because the answer was about a different order.
+  */
+  const [code, setCode] = useState("");
+  const [applied, setApplied] = useState<
+    { code: string; summary: string; discount: number; deliveryCharge: number } | null
+  >(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [checkingCode, setCheckingCode] = useState(false);
+
+  /**
+   * Ask the server what the code is worth.
+   *
+   * The phone goes with it because a code can be limited per number, and
+   * quoting one that the order will then refuse is worse than refusing it
+   * here. If the field is empty the server simply cannot apply that rule yet,
+   * and `placeOrder` checks it again with the real number.
+   */
+  async function applyCode() {
+    const typed = code.trim().toUpperCase();
+    if (!typed) return;
+    setCheckingCode(true);
+    setCouponError(null);
+    try {
+      const result = await previewCoupon({
+        code: typed,
+        lines: lines.map((l) => ({
+          productId: l.productId,
+          size: l.size ?? "",
+          qty: l.qty,
+        })),
+        area,
+        phone: normalisePhone(phone),
+      });
+      if (!result.ok) {
+        setApplied(null);
+        setCouponError(result.message);
+        return;
+      }
+      setApplied({
+        code: typed,
+        summary: result.summary,
+        discount: result.discount,
+        deliveryCharge: result.deliveryCharge,
+      });
+    } catch {
+      setCouponError("Could not check that code. Try again.");
+    } finally {
+      setCheckingCode(false);
+    }
+  }
+
+  /*
+    A quote is about one basket going to one place. Change either and it is
+    answering a question nobody asked any more, so it goes — silently, because
+    the customer changing their bag has not done anything wrong.
+  */
+  useEffect(() => {
+    setApplied(null);
+  }, [subtotal, area]);
+
+  const baseCharge = deliveryChargeFor(area, subtotal, delivery);
+  const deliveryCharge = applied ? applied.deliveryCharge : baseCharge;
+  const discount = applied?.discount ?? 0;
+  const total = subtotal - discount + deliveryCharge;
   const shortfall = delivery.freeThreshold - subtotal;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -117,10 +183,17 @@ export function CheckoutForm() {
       })),
       ...customer,
       area,
+      couponCode: applied?.code,
     });
 
     if (!result.ok) {
       setFailure(result.message);
+      // A coupon that went stale between quoting and placing takes itself off,
+      // so the next attempt is not the same refusal.
+      if (result.couponRejected) {
+        setApplied(null);
+        setCouponError(result.message);
+      }
       setPlacing(false);
       // Back to the top: the message is above the form, and on a phone the
       // submit button is a long way from it.
@@ -405,11 +478,83 @@ export function CheckoutForm() {
               ))}
             </ul>
 
+            {/* ------------------------------------------------ coupon */}
+            <div className="mt-3 border-t border-line pt-3">
+              {applied ? (
+                <div className="flex items-center gap-2 rounded-[var(--radius-sm)] bg-brand-tint px-3 py-2">
+                  <CheckIcon className="size-4 shrink-0 text-brand" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12.5px] font-semibold text-brand">{applied.code}</p>
+                    <p className="text-[12px] text-brand/80">{applied.summary}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setApplied(null);
+                      setCode("");
+                      setCouponError(null);
+                    }}
+                    className="shrink-0 text-[12px] font-medium text-brand underline underline-offset-2"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="coupon" className="block text-[12.5px] font-medium">
+                    Discount code
+                  </label>
+                  <div className="mt-1.5 flex gap-2">
+                    <input
+                      id="coupon"
+                      value={code}
+                      onChange={(e) => {
+                        setCode(e.target.value.toUpperCase());
+                        setCouponError(null);
+                      }}
+                      /* Enter inside the checkout form would submit the order. */
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void applyCode();
+                        }
+                      }}
+                      placeholder="EID20"
+                      autoCapitalize="characters"
+                      autoComplete="off"
+                      className={cn(inputClass(), "h-10 flex-1 bg-canvas font-mono tracking-wider")}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void applyCode()}
+                      disabled={checkingCode || !code.trim()}
+                      className="inline-flex h-10 shrink-0 items-center rounded-[var(--radius-sm)] border border-line-strong px-3.5 text-[13px] font-medium transition-colors duration-[var(--dur-base)] hover:border-ink disabled:opacity-40"
+                    >
+                      {checkingCode ? "Checking…" : "Apply"}
+                    </button>
+                  </div>
+                  {couponError ? (
+                    <p role="alert" className="mt-1.5 text-[12px] text-sale">
+                      {couponError}
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </div>
+
             <dl className="mt-3 space-y-2 border-t border-line pt-3 text-[14px]">
               <div className="flex justify-between">
                 <dt className="text-ink-soft">Subtotal</dt>
                 <dd><Taka amount={subtotal} className="font-medium" /></dd>
               </div>
+              {discount > 0 ? (
+                <div className="flex justify-between text-brand">
+                  <dt>Discount ({applied?.code})</dt>
+                  <dd className="font-medium">
+                    −<Taka amount={discount} />
+                  </dd>
+                </div>
+              ) : null}
               <div className="flex justify-between">
                 <dt className="text-ink-soft">Delivery</dt>
                 <dd>

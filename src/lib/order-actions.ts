@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/dal";
 import { grantOrderAccess } from "@/lib/order-access";
 import { getDeliverySettings } from "@/lib/settings";
+import { baseDelivery, quoteCoupon } from "@/lib/coupons";
 import { CATALOG_TAG, PRODUCTS_TAG } from "@/lib/catalog";
 import { isBDMobile, normalisePhone } from "@/lib/phone";
 import { DeliveryArea as PrismaArea } from "@prisma/client";
@@ -210,13 +211,34 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
    * total — otherwise the charge could push an order over the line and pay for
    * its own removal.
    */
-  const deliveryCharge =
-    subtotal >= settings.freeThreshold
-      ? 0
-      : input.area === "inside-dhaka"
-        ? settings.insideDhaka
-        : settings.outsideDhaka;
-  const total = subtotal + deliveryCharge;
+  const deliveryCharge = baseDelivery(input.area, subtotal, settings);
+
+  /* --- 2b. the coupon, priced here and nowhere else --------------------- */
+
+  /*
+    Quoted once outside the transaction so a refusal is a plain message rather
+    than a rolled-back order, then *checked again inside it* — between the two,
+    a limited code can be spent by somebody else, or the same customer can
+    submit twice from two tabs.
+
+    A code that has gone stale between the two does not lose the order. The
+    customer is told and the order is placed at full price, because an order
+    is worth more than a discount, and the alternative is a form that throws
+    away a filled-in address over a coupon.
+  */
+  let quote = input.couponCode
+    ? await quoteCoupon({
+        code: input.couponCode,
+        subtotal,
+        area: input.area,
+        phone,
+        rates: settings,
+      })
+    : null;
+
+  if (quote && !quote.ok) {
+    return { ok: false, message: quote.message, couponRejected: true };
+  }
 
   /* --- 3. write it, or write nothing ------------------------------------ */
 
@@ -246,6 +268,58 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
           }
         }
 
+        /*
+          The coupon again, against the same rows the order is about to be
+          written from — and, where the code has a total limit, claimed with a
+          conditional update. `usageCount: { lt: usageLimit }` in the WHERE is
+          what stops two customers racing for the last redemption: both passed
+          the quote above, and exactly one of them matches a row here.
+        */
+        let discount = 0;
+        let charged = deliveryCharge;
+        let couponId: string | null = null;
+        let couponCode: string | null = null;
+
+        if (quote?.ok) {
+          const fresh = await quoteCoupon({
+            code: quote.code,
+            subtotal,
+            area: input.area,
+            phone,
+            rates: settings,
+            client: tx,
+          });
+
+          if (fresh.ok) {
+            const claimed = await tx.coupon.updateMany({
+              where: {
+                id: fresh.couponId,
+                isActive: true,
+                OR: [
+                  { usageLimit: 0 },
+                  { usageCount: { lt: tx.coupon.fields.usageLimit } },
+                ],
+              },
+              data: { usageCount: { increment: 1 } },
+            });
+
+            if (claimed.count === 1) {
+              discount = fresh.discount;
+              charged = fresh.deliveryCharge;
+              couponId = fresh.couponId;
+              couponCode = fresh.code;
+            } else {
+              // Somebody took the last one in the last few milliseconds. The
+              // order still goes through, at full price.
+              quote = { ok: false, reason: "used-up", message: "That code has been fully used." };
+            }
+          } else {
+            quote = fresh;
+          }
+        }
+
+        const total = subtotal - discount + charged;
+
         const order = await tx.order.create({
           data: {
             orderNo,
@@ -257,7 +331,10 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
             note: input.note?.trim() || null,
             area: toPrismaArea(input.area),
             subtotal,
-            deliveryCharge,
+            discount,
+            couponId,
+            couponCode,
+            deliveryCharge: charged,
             total,
             items: {
               create: priced.map((l) => ({
@@ -408,6 +485,64 @@ export async function trackOrder(
 export type TrackResult =
   | { ok: true; order: OrderView | null }
   | { ok: false; message: string };
+
+/**
+ * What a code would be worth on this basket.
+ *
+ * For the checkout form, so a customer sees the saving before committing to an
+ * address. Deliberately not the decision: `placeOrder` prices the coupon again
+ * from the same rows and uses *that*. This is a quote, and it says so.
+ *
+ * Rate limited, because the field is a free oracle otherwise — a script can
+ * sit there trying codes until it finds one, and a discount code is worth
+ * money. Twenty tries in five minutes is more than anyone typing by hand.
+ */
+export async function previewCoupon(input: {
+  code: string;
+  lines: PlaceOrderLine[];
+  area: DeliveryArea;
+  phone: string;
+}): Promise<{ ok: true; summary: string; discount: number; deliveryCharge: number; total: number } | { ok: false; message: string }> {
+  const rate = await consume(`coupon:${await callerKey()}`, 300, 20);
+  if (rate && !rate.allowed) {
+    return { ok: false, message: "Too many codes tried. Wait a few minutes." };
+  }
+
+  /*
+    Priced from the catalogue, not from what the browser says the basket is
+    worth. Otherwise the minimum-spend rule is advisory: send a subtotal of
+    ten thousand and any code clears it.
+  */
+  const products = await db.product.findMany({
+    where: { id: { in: input.lines.map((l) => l.productId) }, isActive: true },
+    select: { id: true, price: true },
+  });
+  const priceOf = new Map(products.map((p) => [p.id, p.price]));
+  const subtotal = input.lines.reduce(
+    (sum, l) => sum + (priceOf.get(l.productId) ?? 0) * Math.max(0, l.qty),
+    0,
+  );
+  if (subtotal <= 0) return { ok: false, message: "Your bag is empty." };
+
+  const rates = await getDeliverySettings();
+  const quote = await quoteCoupon({
+    code: input.code,
+    subtotal,
+    area: input.area,
+    phone: input.phone,
+    rates,
+  });
+
+  return quote.ok
+    ? {
+        ok: true,
+        summary: quote.summary,
+        discount: quote.discount,
+        deliveryCharge: quote.deliveryCharge,
+        total: quote.total,
+      }
+    : { ok: false, message: quote.message };
+}
 
 /**
  * Orders this browser has placed, or this customer's if signed in.

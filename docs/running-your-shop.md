@@ -105,6 +105,37 @@ Deleting is permanent and is only offered for products nobody has ordered.
 
 ---
 
+## Discount codes
+
+**Discounts** in the sidebar. A code is one of three things: a percentage off,
+an amount off, or free delivery.
+
+**The rules you can set.** A minimum order before it works. A cap on a
+percentage, so "20% off" does not become ৳4,000 on a large order. A total
+number of uses. A number of uses per phone number — phone rather than account,
+because most of your customers order as guests.
+
+**Dates are optional.** Leave both empty and it works from now until you switch
+it off.
+
+**Switch off rather than delete.** Switching off stops a code working
+immediately and keeps the history, so an order that used it can still say why
+it was cheaper. A code that has been used on an order cannot be deleted at all,
+for the same reason.
+
+**What the list tells you.** How many orders carried each code, what those
+orders were worth, and what the code gave away. That is the question worth
+asking about a discount — a code with four hundred uses and little revenue
+behind it has been posted somewhere it should not have been.
+
+**Cancelling an order gives the use back**, so a customer whose order you
+cancel can use their code again.
+
+The price is worked out on your server when the order is placed, never in the
+customer's browser. Nobody can edit a discount into an order.
+
+---
+
 ## Categories and Collections
 
 **Categories** are what a product *is* — Panjabi, Formal Shirt, Watches. Every

@@ -183,6 +183,8 @@ export interface AdminOrderDetail {
   note: string | null;
   area: DeliveryArea;
   subtotal: number;
+  discount: number;
+  couponCode: string | null;
   deliveryCharge: number;
   total: number;
   account: { name: string; email: string } | null;
@@ -219,6 +221,8 @@ export async function getOrder(orderNo: string): Promise<AdminOrderDetail | null
       note: true,
       area: true,
       subtotal: true,
+      discount: true,
+      couponCode: true,
       deliveryCharge: true,
       total: true,
       customer: { select: { name: true, email: true } },
@@ -260,6 +264,8 @@ export async function getOrder(orderNo: string): Promise<AdminOrderDetail | null
     note: o.note,
     area: o.area === "INSIDE_DHAKA" ? "inside-dhaka" : "outside-dhaka",
     subtotal: o.subtotal,
+    discount: o.discount,
+    couponCode: o.couponCode,
     deliveryCharge: o.deliveryCharge,
     total: o.total,
     account: o.customer,

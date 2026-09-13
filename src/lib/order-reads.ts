@@ -34,6 +34,9 @@ export interface OrderView {
   note: string | null;
   area: DeliveryArea;
   subtotal: number;
+  /** Taken off the goods by a coupon. Zero when none applied. */
+  discount: number;
+  couponCode: string | null;
   deliveryCharge: number;
   total: number;
   items: OrderItemView[];
@@ -61,6 +64,8 @@ const SELECT = {
   note: true,
   area: true,
   subtotal: true,
+  discount: true,
+  couponCode: true,
   deliveryCharge: true,
   total: true,
   items: {
@@ -88,6 +93,9 @@ type Row = {
   note: string | null;
   area: "INSIDE_DHAKA" | "OUTSIDE_DHAKA";
   subtotal: number;
+  /** Taken off the goods by a coupon. Zero when none applied. */
+  discount: number;
+  couponCode: string | null;
   deliveryCharge: number;
   total: number;
   items: OrderItemView[];
@@ -107,6 +115,8 @@ function toView(row: Row): OrderView {
     note: row.note,
     area: row.area === "INSIDE_DHAKA" ? "inside-dhaka" : "outside-dhaka",
     subtotal: row.subtotal,
+    discount: row.discount,
+    couponCode: row.couponCode,
     deliveryCharge: row.deliveryCharge,
     total: row.total,
     items: row.items,

@@ -424,9 +424,20 @@ model Order {
 
   // --- money, all recomputed server-side at placement, never trusted from the client
   subtotal       Int
+  /// Taken off the goods. Zero for a free-delivery coupon, which zeroes the
+  /// charge instead — recording both would count the same saving twice.
+  discount       Int           @default(0)
   deliveryCharge Int
+  /// subtotal - discount + deliveryCharge. Stored rather than derived, because
+  /// it is what the delivery man collects and must not change if a rule does.
   total          Int
   paymentMethod  PaymentMethod @default(COD)
+
+  couponId String?
+  /// The code as typed, kept even if the coupon is later deleted. An order
+  /// that cannot say why it was cheaper is an order nobody can explain.
+  couponCode String?
+  coupon     Coupon? @relation(fields: [couponId], references: [id], onDelete: SetNull)
 
   placedAt  DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -554,6 +565,55 @@ model AuditEvent {
 /// threshold. Rows instead, because the strip is where a shop puts the thing
 /// that is true this week — a festival delivery cut-off, a campaign, a warning
 /// that Dhaka traffic is slow before Eid — and none of that is worth a deploy.
+/// A discount code.
+///
+/// Everything about what a coupon is worth lives here and is applied on the
+/// server at placement. The browser is told what a code *would* be worth so
+/// the customer can see it, but that quote is a courtesy: the order is priced
+/// again from these rows, the way the line prices already are.
+model Coupon {
+  id   String     @id @default(cuid())
+  /// Uppercased on save. Customers type it in any case and on a phone.
+  code String     @unique
+  kind CouponKind
+
+  /// PERCENT: 1–100. FIXED: whole taka off the goods. FREE_DELIVERY: unused.
+  value Int
+
+  /// Goods subtotal required before it applies at all. 0 = no minimum.
+  minSpend Int @default(0)
+  /// Caps a percentage, e.g. "20% off, up to ৳500". 0 = uncapped.
+  maxDiscount Int @default(0)
+
+  /// Total redemptions allowed. 0 = unlimited.
+  usageLimit Int @default(0)
+  /// Redemptions so far. Incremented inside the order transaction, guarded
+  /// against the limit, so a race cannot spend the last one twice.
+  usageCount Int @default(0)
+  /// Redemptions allowed per phone number. 0 = unlimited.
+  ///
+  /// Phone rather than account: most of this shop's orders are guests, and a
+  /// per-account limit on a shop where accounts are optional limits nobody.
+  perPhoneLimit Int @default(1)
+
+  startsAt DateTime?
+  endsAt   DateTime?
+
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
+  @@index([code])
+}
+
+enum CouponKind {
+  PERCENT
+  FIXED
+  FREE_DELIVERY
+}
+
 model Announcement {
   id String @id @default(cuid())
 
