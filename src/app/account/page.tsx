@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/dal";
+import { getViewerOrders } from "@/lib/order-reads";
 import { AccountOverview } from "@/components/account/account-overview";
 
 export const metadata: Metadata = {
@@ -19,5 +20,6 @@ export const metadata: Metadata = {
  */
 export default async function AccountPage() {
   await requireUser();
-  return <AccountOverview />;
+  const orders = await getViewerOrders();
+  return <AccountOverview orders={orders} />;
 }

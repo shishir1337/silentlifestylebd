@@ -1,58 +1,30 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Taka } from "@/components/ui/price";
 import { ButtonLink } from "@/components/ui/button";
 import { CashIcon, CheckIcon, PhoneIcon, TruckIcon } from "@/components/ui/icons";
-import { formatOrderDate, type Order } from "@/lib/orders";
-import { getOrder } from "@/lib/order-storage";
+import { formatOrderDate } from "@/lib/orders";
+import { ORDER_STATUS, STATUS_CHIP } from "@/lib/order-status";
+import type { OrderView } from "@/lib/order-reads";
 import { delivery, site } from "@/data/site";
+import { cn } from "@/lib/cn";
 
 /**
  * Order confirmation.
  *
- * Reads the order the checkout just wrote. This is the moment a cash-on-
- * delivery customer decides whether the shop is real, so it states plainly
- * what happens next, what they will pay, and how to reach a human — rather
- * than a bare "thank you for your order".
+ * A Server Component now: the order is a row in Postgres, and the page that
+ * renders this has already established that the person asking is entitled to
+ * see it. It used to read `localStorage`, which meant the shop never knew an
+ * order existed and the customer lost it by clearing their browser.
+ *
+ * This is the moment a cash-on-delivery customer decides whether the shop is
+ * real, so it states plainly what happens next, what they will pay, and how to
+ * reach a human — rather than a bare "thank you for your order".
  */
-export function OrderConfirmation({ id }: { id: string }) {
-  const [order, setOrder] = useState<Order | undefined>();
-  const [ready, setReady] = useState(false);
-
-  // localStorage exists only in the browser; reading during render would
-  // hydrate a different tree than the server sent.
-  useEffect(() => {
-    setOrder(getOrder(id));
-    setReady(true);
-  }, [id]);
-
-  if (!ready) return <div className="py-24" aria-busy="true" />;
-
-  if (!order) {
-    return (
-      <div className="flex flex-col items-center gap-3 py-20 text-center">
-        <p className="text-[17px] font-medium">We can&apos;t find that order</p>
-        <p className="max-w-md text-[14px] text-ink-muted">
-          Order <span className="tabular font-medium">{id}</span> isn&apos;t on this
-          device. It may have been placed in another browser — call us and we will
-          look it up for you.
-        </p>
-        <a
-          href={`tel:${site.phone}`}
-          className="mt-2 inline-flex h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-ink px-5 text-sm font-medium text-white"
-        >
-          <PhoneIcon className="size-4" />
-          <span className="tabular">{site.phoneDisplay}</span>
-        </a>
-      </div>
-    );
-  }
-
+export function OrderConfirmation({ order }: { order: OrderView }) {
   const eta =
     order.area === "inside-dhaka" ? delivery.insideDhakaDays : delivery.outsideDhakaDays;
+  const status = ORDER_STATUS[order.status];
 
   return (
     <div className="pb-10">
@@ -64,17 +36,32 @@ export function OrderConfirmation({ id }: { id: string }) {
           Order placed
         </h1>
         <p className="mt-2 max-w-md text-[14px] leading-relaxed text-ink-soft">
-          Thank you, {order.customer.name.split(" ")[0]}. We will call{" "}
-          <span className="tabular">{order.customer.phone}</span> to confirm before
+          Thank you, {order.customerName.split(" ")[0]}. We will call{" "}
+          <span className="tabular">{order.customerPhone}</span> to confirm before
           dispatch.
         </p>
 
         <p className="mt-4 rounded-[var(--radius-sm)] border border-line bg-subtle px-4 py-2.5 text-[13px]">
           Order number{" "}
-          <span className="tabular font-semibold tracking-wide">{order.id}</span>
+          <span className="tabular font-semibold tracking-wide">{order.orderNo}</span>
         </p>
         <p className="mt-2 text-[12px] text-ink-muted">
           Placed on {formatOrderDate(order.placedAt)}
+        </p>
+
+        {/*
+          Shown even on a freshly placed order. The status is real now — staff
+          move it in the admin panel — so this page is worth returning to, and
+          it should say so from the first visit rather than only after it
+          changes.
+        */}
+        <p
+          className={cn(
+            "mt-3 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide uppercase",
+            STATUS_CHIP[status.tone],
+          )}
+        >
+          {status.label}
         </p>
       </div>
 
@@ -123,22 +110,20 @@ export function OrderConfirmation({ id }: { id: string }) {
           <div className="mt-7 rounded-[var(--radius-md)] border border-line p-4">
             <h3 className="text-[13px] font-semibold">Delivering to</h3>
             <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">
-              {order.customer.name}
+              {order.customerName}
               <br />
-              <span className="tabular">{order.customer.phone}</span>
-              {order.customer.altPhone ? (
+              <span className="tabular">{order.customerPhone}</span>
+              {order.altPhone ? (
                 <>
                   {" · "}
-                  <span className="tabular">{order.customer.altPhone}</span>
+                  <span className="tabular">{order.altPhone}</span>
                 </>
               ) : null}
               <br />
-              {order.customer.address}
+              {order.address}
             </p>
-            {order.customer.note ? (
-              <p className="mt-2 text-[12px] text-ink-muted">
-                Note: {order.customer.note}
-              </p>
+            {order.note ? (
+              <p className="mt-2 text-[12px] text-ink-muted">Note: {order.note}</p>
             ) : null}
           </div>
 
@@ -160,20 +145,22 @@ export function OrderConfirmation({ id }: { id: string }) {
             </h2>
 
             <ul className="mt-3 divide-y divide-line">
-              {order.lines.map((line) => (
-                <li key={line.key} className="flex gap-3 py-3">
+              {order.items.map((line, i) => (
+                <li key={`${line.slug}-${line.size ?? ""}-${i}`} className="flex gap-3 py-3">
                   <Link
                     href={`/products/${line.slug}`}
                     className="relative size-14 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-canvas"
                   >
-                    <Image
-                      src={line.image}
-                      alt=""
-                      fill
-                      sizes="56px"
-                      quality={60}
-                      className="object-cover"
-                    />
+                    {line.imageUrl ? (
+                      <Image
+                        src={line.imageUrl}
+                        alt=""
+                        fill
+                        sizes="56px"
+                        quality={60}
+                        className="object-cover"
+                      />
+                    ) : null}
                   </Link>
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-2 text-[13px] leading-snug">{line.name}</p>
@@ -181,7 +168,15 @@ export function OrderConfirmation({ id }: { id: string }) {
                       {line.size ? `Size ${line.size} · ` : ""}Qty {line.qty}
                     </p>
                   </div>
-                  <Taka amount={line.price * line.qty} className="text-[13px] font-semibold" />
+                  {/*
+                    The price stored on the line, not today's. An order is a
+                    record of what was agreed, and it must not change because
+                    the shop later changed a price.
+                  */}
+                  <Taka
+                    amount={line.unitPrice * line.qty}
+                    className="text-[13px] font-semibold"
+                  />
                 </li>
               ))}
             </ul>
@@ -189,7 +184,9 @@ export function OrderConfirmation({ id }: { id: string }) {
             <dl className="mt-3 space-y-2 border-t border-line pt-3 text-[14px]">
               <div className="flex justify-between">
                 <dt className="text-ink-soft">Subtotal</dt>
-                <dd><Taka amount={order.subtotal} className="font-medium" /></dd>
+                <dd>
+                  <Taka amount={order.subtotal} className="font-medium" />
+                </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-soft">
@@ -206,7 +203,9 @@ export function OrderConfirmation({ id }: { id: string }) {
               </div>
               <div className="flex items-baseline justify-between border-t border-line pt-2.5">
                 <dt className="text-[15px] font-semibold">Pay on delivery</dt>
-                <dd><Taka amount={order.total} className="text-xl font-semibold" /></dd>
+                <dd>
+                  <Taka amount={order.total} className="text-xl font-semibold" />
+                </dd>
               </div>
             </dl>
           </div>

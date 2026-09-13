@@ -5,10 +5,12 @@ import Image from "next/image";
 import { Taka } from "@/components/ui/price";
 import { ButtonLink } from "@/components/ui/button";
 import { BagIcon, CashIcon, ChevronRightIcon, PinIcon, TruckIcon } from "@/components/ui/icons";
-import { useDeviceOrders } from "@/lib/use-device-orders";
 import { useAddresses, useProfile, defaultAddress } from "@/lib/account";
 import { formatOrderDate } from "@/lib/orders";
+import { ORDER_STATUS, STATUS_CHIP } from "@/lib/order-status";
+import type { OrderView } from "@/lib/order-reads";
 import { delivery } from "@/data/site";
+import { cn } from "@/lib/cn";
 
 /**
  * Dashboard overview.
@@ -16,18 +18,22 @@ import { delivery } from "@/data/site";
  * Three numbers, the most recent orders, and the default address — the answers
  * to "what did I spend", "where is my last parcel" and "where is it going",
  * which is what a customer opens an account page to find.
+ *
+ * Orders arrive as a prop because they come from the database and the page
+ * above has already read them; profile and addresses come from the context,
+ * which still serves guests from their own browser. Two sources, because the
+ * two kinds of data genuinely differ in where they live.
  */
-export function AccountOverview() {
-  const { orders, ready: ordersReady } = useDeviceOrders();
+export function AccountOverview({ orders }: { orders: OrderView[] }) {
   const { profile, ready: profileReady } = useProfile();
   const { addresses, ready: addressReady } = useAddresses();
 
-  if (!ordersReady || !profileReady || !addressReady) {
+  if (!profileReady || !addressReady) {
     return <div className="py-20" aria-busy="true" />;
   }
 
   const spent = orders.reduce((sum, o) => sum + o.total, 0);
-  const items = orders.reduce((sum, o) => sum + o.lines.reduce((n, l) => n + l.qty, 0), 0);
+  const items = orders.reduce((sum, o) => sum + o.items.reduce((n, l) => n + l.qty, 0), 0);
   const recent = orders.slice(0, 3);
   const home = defaultAddress(addresses);
   const firstName = profile.name.trim().split(" ")[0];
@@ -38,7 +44,7 @@ export function AccountOverview() {
         {firstName ? `Welcome back, ${firstName}` : "My account"}
       </h1>
       <p className="mt-1.5 text-[14px] text-ink-soft">
-        Your orders, addresses and details — all kept on this device.
+        Your orders, addresses and details in one place.
       </p>
 
       <dl className="mt-5 grid grid-cols-3 gap-2.5">
@@ -79,29 +85,38 @@ export function AccountOverview() {
         ) : (
           <ul className="mt-3 space-y-2.5">
             {recent.map((o) => (
-              <li key={o.id}>
+              <li key={o.orderNo}>
                 <Link
-                  href={`/order/${o.id}`}
+                  href={`/order/${o.orderNo}`}
                   className="group flex items-center gap-3 rounded-[var(--radius-md)] border border-line bg-surface p-3 transition-colors duration-[var(--dur-base)] hover:border-ink"
                 >
                   <span className="relative size-14 shrink-0 overflow-hidden rounded-[var(--radius-sm)] bg-subtle">
-                    <Image
-                      src={o.lines[0].image}
-                      alt=""
-                      fill
-                      sizes="56px"
-                      quality={60}
-                      className="object-cover"
-                    />
+                    {o.items[0]?.imageUrl ? (
+                      <Image
+                        src={o.items[0].imageUrl}
+                        alt=""
+                        fill
+                        sizes="56px"
+                        quality={60}
+                        className="object-cover"
+                      />
+                    ) : null}
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="tabular block text-[13px] font-semibold">{o.id}</span>
-                    <span className="mt-0.5 block text-[12px] text-ink-muted">
-                      {formatOrderDate(o.placedAt)} · {o.lines.length}{" "}
-                      {o.lines.length === 1 ? "item" : "items"}
+                    <span className="tabular block text-[13px] font-semibold">
+                      {o.orderNo}
                     </span>
-                    <span className="mt-1 inline-flex items-center rounded-full bg-brand-tint px-2 py-0.5 text-[10px] font-semibold tracking-wide text-brand uppercase">
-                      Confirmation pending
+                    <span className="mt-0.5 block text-[12px] text-ink-muted">
+                      {formatOrderDate(o.placedAt)} · {o.items.length}{" "}
+                      {o.items.length === 1 ? "item" : "items"}
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase",
+                        STATUS_CHIP[ORDER_STATUS[o.status].tone],
+                      )}
+                    >
+                      {ORDER_STATUS[o.status].label}
                     </span>
                   </span>
                   <Taka amount={o.total} className="shrink-0 text-[14px] font-semibold" />

@@ -1,44 +1,22 @@
-import type { CartLine } from "@/lib/cart";
 import { delivery } from "@/data/site";
 import { BD_MOBILE, normalisePhone } from "@/lib/phone";
 
 /**
- * Order shapes, pricing and validation.
+ * What the checkout screen needs before it talks to the server.
  *
- * Everything here runs in either environment. That was not true before: this
- * module also held the `localStorage` persistence, with no `"use client"` to
- * say so, and worked only because every importer happened to be a client
- * component. The first Server Action to import it would have crashed on
- * `window`. The persistence now lives in `order-storage.ts`, which says what
- * it is, and Phase 2 deletes it outright.
+ * This module used to be the order system: it minted order numbers, held the
+ * `Order` shape, and reached into `localStorage` with nothing marking it
+ * browser-only. All three are gone. Orders are rows, their shape is
+ * `OrderView`, and their numbers are minted server-side against the unique
+ * column that actually enforces uniqueness.
  *
- * Pricing stays here because the checkout Server Action has to recompute it:
- * amounts that arrive from a browser are a statement of intent, not a fact.
+ * What is left is what the form itself needs: the delivery-charge arithmetic
+ * for the quotation on screen, the same validators the server runs again, and
+ * a date formatter. Every one of these is duplicated deliberately — the client
+ * copy is a courtesy, the server copy is the decision.
  */
 
 export type DeliveryArea = "inside-dhaka" | "outside-dhaka";
-
-export interface OrderCustomer {
-  name: string;
-  phone: string;
-  altPhone?: string;
-  address: string;
-  note?: string;
-}
-
-export interface Order {
-  id: string;
-  /** ISO timestamp. Rendered with a fixed format so it cannot drift by locale. */
-  placedAt: string;
-  customer: OrderCustomer;
-  area: DeliveryArea;
-  lines: CartLine[];
-  subtotal: number;
-  deliveryCharge: number;
-  total: number;
-  /** Only cash on delivery today; kept explicit so adding bKash is additive. */
-  paymentMethod: "cod";
-}
 
 /**
  * Delivery charge.
@@ -50,30 +28,6 @@ export interface Order {
 export function deliveryChargeFor(area: DeliveryArea, subtotal: number): number {
   if (subtotal >= delivery.freeThreshold) return 0;
   return area === "inside-dhaka" ? delivery.insideDhaka : delivery.outsideDhaka;
-}
-
-/**
- * Human-readable, reasonably unique order number: SLB-YYMMDD-XXXX.
- *
- * Customers read this out over the phone when they call about a parcel, so it
- * favours being short and unambiguous over being cryptographically random.
- *
- * "Reasonably unique" is doing real work in that sentence: 30^4 tails per day
- * is roughly 810,000 combinations, which is fine for a demo and not fine for a
- * record. Phase 2 mints this server-side and checks it against the unique
- * index on `Order.orderNo` before committing.
- */
-export function makeOrderId(now = new Date()): string {
-  const yy = String(now.getFullYear()).slice(2);
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  // Avoid 0/O and 1/I — they get misheard and mistyped.
-  const alphabet = "23456789ACDEFGHJKLMNPQRTUVWXYZ";
-  let tail = "";
-  for (let i = 0; i < 4; i += 1) {
-    tail += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return `SLB-${yy}${mm}${dd}-${tail}`;
 }
 
 /** `2026-09-12T10:04:00Z` -> `12 Sep 2026`. Fixed format, no locale surprises. */

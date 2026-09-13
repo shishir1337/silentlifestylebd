@@ -114,26 +114,41 @@ export function ProductPurchase({ product }: { product: Product }) {
             aria-invalid={error ? true : undefined}
             className="mt-2 flex flex-wrap gap-2 outline-none"
           >
-            {product.sizes?.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => {
-                  setSize(s);
-                  setError(null);
-                }}
-                aria-pressed={s === size}
-                className={cn(
-                  "inline-flex h-11 min-w-[56px] items-center justify-center rounded-[var(--radius-sm)] border px-3 text-sm font-medium transition-[background-color,border-color,color,scale] duration-[var(--dur-base)] active:scale-[0.95]",
-                  s === size
-                    ? "border-ink bg-ink text-white"
-                    : "border-line-strong bg-surface text-ink hover:border-ink",
-                  error && !size && "border-sale",
-                )}
-              >
-                {s}
-              </button>
-            ))}
+            {product.sizes?.map((s) => {
+              /**
+               * Stock is per size, so a sold-out size is shown and disabled
+               * rather than hidden. Removing it would leave the customer
+               * wondering whether the shop stocks their size at all, and the
+               * server would refuse the order anyway — better to say so here
+               * than after they have filled in their address.
+               */
+              const stock = product.variants.find((v) => v.size === s)?.stock ?? 0;
+              const soldOut = stock <= 0;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  disabled={soldOut}
+                  onClick={() => {
+                    setSize(s);
+                    setError(null);
+                  }}
+                  aria-pressed={s === size}
+                  aria-label={soldOut ? `Size ${s}, sold out` : `Size ${s}`}
+                  className={cn(
+                    "inline-flex h-11 min-w-[56px] items-center justify-center rounded-[var(--radius-sm)] border px-3 text-sm font-medium transition-[background-color,border-color,color,scale] duration-[var(--dur-base)] active:scale-[0.95]",
+                    soldOut
+                      ? "cursor-not-allowed border-line bg-subtle text-ink-muted line-through decoration-ink-muted/60"
+                      : s === size
+                        ? "border-ink bg-ink text-white"
+                        : "border-line-strong bg-surface text-ink hover:border-ink",
+                    error && !size && !soldOut && "border-sale",
+                  )}
+                >
+                  {s}
+                </button>
+              );
+            })}
           </div>
 
           {error ? (

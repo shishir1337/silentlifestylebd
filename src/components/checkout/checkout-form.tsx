@@ -3,20 +3,17 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { Taka } from "@/components/ui/price";
 import { ButtonLink } from "@/components/ui/button";
 import { BagIcon, CashIcon, CheckIcon, ReturnIcon, TruckIcon } from "@/components/ui/icons";
 import {
   deliveryChargeFor,
-  makeOrderId,
   validateCheckout,
   type CheckoutErrors,
-  type Order,
   type DeliveryArea,
 } from "@/lib/orders";
-import { saveOrder } from "@/lib/order-storage";
+import { placeOrder } from "@/lib/order-actions";
 import { normalisePhone } from "@/lib/phone";
 import { delivery } from "@/data/site";
 import { defaultAddress, useAddresses, useProfile } from "@/lib/account";
@@ -32,10 +29,15 @@ import { cn } from "@/lib/cn";
  *
  * Validation runs on submit rather than per keystroke, moves focus to the first
  * bad field, and each message says how to fix it instead of just "invalid".
+ *
+ * The totals on this screen are a quotation, not a decision. `placeOrder`
+ * re-prices every line from the database and recomputes the delivery charge
+ * before it writes anything, so what the customer sees here is what they will
+ * pay only because both sides are reading the same catalogue — not because the
+ * server believed the number this form sent it.
  */
 export function CheckoutForm() {
   const { lines, subtotal, count, ready, clear } = useCart();
-  const router = useRouter();
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -44,6 +46,7 @@ export function CheckoutForm() {
   const [note, setNote] = useState("");
   const [area, setArea] = useState<DeliveryArea>("inside-dhaka");
   const [errors, setErrors] = useState<CheckoutErrors>({});
+  const [failure, setFailure] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
@@ -80,38 +83,56 @@ export function CheckoutForm() {
   const total = subtotal + deliveryCharge;
   const shortfall = delivery.freeThreshold - subtotal;
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const found = validateCheckout({ name, phone, address });
     setErrors(found);
+    setFailure(null);
 
     if (found.name) return nameRef.current?.focus();
     if (found.phone) return phoneRef.current?.focus();
     if (found.address) return addressRef.current?.focus();
 
     setPlacing(true);
-    const order = {
-      id: makeOrderId(),
-      placedAt: new Date().toISOString(),
-      customer: {
-        name: name.trim(),
-        phone: normalisePhone(phone),
-        altPhone: altPhone.trim() ? normalisePhone(altPhone) : undefined,
-        address: address.trim(),
-        note: note.trim() || undefined,
-      },
-      area,
-      lines,
-      subtotal,
-      deliveryCharge,
-      total,
-      paymentMethod: "cod" as const,
+
+    const customer = {
+      name: name.trim(),
+      phone: normalisePhone(phone),
+      altPhone: altPhone.trim() ? normalisePhone(altPhone) : undefined,
+      address: address.trim(),
+      note: note.trim() || undefined,
     };
 
-    saveOrder(order);
-    remember(order.customer, area);
+    /**
+     * Only what the customer chose is sent: product, size, quantity. No
+     * prices, no totals — the server works those out for itself, so there is
+     * nothing here worth tampering with and nothing to go stale.
+     */
+    const result = await placeOrder({
+      lines: lines.map((l) => ({
+        productId: l.productId,
+        size: l.size ?? "",
+        qty: l.qty,
+      })),
+      ...customer,
+      area,
+    });
+
+    if (!result.ok) {
+      setFailure(result.message);
+      setPlacing(false);
+      // Back to the top: the message is above the form, and on a phone the
+      // submit button is a long way from it.
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    remember(customer, area);
     clear();
-    router.push(`/order/${order.id}`);
+    // A document navigation: the confirmation is a Server Component behind an
+    // access cookie the action just set, and the router would otherwise fetch
+    // it with the cookie jar as it was a moment ago.
+    window.location.assign(`/order/${result.orderNo}`);
   }
 
   /**
@@ -128,7 +149,10 @@ export function CheckoutForm() {
    * Signed in or not makes no difference here. The context decides where it
    * lands — this browser, or their account.
    */
-  function remember(customer: Order["customer"], deliveryArea: DeliveryArea) {
+  function remember(
+    customer: { name: string; phone: string; altPhone?: string; address: string },
+    deliveryArea: DeliveryArea,
+  ) {
     const existing = defaultAddress(addresses);
     void Promise.all([
       saveProfile({
@@ -176,6 +200,21 @@ export function CheckoutForm() {
 
   return (
     <form onSubmit={onSubmit} noValidate className="pb-28 lg:pb-10">
+      {/*
+        Anything the server refused: a sold-out size, a number that failed its
+        second check, a write that did not go through. Above the fold and
+        scrolled to, because on a phone the submit button that triggered it is
+        off the bottom of the screen.
+      */}
+      {failure ? (
+        <p
+          role="alert"
+          className="mb-6 rounded-[var(--radius-sm)] border border-sale/40 bg-sale/5 px-4 py-3 text-[14px] leading-relaxed text-sale"
+        >
+          {failure}
+        </p>
+      ) : null}
+
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10">
         {/* ------------------------------------------------ details --------- */}
         <div>

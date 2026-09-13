@@ -13,7 +13,15 @@
  */
 export const STORAGE_KEYS = {
   cart: "slbd.cart.v1",
-  orders: "slbd.orders.v1",
   profile: "slbd.profile.v1",
   addresses: "slbd.addresses.v1",
 } as const;
+
+/**
+ * Keys this app used to write and no longer does. Left named rather than
+ * deleted because browsers that shopped here before still hold them, and the
+ * next person to see `slbd.orders.v1` in a devtools panel should find out
+ * here that it is dead rather than go looking for what writes it.
+ *
+ *   slbd.orders.v1 — guest orders, before orders were rows in Postgres.
+ */
