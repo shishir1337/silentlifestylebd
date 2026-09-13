@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass } from "@/components/ui/field";
 import { Card, Pill, EmptyState } from "./admin-ui";
+import { useToast } from "./toast";
 import { AssetPicker } from "./asset-picker";
 import {
   deleteCategory,
@@ -31,6 +32,7 @@ export function CategoryManager({
   assets: AssetRow[];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
   const [order, setOrder] = useState(categories);
   const [editing, setEditing] = useState<AdminCategoryRow | "new" | null>(null);
@@ -51,7 +53,7 @@ export function CategoryManager({
       const result = await reorderCategories(next.map((c) => c.id));
       if (!result.ok) {
         setOrder(order);
-        setFailure(result.message);
+        toast.error(result.message);
       }
     });
   }
@@ -60,8 +62,14 @@ export function CategoryManager({
     setFailure(null);
     startTransition(async () => {
       const result = await deleteCategory(row.id);
-      if (!result.ok) setFailure(result.message);
-      else router.refresh();
+      if (!result.ok) {
+        // A refusal here is a sentence explaining what to do instead, so it
+        // stays on screen rather than disappearing with a toast.
+        setFailure(result.message);
+        return;
+      }
+      toast.success(`${row.name} deleted.`);
+      router.refresh();
     });
   }
 
@@ -187,6 +195,7 @@ function CategoryForm({
   onDone: () => void;
   onCancel: () => void;
 }) {
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
   const [failure, setFailure] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -202,8 +211,12 @@ function CategoryForm({
     setFailure(null);
     startTransition(async () => {
       const result = await saveCategory({ id: category?.id, ...form });
-      if (!result.ok) setFailure(result.message);
-      else onDone();
+      if (!result.ok) {
+        setFailure(result.message);
+        return;
+      }
+      toast.success(category ? `${form.name} saved.` : `${form.name} added.`);
+      onDone();
     });
   }
 

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { inputClass } from "@/components/ui/field";
 import { Card, EmptyState, Pill } from "./admin-ui";
 import { UploadButton } from "./upload-button";
+import { useToast } from "./toast";
 import { deleteAsset } from "@/lib/admin/media-actions";
 import { updateAssetAlt } from "@/lib/admin/catalog-actions";
 import type { AssetRow } from "@/lib/admin/catalog-reads";
@@ -25,6 +26,7 @@ import { cn } from "@/lib/cn";
  */
 export function MediaLibrary({ assets }: { assets: AssetRow[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [library, setLibrary] = useState(assets);
   const [failure, setFailure] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -38,6 +40,7 @@ export function MediaLibrary({ assets }: { assets: AssetRow[] }) {
         <UploadButton
           onUploaded={(asset) => {
             setLibrary((prev) => [asset, ...prev]);
+            toast.success("Picture uploaded.");
             // Bring back the real URL, dimensions and file path from the server.
             router.refresh();
           }}

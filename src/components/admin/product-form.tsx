@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field, inputClass } from "@/components/ui/field";
 import { Card, Pill } from "./admin-ui";
+import { useToast } from "./toast";
 import { AssetPicker } from "./asset-picker";
 import { saveProduct, deleteProduct } from "@/lib/admin/catalog-actions";
 import type { ProductInput, ProductBadgeValue } from "@/lib/admin/catalog-types";
@@ -43,6 +44,7 @@ export function ProductForm({
   assets: AssetRow[];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [pending, startTransition] = useTransition();
   const [failure, setFailure] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -100,10 +102,13 @@ export function ProductForm({
     startTransition(async () => {
       const result = await saveProduct(input);
       if (!result.ok) {
+        // Stays on the form, beside the field that caused it. The toast is for
+        // things that worked; a failure the operator must fix belongs in view.
         setFailure(result.message);
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
+      toast.success(product ? `${input.name} saved.` : `${input.name} added.`);
       router.push("/admin/products");
       router.refresh();
     });
@@ -119,6 +124,7 @@ export function ProductForm({
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
+      toast.success(`${product!.name} deleted.`);
       router.push("/admin/products");
       router.refresh();
     });

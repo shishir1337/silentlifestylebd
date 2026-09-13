@@ -1,5 +1,6 @@
 import "server-only";
 
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 
 /**
@@ -34,44 +35,112 @@ export interface AdminProductRow {
   totalStock: number;
   /** Sizes at zero, so a half-sold-out product is visible at a glance. */
   soldOutSizes: string[];
+  /** Carried so stock can be corrected from the list without opening the editor. */
+  variants: { id: string; size: string; stock: number }[];
   imageUrl: string | null;
 }
 
-export async function listProducts(query?: string): Promise<AdminProductRow[]> {
-  const q = query?.trim();
+export const PRODUCT_PER_PAGE = 25;
 
-  const rows = await db.product.findMany({
-    where: q
-      ? {
-          OR: [
-            { name: { contains: q, mode: "insensitive" } },
-            { sku: { contains: q, mode: "insensitive" } },
-            { slug: { contains: q, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
-    orderBy: [{ isActive: "desc" }, { position: "asc" }],
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      sku: true,
-      price: true,
-      compareAtPrice: true,
-      isActive: true,
-      position: true,
-      badge: true,
-      category: { select: { name: true, slug: true } },
-      variants: { select: { size: true, stock: true } },
-      images: {
-        where: { role: "PRIMARY" },
-        take: 1,
-        select: { asset: { select: { url: true } } },
+export type ProductSort = "position" | "name" | "price-asc" | "price-desc" | "stock";
+export type StockFilter = "all" | "out" | "low";
+
+export interface ProductQuery {
+  q?: string;
+  category?: string;
+  status?: "all" | "live" | "hidden";
+  stock?: StockFilter;
+  sort?: ProductSort;
+  page?: number;
+}
+
+export interface ProductListResult {
+  rows: AdminProductRow[];
+  total: number;
+  page: number;
+  pages: number;
+}
+
+/**
+ * Products, filtered and paged in Postgres.
+ *
+ * This used to load every product and filter the array. Sixteen products made
+ * that invisible; a client who grows to a few thousand would find the page
+ * slower every month with nothing to point at. The one thing still counted in
+ * memory is total stock, because it is a sum across a relation that Prisma
+ * cannot order by — see the note on sorting below.
+ */
+export async function listProducts(query: ProductQuery = {}): Promise<ProductListResult> {
+  const page = Math.max(1, Math.floor(query.page ?? 1));
+  const q = query.q?.trim();
+
+  const where: Prisma.ProductWhereInput = {};
+  if (q) {
+    where.OR = [
+      { name: { contains: q, mode: "insensitive" } },
+      { sku: { contains: q, mode: "insensitive" } },
+      { slug: { contains: q, mode: "insensitive" } },
+    ];
+  }
+  if (query.category && query.category !== "all") {
+    where.category = { slug: query.category };
+  }
+  if (query.status === "live") where.isActive = true;
+  if (query.status === "hidden") where.isActive = false;
+  if (query.stock === "out") where.variants = { every: { stock: { lte: 0 } } };
+  if (query.stock === "low") where.variants = { some: { stock: { gt: 0, lte: 5 } } };
+
+  /**
+   * Sorting by total stock is deliberately absent from the database query.
+   *
+   * It is a sum over a relation, which Prisma cannot order by, and the SQL to
+   * do it properly would defeat the paging. The "stock" sort therefore orders
+   * the current page rather than the whole catalogue — which is what somebody
+   * scanning a filtered list actually wants, and it is honest about its scope
+   * because the filter beside it ("Out of stock", "Running low") does the
+   * catalogue-wide version.
+   */
+  const orderBy: Prisma.ProductOrderByWithRelationInput =
+    query.sort === "name"
+      ? { name: "asc" }
+      : query.sort === "price-asc"
+        ? { price: "asc" }
+        : query.sort === "price-desc"
+          ? { price: "desc" }
+          : { position: "asc" };
+
+  const [rows, total] = await Promise.all([
+    db.product.findMany({
+      where,
+      orderBy: query.sort ? orderBy : [{ isActive: "desc" }, { position: "asc" }],
+      skip: (page - 1) * PRODUCT_PER_PAGE,
+      take: PRODUCT_PER_PAGE,
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        sku: true,
+        price: true,
+        compareAtPrice: true,
+        isActive: true,
+        position: true,
+        badge: true,
+        category: { select: { name: true, slug: true } },
+        variants: {
+          orderBy: { position: "asc" },
+          select: { id: true, size: true, stock: true },
+        },
+        images: {
+          where: { role: "PRIMARY" },
+          take: 1,
+          select: { asset: { select: { url: true } } },
+        },
       },
-    },
-  });
+    }),
+    db.product.count({ where }),
+  ]);
 
-  return rows.map((p) => ({
+  const mapped = rows.map((p) => ({
     id: p.id,
     slug: p.slug,
     name: p.name,
@@ -85,8 +154,18 @@ export async function listProducts(query?: string): Promise<AdminProductRow[]> {
     categorySlug: p.category.slug,
     totalStock: p.variants.reduce((n, v) => n + v.stock, 0),
     soldOutSizes: p.variants.filter((v) => v.stock <= 0 && v.size).map((v) => v.size),
+    variants: p.variants,
     imageUrl: p.images[0]?.asset.url ?? null,
   }));
+
+  if (query.sort === "stock") mapped.sort((a, b) => a.totalStock - b.totalStock);
+
+  return {
+    rows: mapped,
+    total,
+    page,
+    pages: Math.max(1, Math.ceil(total / PRODUCT_PER_PAGE)),
+  };
 }
 
 export interface AdminProductDetail {

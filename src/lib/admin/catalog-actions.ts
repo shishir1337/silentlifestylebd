@@ -374,3 +374,73 @@ export async function updateAssetAlt(id: string, alt: string): Promise<SaveResul
   revalidateTag(CONTENT_TAG, "max");
   return { ok: true, id };
 }
+
+/**
+ * Publish or hide a selection.
+ *
+ * One action rather than a loop of actions from the browser: Server Actions
+ * are dispatched one at a time, so ten calls from a client is ten sequential
+ * round trips. One `updateMany` is one statement.
+ */
+export async function bulkSetProductActive(
+  ids: string[],
+  isActive: boolean,
+): Promise<SaveResult> {
+  await assertCatalogAccess();
+  if (ids.length === 0) return { ok: false, message: "Nothing selected." };
+  if (ids.length > 200) return { ok: false, message: "Select fewer than 200 at a time." };
+
+  const products = await db.product.findMany({
+    where: { id: { in: ids } },
+    select: { slug: true },
+  });
+  await db.product.updateMany({ where: { id: { in: ids } }, data: { isActive } });
+
+  refreshCatalog();
+  for (const p of products) revalidatePath(`/products/${p.slug}`);
+  return { ok: true };
+}
+
+/**
+ * Correct stock from the list, without opening the editor.
+ *
+ * "New stock arrived" is a weekly job and the most common reason to touch a
+ * product at all. Making it cost a page load, a form and a save is how a
+ * two-minute task becomes one nobody does — and stale stock on a storefront
+ * sells things the shop does not have.
+ *
+ * Only stock is writable here. Everything else about a variant has
+ * consequences the list cannot show.
+ */
+export async function updateVariantStock(
+  productId: string,
+  levels: { id: string; stock: number }[],
+): Promise<SaveResult> {
+  await assertCatalogAccess();
+  if (levels.length === 0) return { ok: false, message: "Nothing to change." };
+
+  const clean = levels.map((l) => ({
+    id: l.id,
+    stock: Math.max(0, Math.round(Number(l.stock)) || 0),
+  }));
+
+  await db.$transaction(
+    clean.map((l) =>
+      // Scoped by product as well as id: a variant id from another product is
+      // not something this call gets to write to.
+      db.productVariant.updateMany({
+        where: { id: l.id, productId },
+        data: { stock: l.stock },
+      }),
+    ),
+  );
+
+  const product = await db.product.findUnique({
+    where: { id: productId },
+    select: { slug: true },
+  });
+
+  refreshCatalog();
+  if (product) revalidatePath(`/products/${product.slug}`);
+  return { ok: true, id: productId };
+}
