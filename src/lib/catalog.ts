@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
+import { fromPlainText, toRichText } from "@/lib/rich-text";
 import type {
   Category,
   HeroSlide,
@@ -35,6 +36,22 @@ export type { NavLink, SiteNav } from "@/types/catalog";
  * anywhere in its call stack — a restriction that surfaces at runtime, not at
  * build.
  */
+
+/**
+ * Bumped whenever the *shape* of a cached value changes.
+ *
+ * `unstable_cache` entries deliberately survive a deploy — that is why the
+ * legacy caching model was chosen over `use cache`, which keys on the build id.
+ * The cost is that a release which adds a field to `Product` will, for a
+ * while, be served objects written by the release before it. One such field
+ * arriving as `undefined` inside a `.map` or a spread is a 500 on the
+ * homepage, not a missing line of text.
+ *
+ * Changing this string is part of changing a shape. It is not a version of the
+ * data and it does not need to go up for a price edit — only when the
+ * interface the cache holds is different from the one the code expects.
+ */
+const SHAPE = "v2";
 
 export const CATALOG_TAG = "catalog";
 export const PRODUCTS_TAG = "products";
@@ -85,6 +102,7 @@ type ProductRow = {
   badge: "NEW" | "BESTSELLER" | "LIMITED" | null;
   freeDelivery: boolean;
   category: { slug: string };
+  descriptionRich: unknown;
   details: { text: string }[];
   colors: { name: string }[];
   variants: { size: string; stock: number }[];
@@ -94,6 +112,7 @@ type ProductRow = {
 function toProduct(row: ProductRow): Product {
   const primary = row.images.find((i) => i.role === "PRIMARY") ?? row.images[0];
   const hover = row.images.find((i) => i.role === "HOVER");
+  const gallery = row.images.filter((i) => i.role === "GALLERY");
 
   if (!primary) {
     throw new Error(`Product "${row.slug}" has no image. Every product needs one.`);
@@ -109,6 +128,7 @@ function toProduct(row: ProductRow): Product {
     price: row.price,
     compareAtPrice: row.compareAtPrice,
     image: toImage(primary.asset)!,
+    gallery: gallery.map((g) => toImage(g.asset)!),
     hoverImage: toImage(hover?.asset),
     badge: row.badge ? (row.badge.toLowerCase() as ProductBadge) : null,
     freeDelivery: row.freeDelivery,
@@ -120,6 +140,11 @@ function toProduct(row: ProductRow): Product {
     variants,
     sku: row.sku,
     description: row.description,
+    // Products written before the editor keep their one paragraph; the shape
+    // is the same either way, so the page needs no special case.
+    descriptionRich: row.descriptionRich
+      ? toRichText(row.descriptionRich)
+      : fromPlainText(row.description),
     details: row.details.map((d) => d.text),
   };
 }
@@ -134,7 +159,7 @@ export const getProduct = unstable_cache(
     });
     return row ? toProduct(row as unknown as ProductRow) : undefined;
   },
-  ["catalog:product"],
+  ["catalog:product", SHAPE],
   { ...CACHE, tags: [CATALOG_TAG, PRODUCTS_TAG] },
 );
 
@@ -147,7 +172,7 @@ export const allProductSlugs = unstable_cache(
     });
     return rows.map((r) => r.slug);
   },
-  ["catalog:product-slugs"],
+  ["catalog:product-slugs", SHAPE],
   { ...CACHE, tags: [CATALOG_TAG, PRODUCTS_TAG] },
 );
 
@@ -161,7 +186,7 @@ export const getAllProducts = unstable_cache(
     });
     return rows.map((r) => toProduct(r as unknown as ProductRow));
   },
-  ["catalog:all-products"],
+  ["catalog:all-products", SHAPE],
   { ...CACHE, tags: [CATALOG_TAG, PRODUCTS_TAG] },
 );
 
@@ -181,7 +206,7 @@ export const getCategories = unstable_cache(
       image: toImage(c.image),
     }));
   },
-  ["catalog:categories"],
+  ["catalog:categories", SHAPE],
   { ...CACHE, tags: [CATALOG_TAG, CATEGORIES_TAG] },
 );
 
@@ -211,7 +236,7 @@ export const getCategoryCounts = unstable_cache(
     }
     return bySlug;
   },
-  ["catalog:category-counts"],
+  ["catalog:category-counts", SHAPE],
   { ...CACHE, tags: [CATALOG_TAG, PRODUCTS_TAG, CATEGORIES_TAG] },
 );
 
@@ -222,15 +247,29 @@ export async function countInCategory(slug: string): Promise<number> {
 /* --- product detail helpers ---------------------------------------------- */
 
 /**
- * Gallery for the detail page. Built from the images a product actually has
- * rather than padded with unrelated shots — one honest photo beats three that
- * turn out to be a different garment.
+ * Gallery for the detail page.
+ *
+ * Built from the images a product actually has rather than padded with
+ * unrelated shots — one honest photo beats three that turn out to be a
+ * different garment.
+ *
+ * De-duplicated on URL. The same asset can legitimately be both the main
+ * picture and a category image elsewhere, and the client reusing one inside a
+ * single product would otherwise put the same photograph in two thumbnails and
+ * make the gallery look broken.
  */
 export function getGallery(product: Product): ImageRef[] {
-  const images = [product.image];
-  if (product.hoverImage && product.hoverImage.url !== product.image.url) {
-    images.push(product.hoverImage);
+  const images: ImageRef[] = [];
+  const seen = new Set<string>();
+
+  // `?? []` rather than a bare spread: an entry cached by an earlier release
+  // has no gallery at all, and a product page is not worth a 500.
+  for (const img of [product.image, product.hoverImage, ...(product.gallery ?? [])]) {
+    if (!img || seen.has(img.url)) continue;
+    seen.add(img.url);
+    images.push(img);
   }
+
   return images;
 }
 
@@ -277,7 +316,7 @@ const getCollectionRows = unstable_cache(
       categorySlugs: c.categories.map((cc) => cc.category.slug),
     }));
   },
-  ["catalog:collections"],
+  ["catalog:collections", SHAPE],
   { ...CACHE, tags: [CATALOG_TAG, CATEGORIES_TAG] },
 );
 
@@ -409,7 +448,7 @@ export const getHeroSlides = unstable_cache(
       label: s.label,
     }));
   },
-  ["content:hero-slides"],
+  ["content:hero-slides", SHAPE],
   { ...CACHE, tags: [CONTENT_TAG] },
 );
 
@@ -428,7 +467,7 @@ export const getPromoTiles = unstable_cache(
       image: toImage(t.asset)!,
     }));
   },
-  ["content:promo-tiles"],
+  ["content:promo-tiles", SHAPE],
   { ...CACHE, tags: [CONTENT_TAG] },
 );
 
@@ -447,7 +486,7 @@ export const getSizeCharts = unstable_cache(
       rows: c.rows.map((r) => r.cells),
     }));
   },
-  ["content:size-charts"],
+  ["content:size-charts", SHAPE],
   { ...CACHE, tags: [CONTENT_TAG] },
 );
 
@@ -477,6 +516,6 @@ export const getNav = unstable_cache(
 
     return { primary: pick("PRIMARY"), help: pick("HELP"), company: pick("COMPANY") };
   },
-  ["content:nav"],
+  ["content:nav", SHAPE],
   { ...CACHE, tags: [CONTENT_TAG] },
 );

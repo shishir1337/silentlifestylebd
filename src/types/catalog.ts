@@ -52,6 +52,8 @@ export interface Product {
   image: ImageRef;
   /** Second image revealed on hover/focus. */
   hoverImage: ImageRef | null;
+  /** Further photographs, in the order the shop set. Main and hover excluded. */
+  gallery: ImageRef[];
   /** Drives the single corner badge. Only one badge ever shows. */
   badge: ProductBadge | null;
   /** Free delivery threshold is global, but some items always ship free. */
@@ -67,8 +69,10 @@ export interface Product {
 
   /** Stock keeping unit, shown on the detail page and used in structured data. */
   sku: string;
-  /** One or two sentences. What it is and what it is like to wear. */
+  /** Plain text, derived. Used for search, metadata and structured data. */
   description: string;
+  /** The same words with their formatting, for the page itself. */
+  descriptionRich: import("@/types/rich-text").RichText;
   /** Scannable specifics — fabric, fit, care. Shoppers read these, not prose. */
   details: string[];
 }

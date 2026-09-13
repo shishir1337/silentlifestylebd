@@ -73,7 +73,7 @@ export async function SiteHeader() {
                 name="q"
                 type="search"
                 placeholder="Search panjabi, shirts, watches…"
-                className="h-10 w-full rounded-[var(--radius-sm)] border border-line bg-subtle pr-3 pl-9 text-sm placeholder:text-ink-muted focus:border-brand focus:bg-canvas focus:outline-none"
+                className="h-10 w-full rounded-[var(--radius-sm)] border border-line bg-subtle pr-3 pl-9 text-sm placeholder:text-ink-muted focus:border-brand focus:bg-canvas"
               />
             </div>
           </form>
@@ -105,7 +105,7 @@ export async function SiteHeader() {
               enterKeyHint="search"
               placeholder="Search for panjabi, shirts, watches…"
               /* 16px min: anything smaller makes iOS Safari zoom on focus. */
-              className="h-11 w-full rounded-[var(--radius-sm)] border border-line bg-subtle pr-3 pl-10 text-base placeholder:text-ink-muted focus:border-brand focus:bg-canvas focus:outline-none"
+              className="h-11 w-full rounded-[var(--radius-sm)] border border-line bg-subtle pr-3 pl-10 text-base placeholder:text-ink-muted focus:border-brand focus:bg-canvas"
             />
           </div>
         </form>

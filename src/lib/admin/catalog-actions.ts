@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { assertCatalogAccess } from "@/lib/admin/access";
 import { CATALOG_TAG, CATEGORIES_TAG, CONTENT_TAG, PRODUCTS_TAG } from "@/lib/catalog";
+import { toPlainText, toRichText } from "@/lib/rich-text";
 import type { ProductInput, CategoryInput, SaveResult } from "@/lib/admin/catalog-types";
 
 /**
@@ -90,13 +91,24 @@ export async function saveProduct(input: ProductInput): Promise<SaveResult> {
 
   const name = input.name.trim();
   const sku = input.sku.trim().toUpperCase();
-  const description = input.description.trim();
+  const rich = toRichText(input.description);
+  const description = toPlainText(rich);
   const slug = (input.slug?.trim() ? slugify(input.slug) : slugify(name)) || slugify(sku);
 
   if (name.length < 2) return { ok: false, message: "Give the product a name." };
   if (!sku) return { ok: false, message: "Give the product a code (SKU)." };
   if (!slug) return { ok: false, message: "That name cannot be turned into a web address. Add some letters." };
   if (!input.categoryId) return { ok: false, message: "Choose a category." };
+  /*
+    A product with no main picture is not a product the shop can render.
+    `toProduct` throws on one by design — a card with an empty square is worse
+    than no card — and because the catalogue is read as a whole, one such row
+    takes down the homepage rather than one product page. The panel must not be
+    able to save the state that does it.
+  */
+  if (!input.primaryAssetId) {
+    return { ok: false, message: "Choose a main picture. The shop cannot show a product without one." };
+  }
 
   const price = money(input.price);
   if (price === null || price === 0) {
@@ -144,6 +156,7 @@ export async function saveProduct(input: ProductInput): Promise<SaveResult> {
         price,
         compareAtPrice,
         description,
+        descriptionRich: rich as unknown as object[],
         badge: input.badge ?? null,
         freeDelivery: input.freeDelivery,
         isActive: input.isActive,
@@ -209,10 +222,24 @@ export async function saveProduct(input: ProductInput): Promise<SaveResult> {
       });
 
       await tx.productImage.deleteMany({ where: { productId: product.id } });
+      /*
+        Order matters and is the array's own: the main picture, the hover
+        picture, then the rest as the client arranged them. The same asset is
+        not stored twice — a gallery entry that repeats the main photograph
+        would show the customer the same shot in two thumbnails.
+      */
+      const taken = new Set(
+        [input.primaryAssetId, input.hoverAssetId].filter(Boolean) as string[],
+      );
       const images = [
         input.primaryAssetId ? { assetId: input.primaryAssetId, role: "PRIMARY" as const } : null,
         input.hoverAssetId ? { assetId: input.hoverAssetId, role: "HOVER" as const } : null,
-      ].filter((i): i is { assetId: string; role: "PRIMARY" | "HOVER" } => i !== null);
+        ...input.galleryAssetIds
+          .filter((id) => id && !taken.has(id) && (taken.add(id), true))
+          .map((id) => ({ assetId: id, role: "GALLERY" as const })),
+      ].filter(
+        (i): i is { assetId: string; role: "PRIMARY" | "HOVER" | "GALLERY" } => i !== null,
+      );
       if (images.length > 0) {
         await tx.productImage.createMany({
           data: images.map((img, position) => ({

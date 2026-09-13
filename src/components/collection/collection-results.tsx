@@ -86,7 +86,7 @@ export function CollectionResults({
             value={sort}
             onChange={(e) => change(e.currentTarget.value)}
             /* 16px min on phones: anything smaller makes iOS Safari zoom on focus. */
-            className="h-10 rounded-[var(--radius-sm)] border border-line bg-surface px-2.5 text-[16px] focus:border-brand focus:outline-none sm:text-[13px]"
+            className="h-10 rounded-[var(--radius-sm)] border border-line bg-surface px-2.5 text-[16px] focus:border-brand sm:text-[13px]"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>

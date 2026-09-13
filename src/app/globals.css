@@ -323,8 +323,13 @@
 
   /* Overlays still need to appear and disappear — just without travel. */
   .overlay,
-  .overlay[open] {
+  .overlay[open],
+  dialog.admin-drawer,
+  dialog.admin-drawer[open],
+  dialog.admin-quickview,
+  dialog.admin-quickview[open] {
     translate: 0 0 !important;
+    transform: none !important;
     scale: 1 !important;
   }
 }
@@ -377,6 +382,56 @@ dialog.admin-drawer[open]::backdrop {
 
 @starting-style {
   dialog.admin-drawer[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+
+/* --- Order quick view -------------------------------------------------------
+   The same mechanism as the admin drawer, arriving from the other side: the
+   sidebar comes from the left because that is where it lives, and an order
+   opens from the right because that is where its row's actions are.
+
+   Reduced motion is handled by the global rule, which flattens the durations;
+   the panel then appears and disappears without travel, which is the point. */
+dialog.admin-quickview {
+  transform: translateX(100%);
+  opacity: 0;
+  transition:
+    transform var(--dur-panel-out) var(--ease-out-soft),
+    opacity var(--dur-panel-out) var(--ease-out-soft),
+    overlay var(--dur-panel-out) allow-discrete,
+    display var(--dur-panel-out) allow-discrete;
+}
+
+dialog.admin-quickview[open] {
+  transform: translateX(0);
+  opacity: 1;
+  transition-duration: var(--dur-panel-in);
+}
+
+@starting-style {
+  dialog.admin-quickview[open] {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+dialog.admin-quickview::backdrop {
+  opacity: 0;
+  transition:
+    opacity var(--dur-panel-out) var(--ease-out-soft),
+    overlay var(--dur-panel-out) allow-discrete,
+    display var(--dur-panel-out) allow-discrete;
+}
+
+dialog.admin-quickview[open]::backdrop {
+  opacity: 1;
+  transition-duration: var(--dur-panel-in);
+}
+
+@starting-style {
+  dialog.admin-quickview[open]::backdrop {
     opacity: 0;
   }
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
@@ -14,12 +14,14 @@ import { cn } from "@/lib/cn";
 export function Card({
   className,
   children,
+  ...rest
 }: {
   className?: string;
   children: ReactNode;
-}) {
+} & Omit<ComponentPropsWithoutRef<"div">, "className" | "children">) {
   return (
     <div
+      {...rest}
       className={cn(
         "rounded-[var(--radius-md)] border border-line bg-canvas shadow-[var(--shadow-card)]",
         className,

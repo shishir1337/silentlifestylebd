@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { OrderStatus } from "@prisma/client";
+import type { OrderStatus, StaffRole } from "@prisma/client";
 import { Taka } from "@/components/ui/price";
 import { Card, Pill, EmptyState, TableScroll } from "./admin-ui";
 import { useToast } from "./toast";
@@ -11,6 +11,8 @@ import { PhoneIcon } from "@/components/ui/icons";
 import { AlertIcon } from "./admin-icons";
 import { bulkChangeOrderStatus, changeOrderStatus } from "@/lib/admin/order-actions";
 import { primaryNext, TRANSITION_LABEL } from "@/lib/admin/order-flow";
+import { OrderStatusMenu } from "./order-status-menu";
+import { OrderQuickView } from "./order-quick-view";
 import { ORDER_STATUS, STATUS_CHIP } from "@/lib/order-status";
 import { formatOrderDate } from "@/lib/orders";
 import type { AdminOrderRow } from "@/lib/admin/order-reads";
@@ -24,44 +26,59 @@ import { cn } from "@/lib/cn";
  * are the phone number and the one button that moves the order forward —
  * everything else is supporting detail.
  *
- * Quick actions are always the *forward* step, never the destructive one. A
- * button that appears in every row and sometimes cancels an order is a mistap
- * waiting to happen; cancelling lives on the detail page, with a reason.
+ * The button in each row is always the *forward* step, never the destructive
+ * one — a button that appears in every row and sometimes cancels an order is a
+ * mistap waiting to happen. Everything else the order can legally do is one
+ * click further, in the Status menu beside it, where nobody hits it by accident
+ * on the way to something else.
+ *
+ * Tapping the row opens it in a panel rather than navigating. The queue is
+ * worked top to bottom with the filters the operator chose, and a page load
+ * per order loses both their place and their filters.
  */
 export function OrderTable({
   rows,
   filtered,
+  role,
 }: {
   rows: AdminOrderRow[];
   /** Whether any filter is active, so the empty state can say the right thing. */
   filtered: boolean;
+  /** Decides which transitions are offered; the server checks it again. */
+  role: StaffRole;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [viewing, setViewing] = useState<string | null>(null);
 
-  function advance(row: AdminOrderRow) {
-    const to = primaryNext(row.status);
-    if (!to) return;
-
-    setBusy(row.orderNo);
+  /**
+   * Move one order.
+   *
+   * `from` is the status the screen was showing, which is what Undo needs and
+   * what the server checks the row against — if somebody else moved it in the
+   * meantime the change is refused rather than applied to a different order
+   * than the one on screen.
+   */
+  function move(orderNo: string, from: OrderStatus, to: OrderStatus) {
+    setBusy(orderNo);
     startTransition(async () => {
-      const result = await changeOrderStatus(row.orderNo, to);
+      const result = await changeOrderStatus(orderNo, to);
       setBusy(null);
       if (!result.ok) {
         toast.error(result.message);
         return;
       }
-      toast.success(`${row.orderNo} — ${ORDER_STATUS[to].label.toLowerCase()}.`, () => {
+      toast.success(`${orderNo} — ${ORDER_STATUS[to].label.toLowerCase()}.`, () => {
         // Undo is a real transition back, audited like any other. It only
         // appears while the toast is alive, which is the window in which
         // "wrong button" is still the likely explanation.
         startTransition(async () => {
           const back = await changeOrderStatus(
-            row.orderNo,
-            row.status,
+            orderNo,
+            from,
             "Undone straight after the change.",
           );
           if (!back.ok) toast.error(back.message);
@@ -70,6 +87,11 @@ export function OrderTable({
       });
       router.refresh();
     });
+  }
+
+  function advance(row: AdminOrderRow) {
+    const to = primaryNext(row.status);
+    if (to) move(row.orderNo, row.status, to);
   }
 
   function runBulk(to: OrderStatus) {
@@ -259,12 +281,19 @@ export function OrderTable({
                             {working ? "…" : TRANSITION_LABEL[next]}
                           </button>
                         ) : null}
-                        <Link
-                          href={`/admin/orders/${row.orderNo}`}
+                        <OrderStatusMenu
+                          status={row.status}
+                          role={role}
+                          busy={working}
+                          onPick={(to) => move(row.orderNo, row.status, to)}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setViewing(row.orderNo)}
                           className="inline-flex h-8 items-center rounded-[var(--radius-sm)] border border-line-strong px-2.5 text-[12.5px] font-medium transition-colors duration-[var(--dur-base)] hover:border-ink"
                         >
-                          Open
-                        </Link>
+                          View
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -340,19 +369,46 @@ export function OrderTable({
                   >
                     {working ? "Saving…" : TRANSITION_LABEL[next]}
                   </button>
-                ) : (
-                  <Link
-                    href={`/admin/orders/${row.orderNo}`}
-                    className="inline-flex h-10 flex-1 items-center justify-center rounded-[var(--radius-sm)] border border-line-strong text-[13px] font-medium"
-                  >
-                    Open
-                  </Link>
-                )}
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setViewing(row.orderNo)}
+                  className="inline-flex h-10 flex-1 items-center justify-center rounded-[var(--radius-sm)] border border-line-strong text-[13px] font-medium"
+                >
+                  View
+                </button>
+              </div>
+
+              {/*
+                The full menu goes under the two big buttons on a phone rather
+                than beside them: thumbs reach the bottom of a card, and the
+                one destructive move in here should not sit where the forward
+                one does on the row above.
+              */}
+              <div className="mt-2 flex justify-end">
+                <OrderStatusMenu
+                  status={row.status}
+                  role={role}
+                  busy={working}
+                  onPick={(to) => move(row.orderNo, row.status, to)}
+                />
               </div>
             </li>
           );
         })}
       </ul>
+
+      <OrderQuickView
+        orderNo={viewing}
+        role={role}
+        busy={pending}
+        onClose={() => setViewing(null)}
+        onPick={(orderNo, to) => {
+          const row = rows.find((r) => r.orderNo === orderNo);
+          if (row) move(orderNo, row.status, to);
+          setViewing(null);
+        }}
+      />
     </div>
   );
 }

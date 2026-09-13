@@ -75,7 +75,7 @@ export function Newsletter() {
                       aria-invalid={error ? true : undefined}
                       aria-describedby={error ? "phone-error" : undefined}
                       /* 16px prevents the iOS focus-zoom. */
-                      className="h-12 w-full rounded-[var(--radius-sm)] border border-white/20 bg-white/10 px-4 text-base text-white placeholder:text-white/40 focus:border-white/50 focus:bg-white/15 focus:outline-none"
+                      className="h-12 w-full rounded-[var(--radius-sm)] border border-white/20 bg-white/10 px-4 text-base text-white placeholder:text-white/40 focus:border-white/50 focus:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/70"
                     />
                   </div>
 

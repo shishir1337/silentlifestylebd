@@ -9,6 +9,8 @@ import { Field, inputClass } from "@/components/ui/field";
 import { Card, Pill } from "./admin-ui";
 import { useToast } from "./toast";
 import { AssetPicker } from "./asset-picker";
+import { GalleryPicker } from "./gallery-picker";
+import { RichTextEditor } from "./rich-text-editor";
 import { saveProduct, deleteProduct } from "@/lib/admin/catalog-actions";
 import type { ProductInput, ProductBadgeValue } from "@/lib/admin/catalog-types";
 import type { AdminProductDetail } from "@/lib/admin/catalog-reads";
@@ -56,7 +58,7 @@ export function ProductForm({
     categoryId: product?.categoryId ?? categories[0]?.id ?? "",
     price: product ? String(product.price) : "",
     compareAtPrice: product?.compareAtPrice ? String(product.compareAtPrice) : "",
-    description: product?.description ?? "",
+    description: product?.description ?? [],
     badge: (product?.badge ?? "") as ProductBadgeValue | "",
     freeDelivery: product?.freeDelivery ?? false,
     isActive: product?.isActive ?? true,
@@ -67,6 +69,7 @@ export function ProductForm({
       : [{ size: "", stock: "0" }],
     primaryAssetId: product?.primaryAssetId ?? null,
     hoverAssetId: product?.hoverAssetId ?? null,
+    galleryAssetIds: product?.galleryAssetIds ?? [],
     seoTitle: product?.seoTitle ?? "",
     seoDescription: product?.seoDescription ?? "",
   }));
@@ -97,6 +100,7 @@ export function ProductForm({
       variants: form.variants.map((v) => ({ size: v.size, stock: Number(v.stock) || 0 })),
       primaryAssetId: form.primaryAssetId,
       hoverAssetId: form.hoverAssetId,
+      galleryAssetIds: form.galleryAssetIds,
     };
 
     startTransition(async () => {
@@ -195,14 +199,13 @@ export function ProductForm({
           <Field
             label="Description"
             id="p-desc"
-            hint="One or two sentences. What it is and what it is like to wear."
+            hint="A short paragraph, then anything worth its own line. Bold and lists are the two that sell clothes."
           >
-            <textarea
+            <RichTextEditor
               id="p-desc"
-              rows={3}
               value={form.description}
-              onChange={(e) => set("description", e.target.value)}
-              className={cn(inputClass(), "h-auto py-2.5")}
+              placeholder="Describe the product"
+              onChange={(next) => set("description", next)}
             />
           </Field>
         </div>
@@ -333,20 +336,37 @@ export function ProductForm({
         <h2 className="text-[15px] font-semibold">Pictures</h2>
         <p className="mt-1 text-[13px] text-ink-muted">
           The main picture is the one customers see everywhere. The second is
-          shown when they hover over it — it is optional.
+          shown when they hover over it on a computer. Anything after that
+          appears in the gallery on the product page, in this order.
         </p>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           <AssetPicker
-            label="Main picture"
+            label="1. Main picture"
             assets={assets}
             value={form.primaryAssetId}
             onChange={(id: string | null) => set("primaryAssetId", id)}
           />
           <AssetPicker
-            label="Second picture (optional)"
+            label="2. Hover picture (optional)"
             assets={assets}
             value={form.hoverAssetId}
             onChange={(id: string | null) => set("hoverAssetId", id)}
+          />
+        </div>
+
+        <div className="mt-5 border-t border-line pt-4">
+          <h3 className="text-[13.5px] font-medium">More pictures</h3>
+          <p className="mt-1 mb-3 max-w-prose text-[12.5px] leading-relaxed text-ink-muted">
+            The back, the fabric, the fit on someone. Customers who scroll
+            through these buy more than customers who see one photograph, and
+            for cash on delivery it is what stops a parcel being refused at the
+            door.
+          </p>
+          <GalleryPicker
+            assets={assets}
+            value={form.galleryAssetIds}
+            exclude={[form.primaryAssetId, form.hoverAssetId]}
+            onChange={(ids: string[]) => set("galleryAssetIds", ids)}
           />
         </div>
       </Card>

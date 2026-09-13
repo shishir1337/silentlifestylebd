@@ -11,12 +11,17 @@ import type { SettingGroup } from "@/lib/admin/settings-reads";
 import { cn } from "@/lib/cn";
 
 /**
- * One form for all the settings, not one per group.
+ * One form for all the settings, shown a section at a time.
  *
- * A shop owner changing their phone number usually changes the WhatsApp
- * number in the same sitting, and a delivery rate rise usually moves the free
- * threshold with it. Three separate save buttons would let them walk away
- * having saved one of the two.
+ * Still one form and one save button: a shop owner changing their phone number
+ * usually changes the WhatsApp number in the same sitting, and a delivery rate
+ * rise usually moves the free threshold with it. Three separate save buttons
+ * would let them walk away having saved one of the two.
+ *
+ * The tabs are client state, not links. Switching one keeps whatever has been
+ * typed on the others — a tab that loses an edit is worse than the long page
+ * it replaced — and the counter at the bottom counts every unsaved change on
+ * every tab, with a nudge to the ones not currently on screen.
  *
  * The save button stays out of the way until something is actually different.
  * These are the numbers that decide what customers pay, and a form that looks
@@ -37,8 +42,13 @@ export function SettingsForm({ groups }: { groups: SettingGroup[] }) {
   // the save button reads.
   const [saved, setSaved] = useState<Record<string, string>>(fromServer);
   const [values, setValues] = useState<Record<string, string>>(fromServer);
+  const [tab, setTab] = useState(groups[0]?.id ?? "");
 
   const dirty = Object.keys(saved).filter((k) => values[k] !== saved[k]);
+  const dirtyIn = (g: SettingGroup) =>
+    g.settings.filter((s) => values[s.key] !== saved[s.key]).length;
+  const elsewhere = dirty.length - (groups.find((g) => g.id === tab)?.settings
+    .filter((s) => values[s.key] !== saved[s.key]).length ?? 0);
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -71,8 +81,57 @@ export function SettingsForm({ groups }: { groups: SettingGroup[] }) {
         </p>
       ) : null}
 
+      {/*
+        A tab list, not links: these are sections of one form, and a router
+        navigation would throw away anything typed but not yet saved.
+      */}
+      <div role="tablist" aria-label="Settings sections" className="border-b border-line">
+        <ul className="rail rail-bleed -mb-px gap-1 sm:flex sm:overflow-visible">
+          {groups.map((g) => {
+            const n = dirtyIn(g);
+            const active = g.id === tab;
+            return (
+              <li key={g.id}>
+                <button
+                  type="button"
+                  role="tab"
+                  id={`tab-${g.id}`}
+                  aria-selected={active}
+                  aria-controls={`panel-${g.id}`}
+                  onClick={() => setTab(g.id)}
+                  className={cn(
+                    "inline-flex h-10 items-center gap-1.5 border-b-2 px-3 text-[13.5px] font-medium whitespace-nowrap",
+                    "transition-colors duration-[var(--dur-base)]",
+                    active
+                      ? "border-ink text-ink"
+                      : "border-transparent text-ink-muted hover:text-ink",
+                  )}
+                >
+                  {g.title}
+                  {n > 0 ? (
+                    <span
+                      aria-label={`${n} unsaved`}
+                      className="inline-flex min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-on-brand"
+                    >
+                      {n}
+                    </span>
+                  ) : null}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
       {groups.map((group) => (
-        <Card key={group.id} className="p-5">
+        <Card
+          key={group.id}
+          role="tabpanel"
+          id={`panel-${group.id}`}
+          aria-labelledby={`tab-${group.id}`}
+          hidden={group.id !== tab}
+          className="p-5"
+        >
           <h2 className="text-[15px] font-semibold">{group.title}</h2>
           {group.lead ? (
             <p className="mt-1 max-w-prose text-[12.5px] leading-relaxed text-ink-muted">
@@ -145,7 +204,8 @@ export function SettingsForm({ groups }: { groups: SettingGroup[] }) {
         <p aria-live="polite" className="text-[12.5px] text-ink-muted">
           {dirty.length === 0
             ? "Nothing changed yet."
-            : `${dirty.length} ${dirty.length === 1 ? "change" : "changes"} not saved yet.`}
+            : `${dirty.length} ${dirty.length === 1 ? "change" : "changes"} not saved yet` +
+              (elsewhere > 0 ? `, ${elsewhere} on another tab.` : ".")}
         </p>
       </div>
     </form>

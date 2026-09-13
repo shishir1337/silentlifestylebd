@@ -13,6 +13,7 @@ import {
   TruckIcon,
 } from "@/components/ui/icons";
 import { Taka } from "@/components/ui/price";
+import { RichTextBody } from "@/components/content/rich-text";
 import { allProductSlugs, getCategory, getGallery, getProduct, getRelated } from "@/lib/catalog";
 import { siteUrl } from "@/data/site";
 import { getSiteSettings } from "@/lib/settings";
@@ -110,9 +111,11 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
 
               <div className="mt-8 border-t border-line pt-6">
                 <h2 className="text-[15px] font-semibold">Description</h2>
-                <p className="mt-2 text-[14px] leading-relaxed text-ink-soft">
-                  {product.description}
-                </p>
+                <RichTextBody
+                  value={product.descriptionRich}
+                  fallback={product.description}
+                  className="mt-2 text-[14px] leading-relaxed text-ink-soft"
+                />
 
                 <h3 className="mt-5 text-[15px] font-semibold">Details</h3>
                 <ul className="mt-2 space-y-1.5">

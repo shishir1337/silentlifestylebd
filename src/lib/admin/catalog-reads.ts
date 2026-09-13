@@ -2,6 +2,7 @@ import "server-only";
 
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { fromPlainText, toRichText } from "@/lib/rich-text";
 
 /**
  * Catalogue reads for the admin panel.
@@ -176,7 +177,7 @@ export interface AdminProductDetail {
   categoryId: string;
   price: number;
   compareAtPrice: number | null;
-  description: string;
+  description: import("@/types/rich-text").RichText;
   badge: "NEW" | "BESTSELLER" | "LIMITED" | null;
   freeDelivery: boolean;
   isActive: boolean;
@@ -187,6 +188,7 @@ export interface AdminProductDetail {
   variants: { id: string; size: string; stock: number }[];
   primaryAssetId: string | null;
   hoverAssetId: string | null;
+  galleryAssetIds: string[];
 }
 
 export async function getProduct(id: string): Promise<AdminProductDetail | null> {
@@ -201,6 +203,7 @@ export async function getProduct(id: string): Promise<AdminProductDetail | null>
       price: true,
       compareAtPrice: true,
       description: true,
+      descriptionRich: true,
       badge: true,
       freeDelivery: true,
       isActive: true,
@@ -212,7 +215,10 @@ export async function getProduct(id: string): Promise<AdminProductDetail | null>
         orderBy: { position: "asc" },
         select: { id: true, size: true, stock: true },
       },
-      images: { select: { role: true, assetId: true } },
+      images: {
+        select: { role: true, assetId: true },
+        orderBy: { position: "asc" },
+      },
     },
   });
   if (!p) return null;
@@ -225,7 +231,11 @@ export async function getProduct(id: string): Promise<AdminProductDetail | null>
     categoryId: p.categoryId,
     price: p.price,
     compareAtPrice: p.compareAtPrice,
-    description: p.description,
+    // Products written before the editor have no rich column; their one
+    // paragraph is lifted into the new shape so the form opens with words in it.
+    description: p.descriptionRich
+      ? toRichText(p.descriptionRich)
+      : fromPlainText(p.description),
     badge: p.badge,
     freeDelivery: p.freeDelivery,
     isActive: p.isActive,
@@ -236,6 +246,7 @@ export async function getProduct(id: string): Promise<AdminProductDetail | null>
     variants: p.variants,
     primaryAssetId: p.images.find((i) => i.role === "PRIMARY")?.assetId ?? null,
     hoverAssetId: p.images.find((i) => i.role === "HOVER")?.assetId ?? null,
+    galleryAssetIds: p.images.filter((i) => i.role === "GALLERY").map((i) => i.assetId),
   };
 }
 

@@ -55,7 +55,7 @@ export default async function SearchPage(props: PageProps<"/search">) {
               enterKeyHint="search"
               placeholder="Search for panjabi, shirts, watches…"
               /* 16px min: anything smaller makes iOS Safari zoom on focus. */
-              className="h-12 w-full rounded-[var(--radius-sm)] border border-line-strong bg-surface pr-3 pl-11 text-[16px] placeholder:text-ink-muted focus:border-brand focus:outline-none"
+              className="h-12 w-full rounded-[var(--radius-sm)] border border-line-strong bg-surface pr-3 pl-11 text-[16px] placeholder:text-ink-muted focus:border-brand"
             />
           </div>
         </form>

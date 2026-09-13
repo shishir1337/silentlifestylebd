@@ -7,6 +7,7 @@ import { assertStaff } from "@/lib/dal";
 import { CAN_MANAGE_ORDERS } from "@/lib/admin/access";
 import { canTransition, RESTOCKING } from "@/lib/admin/order-flow";
 import { CATALOG_TAG, PRODUCTS_TAG } from "@/lib/catalog";
+import { getOrder, type AdminOrderDetail } from "@/lib/admin/order-reads";
 import type { SaveResult } from "@/lib/admin/catalog-types";
 
 /**
@@ -174,6 +175,23 @@ export async function addOrderNote(orderNo: string, note: string): Promise<SaveR
 
   await refresh(orderNo);
   return { ok: true, id: order.id };
+}
+
+/**
+ * One order, for the quick view.
+ *
+ * An action rather than a prop on every row: the list carries 25 orders and
+ * the quick view opens one. Sending every line item, address and event of all
+ * 25 down with the page to serve the one that gets clicked would make the list
+ * slower for everyone to make one panel instant for somebody.
+ *
+ * It re-checks access rather than trusting that the list rendered. An action
+ * is a POST to a URL, and the only thing standing between it and the open
+ * internet is this line.
+ */
+export async function fetchOrder(orderNo: string): Promise<AdminOrderDetail | null> {
+  await assertStaff(CAN_MANAGE_ORDERS);
+  return getOrder(orderNo);
 }
 
 class Stale extends Error {}

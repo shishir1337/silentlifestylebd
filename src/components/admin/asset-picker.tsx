@@ -24,11 +24,20 @@ export function AssetPicker({
   assets,
   value,
   onChange,
+  compact,
 }: {
   label: string;
   assets: AssetRow[];
   value: string | null;
   onChange: (assetId: string | null) => void;
+  /**
+   * Renders as a single button rather than a labelled slot.
+   *
+   * The slot form answers "which picture is the main one"; the compact form
+   * answers "add one more". Showing an empty 96px preview above an adder that
+   * never keeps what it is given is a placeholder for nothing.
+   */
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const { mounted, ref: attach, node } = useOverlay(open);
@@ -43,8 +52,17 @@ export function AssetPicker({
 
   return (
     <div>
-      <p className="text-[13px] font-medium">{label}</p>
+      {compact ? null : <p className="text-[13px] font-medium">{label}</p>}
 
+      {compact ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex h-10 items-center rounded-[var(--radius-sm)] border border-dashed border-line-strong px-3.5 text-[13px] font-medium text-ink-soft transition-colors duration-[var(--dur-base)] hover:border-ink hover:text-ink"
+        >
+          + {label}
+        </button>
+      ) : (
       <div className="mt-1.5 flex items-start gap-3">
         <span className="relative size-24 shrink-0 overflow-hidden rounded-[var(--radius-sm)] border border-line bg-subtle">
           {selected ? (
@@ -82,6 +100,7 @@ export function AssetPicker({
           ) : null}
         </div>
       </div>
+      )}
 
       {mounted ? (
         <dialog

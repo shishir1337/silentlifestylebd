@@ -149,7 +149,17 @@ model Product {
   /// Was-price. Set only when genuinely discounted — an inflated was-price is
   /// the thing the storefront copy explicitly promises not to do.
   compareAtPrice Int?
+  /// Plain text, derived from `descriptionRich` on every save.
+  ///
+  /// Kept as its own column because three things want words without markup:
+  /// search, the meta description, and the structured data a crawler reads.
+  /// Deriving it means the client edits one thing, not two that drift.
   description    String
+  /// Formatted description: blocks and marks, never HTML. See `lib/rich-text`.
+  ///
+  /// Null for products written before the editor existed; the storefront falls
+  /// back to `description` for those, so nothing had to be migrated.
+  descriptionRich Json?
   badge          ProductBadge?
   /// Overrides the global free-delivery threshold for this item.
   freeDelivery   Boolean      @default(false)

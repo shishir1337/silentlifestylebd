@@ -18,7 +18,8 @@ export interface ProductInput {
   categoryId: string;
   price: number;
   compareAtPrice: number | null;
-  description: string;
+  /** Formatted. The plain `description` column is derived from it on save. */
+  description: import("@/types/rich-text").RichText;
   badge: ProductBadgeValue | null;
   freeDelivery: boolean;
   isActive: boolean;
@@ -30,6 +31,8 @@ export interface ProductInput {
   variants: { size: string; stock: number }[];
   primaryAssetId: string | null;
   hoverAssetId: string | null;
+  /** Everything after those two, in display order. */
+  galleryAssetIds: string[];
 }
 
 export interface CategoryInput {

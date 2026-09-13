@@ -114,7 +114,7 @@ export default async function AdminOrdersPage(props: PageProps<"/admin/orders">)
       />
 
       <div className="mt-4">
-        <OrderTable rows={rows} filtered={filtered} />
+        <OrderTable rows={rows} filtered={filtered} role={staff.role} />
         <Pagination
           page={page}
           pages={pages}

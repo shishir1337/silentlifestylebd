@@ -16,11 +16,18 @@ import { cn } from "@/lib/cn";
  * The `text-[16px]` on phones is load-bearing, not a typo: iOS Safari zooms the
  * whole page when a focused input's text is under 16px, and the shopper is then
  * left scrolled sideways mid-checkout. Pointer devices get 14px back at `sm`.
+ *
+ * No `focus:outline-none` here. It used to be, and it took the global
+ * `:focus-visible` ring with it — leaving a keyboard user with a one-pixel
+ * border tint as the only sign of where they were, on the checkout as much as
+ * in the admin. The border still shifts on focus for pointer users; the ring is
+ * what a keyboard user needs, and `:focus-visible` already withholds it from
+ * everyone else.
  */
 export function inputClass(invalid?: boolean) {
   return cn(
     "h-11 w-full rounded-[var(--radius-sm)] border bg-surface px-3 text-[16px] sm:text-[14px]",
-    "placeholder:text-ink-muted focus:outline-none",
+    "placeholder:text-ink-muted",
     invalid ? "border-sale focus:border-sale" : "border-line-strong focus:border-brand",
   );
 }
