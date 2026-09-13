@@ -63,3 +63,42 @@ export interface NavItemInput {
   highlight: boolean;
   isActive: boolean;
 }
+
+export interface AnnouncementInput {
+  id?: string;
+  text: string;
+  icon: "NONE" | "CASH" | "TRUCK" | "RETURN" | "SHIELD";
+  href: string;
+  wideOnly: boolean;
+  isActive: boolean;
+}
+
+/**
+ * What the client may write into an announcement, and what each one becomes.
+ *
+ * Offered as buttons in the editor rather than documented somewhere they would
+ * have to remember. Typing the number instead makes a second copy of something
+ * the settings already own, which is how a strip ends up advertising a free
+ * delivery threshold the checkout stopped honouring months ago.
+ */
+/**
+ * Fills the placeholders in, for the preview.
+ *
+ * The same substitution the storefront does, so "what customers see" is what
+ * customers see — a preview showing `{free-over}` is a preview of the wrong
+ * thing, and the one place the client will look to check their work.
+ */
+export function resolveTokens(
+  text: string,
+  values: Record<string, string>,
+): string {
+  return text.replace(/\{[a-z-]+\}/g, (m) => values[m] ?? m);
+}
+
+export const ANNOUNCEMENT_TOKENS = [
+  { token: "{free-over}", means: "Free delivery threshold" },
+  { token: "{inside-dhaka}", means: "Delivery charge inside Dhaka" },
+  { token: "{outside-dhaka}", means: "Delivery charge outside Dhaka" },
+  { token: "{return-days}", means: "Return window in days" },
+  { token: "{phone}", means: "Your phone number" },
+] as const;

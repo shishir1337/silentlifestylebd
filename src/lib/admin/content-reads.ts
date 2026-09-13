@@ -222,3 +222,29 @@ export async function getPage(slug: string): Promise<AdminPage | null> {
     updatedAt: p.updatedAt.toISOString(),
   };
 }
+
+export interface AdminAnnouncement {
+  id: string;
+  text: string;
+  icon: "NONE" | "CASH" | "TRUCK" | "RETURN" | "SHIELD";
+  href: string | null;
+  wideOnly: boolean;
+  position: number;
+  isActive: boolean;
+}
+
+/** Raw, with the placeholders still in the text — this is the editor's view. */
+export async function listAnnouncements(): Promise<AdminAnnouncement[]> {
+  return db.announcement.findMany({
+    orderBy: { position: "asc" },
+    select: {
+      id: true,
+      text: true,
+      icon: true,
+      href: true,
+      wideOnly: true,
+      position: true,
+      isActive: true,
+    },
+  });
+}

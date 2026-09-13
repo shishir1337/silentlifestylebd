@@ -7,6 +7,7 @@ import { CONTENT_TAG } from "@/lib/catalog";
 import { slugifySection, type PageBlock } from "@/lib/page-blocks";
 import type { SaveResult } from "@/lib/admin/catalog-types";
 import {
+  type AnnouncementInput,
   HERO_DESKTOP,
   HERO_MOBILE,
   type HeroSlideInput,
@@ -374,4 +375,56 @@ export async function savePage(input: {
 
   refreshContent([`/${input.slug}`]);
   return { ok: true, id: page.id, slug: page.slug };
+}
+
+/* --- the announcement strip ---------------------------------------------- */
+
+export async function saveAnnouncement(input: AnnouncementInput): Promise<SaveResult> {
+  await assertContentAccess();
+
+  const text = input.text.trim();
+  if (text.length < 3) return { ok: false, message: "Write the message." };
+  if (text.length > 90) {
+    // The strip is one line beside up to two others. Anything longer either
+    // wraps the bar to two rows or is cut off on a phone, and both look broken.
+    return { ok: false, message: "Keep it under 90 characters — the strip is one line." };
+  }
+
+  const href = input.href.trim();
+  if (href && !href.startsWith("/")) {
+    return { ok: false, message: "Links must be a page on this shop, starting with /." };
+  }
+
+  const data = {
+    text,
+    icon: input.icon,
+    href: href || null,
+    wideOnly: input.wideOnly,
+    isActive: input.isActive,
+  };
+
+  const row = input.id
+    ? await db.announcement.update({ where: { id: input.id }, data })
+    : await db.announcement.create({
+        data: { ...data, position: await db.announcement.count() },
+      });
+
+  refreshContent();
+  return { ok: true, id: row.id };
+}
+
+export async function deleteAnnouncement(id: string): Promise<SaveResult> {
+  await assertContentAccess();
+  await db.announcement.delete({ where: { id } });
+  refreshContent();
+  return { ok: true };
+}
+
+export async function reorderAnnouncements(ids: string[]): Promise<SaveResult> {
+  await assertContentAccess();
+  await db.$transaction(
+    ids.map((id, position) => db.announcement.update({ where: { id }, data: { position } })),
+  );
+  refreshContent();
+  return { ok: true };
 }

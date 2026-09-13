@@ -297,6 +297,28 @@ async function seedSettings() {
   console.log(`  settings: ${settings.length}`);
 }
 
+async function seedAnnouncements() {
+  /*
+    The two facts the strip was hardcoded with, as rows. Written with the
+    placeholder rather than the number, which is the whole point of the feature:
+    change the free-delivery threshold in Settings and the strip follows.
+  */
+  const items = [
+    { text: "Cash on Delivery nationwide", icon: "CASH" as const, wideOnly: false },
+    { text: "Free delivery over {free-over}", icon: "TRUCK" as const, wideOnly: true },
+  ];
+
+  if ((await db.announcement.count()) > 0) {
+    console.log("  announcements: already written, left alone");
+    return;
+  }
+
+  for (const [position, item] of items.entries()) {
+    await db.announcement.create({ data: { ...item, position } });
+  }
+  console.log(`  announcements: ${items.length}`);
+}
+
 async function seedPages() {
   const pages: {
     slug: string;
@@ -350,6 +372,7 @@ async function main() {
   console.log("\ncontent");
   await seedContent(assets);
   await seedSettings();
+  await seedAnnouncements();
   await seedPages();
 
   console.log("\nDone.");

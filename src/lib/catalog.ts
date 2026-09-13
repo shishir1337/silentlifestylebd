@@ -579,3 +579,57 @@ export const getSitemapEntries = unstable_cache(
   ["catalog:sitemap", SHAPE],
   { ...CACHE, tags: [CATALOG_TAG, PRODUCTS_TAG, CATEGORIES_TAG] },
 );
+
+/**
+ * The strip above the header.
+ *
+ * Placeholders are substituted here rather than stored resolved, so a change
+ * to the delivery charge reaches the strip along with everything else. A shop
+ * that edits "free over Tk 3,000" into the text by hand has made a second copy
+ * of a number the settings already own, and the two will disagree the first
+ * time one of them changes.
+ */
+export interface Announcement {
+  id: string;
+  text: string;
+  icon: "NONE" | "CASH" | "TRUCK" | "RETURN" | "SHIELD";
+  href: string | null;
+  wideOnly: boolean;
+}
+
+export async function getAnnouncements(): Promise<Announcement[]> {
+  const [rows, settings] = await Promise.all([
+    getAnnouncementRows(),
+    (await import("@/lib/settings")).getSiteSettings(),
+  ]);
+
+  const money = (n: number) => `৳${n.toLocaleString("en-US")}`;
+  const tokens: Record<string, string> = {
+    "{free-over}": money(settings.delivery.freeThreshold),
+    "{inside-dhaka}": money(settings.delivery.insideDhaka),
+    "{outside-dhaka}": money(settings.delivery.outsideDhaka),
+    "{return-days}": String(settings.delivery.returnWindowDays),
+    "{phone}": settings.phoneDisplay,
+  };
+
+  return rows.map((row) => ({
+    ...row,
+    text: row.text.replace(
+      /\{(free-over|inside-dhaka|outside-dhaka|return-days|phone)\}/g,
+      (match) => tokens[match] ?? match,
+    ),
+  }));
+}
+
+const getAnnouncementRows = unstable_cache(
+  async (): Promise<Announcement[]> => {
+    const rows = await db.announcement.findMany({
+      where: { isActive: true },
+      orderBy: { position: "asc" },
+      select: { id: true, text: true, icon: true, href: true, wideOnly: true },
+    });
+    return rows;
+  },
+  ["content:announcements"],
+  { ...CACHE, tags: [CONTENT_TAG] },
+);

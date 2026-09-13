@@ -548,6 +548,47 @@ model AuditEvent {
   @@index([action, createdAt])
 }
 
+/// The strip above the header.
+///
+/// Two facts were hardcoded here: cash on delivery, and free delivery over a
+/// threshold. Rows instead, because the strip is where a shop puts the thing
+/// that is true this week — a festival delivery cut-off, a campaign, a warning
+/// that Dhaka traffic is slow before Eid — and none of that is worth a deploy.
+model Announcement {
+  id String @id @default(cuid())
+
+  /// The words.
+  ///
+  /// May contain placeholders, which are replaced at render time from the
+  /// settings: `{free-over}`, `{inside-dhaka}`, `{outside-dhaka}`,
+  /// `{return-days}`, `{phone}`. That is the difference between a strip that
+  /// says "free over Tk 3,000" and one that still says it after the threshold
+  /// has been changed to 4,000 — this shop has been bitten by copies of the
+  /// same number before.
+  text String
+
+  icon AnnouncementIcon @default(NONE)
+  /// Optional: makes the item a link, e.g. to the delivery page.
+  href String?
+
+  /// Shown only where there is room. The strip is one line, and three messages
+  /// on a 360px phone is three unreadable ones.
+  wideOnly  Boolean  @default(false)
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, position])
+}
+
+enum AnnouncementIcon {
+  NONE
+  CASH
+  TRUCK
+  RETURN
+  SHIELD
+}
+
 model Setting {
   key       String      @id
   value     String
