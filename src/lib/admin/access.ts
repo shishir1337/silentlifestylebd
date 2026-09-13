@@ -47,6 +47,11 @@ export function assertContentAccess(): Promise<StaffUser> {
   return assertStaff(CAN_MANAGE_CONTENT);
 }
 
+/** For pages: redirects anyone who cannot edit site content. */
+export function requireContentAccess(): Promise<StaffUser> {
+  return requireStaff(CAN_MANAGE_CONTENT);
+}
+
 export function can(role: StaffRole, allowed: StaffRole[]): boolean {
   return allowed.includes(role);
 }

@@ -8,6 +8,7 @@ import {
   CollectionsIcon,
   CustomersIcon,
   DashboardIcon,
+  ContentIcon,
   MediaIcon,
   OrdersIcon,
   ProductsIcon,
@@ -64,6 +65,7 @@ export function AdminSidebar({
     { href: "/admin/categories", label: "Categories", Icon: CategoriesIcon, roles: ["OWNER", "MANAGER"] },
     { href: "/admin/collections", label: "Collections", Icon: CollectionsIcon, roles: ["OWNER", "MANAGER"] },
     { href: "/admin/customers", label: "Customers", Icon: CustomersIcon, roles: ["OWNER", "MANAGER", "STAFF"] },
+    { href: "/admin/content", label: "Content", Icon: ContentIcon, roles: ["OWNER", "MANAGER"] },
     { href: "/admin/media", label: "Media", Icon: MediaIcon, roles: ["OWNER", "MANAGER"] },
   ];
 

@@ -80,6 +80,17 @@ export function CustomersIcon({ className }: IconProps) {
   );
 }
 
+export function ContentIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 5.5h16" />
+      <path d="M4 10h10" />
+      <path d="M4 14.5h16" />
+      <path d="M4 19h10" />
+    </svg>
+  );
+}
+
 export function MediaIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className}>
