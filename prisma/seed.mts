@@ -296,6 +296,44 @@ async function seedSettings() {
   console.log(`  settings: ${settings.length}`);
 }
 
+async function seedPages() {
+  const pages: {
+    slug: string;
+    title: string;
+    lead: string | null;
+    seoTitle: string | null;
+    seoDescription: string | null;
+    body: unknown[];
+  }[] = JSON.parse(
+    readFileSync(new URL("./seed/pages.json", import.meta.url), "utf-8"),
+  );
+
+  // The words themselves are never refreshed. These pages are the ones the
+  // client is most likely to have rewritten, and a re-seed after a schema
+  // change must not quietly restore the copy the shop launched with.
+  let planted = 0;
+  for (const p of pages) {
+    const existing = await db.page.findUnique({
+      where: { slug: p.slug },
+      select: { id: true },
+    });
+    if (existing) continue;
+
+    await db.page.create({
+      data: {
+        slug: p.slug,
+        title: p.title,
+        lead: p.lead,
+        seoTitle: p.seoTitle,
+        seoDescription: p.seoDescription,
+        body: p.body as object[],
+      },
+    });
+    planted += 1;
+  }
+  console.log(`  pages: ${planted} planted, ${pages.length - planted} already written`);
+}
+
 async function main() {
   console.log("Seeding Silent Lifestyle BD\n");
 
@@ -311,6 +349,7 @@ async function main() {
   console.log("\ncontent");
   await seedContent(assets);
   await seedSettings();
+  await seedPages();
 
   console.log("\nDone.");
 }

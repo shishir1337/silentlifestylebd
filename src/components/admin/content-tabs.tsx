@@ -13,6 +13,7 @@ import { cn } from "@/lib/cn";
  */
 const TABS = [
   { href: "/admin/content/banners", label: "Banners" },
+  { href: "/admin/content/pages", label: "Pages" },
   { href: "/admin/content/tiles", label: "Tiles" },
   { href: "/admin/content/size-charts", label: "Size charts" },
   { href: "/admin/content/navigation", label: "Menus" },

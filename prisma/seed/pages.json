@@ -1,0 +1,394 @@
+[
+  {
+    "slug": "privacy",
+    "title": "Privacy policy",
+    "lead": "How we handle your information.",
+    "seoTitle": null,
+    "seoDescription": null,
+    "body": [
+      {
+        "id": "what-we-collect",
+        "title": "What we collect",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "We ask for the minimum needed to get a parcel to you and nothing else. You can order without an account; creating one is optional and changes nothing about how your order is handled."
+          },
+          {
+            "kind": "bullets",
+            "items": [
+              "At checkout: your name, mobile number, optional alternative number, delivery address and any order note you write.",
+              "If you create an account: your name, email address and a password. The password is stored only as a scrambled fingerprint — we cannot read it, and neither can anyone who obtains our database.",
+              "If you contact us: whatever you tell us in the call, WhatsApp message or email.",
+              "We do not ask for your date of birth, national ID, or any payment card details."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "what-we-use-it-for",
+        "title": "What we use it for",
+        "blocks": [
+          {
+            "kind": "bullets",
+            "items": [
+              "Confirming your order by phone before dispatch.",
+              "Handing your name, number and address to the courier so they can deliver.",
+              "Arranging returns, exchanges and refunds.",
+              "Answering your questions when you contact us."
+            ]
+          },
+          {
+            "kind": "text",
+            "text": "We do not sell your information, and we do not pass it to anyone except the courier delivering your order."
+          }
+        ]
+      },
+      {
+        "id": "what-stays-in-your-browser",
+        "title": "What stays in your browser",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "Your shopping bag is stored in this browser's local storage — on your own device, not on our servers. Clearing your browser data empties it."
+          },
+          {
+            "kind": "bullets",
+            "items": [
+              "We do not use advertising or tracking cookies.",
+              "We do not run third-party analytics on this site.",
+              "Nothing in local storage is sent to us automatically."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "cookies",
+        "title": "Cookies",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "We set one cookie, and only if you sign in. It holds a random session identifier — nothing about you, and nothing readable — and it is what keeps you signed in as you move between pages. Signing out removes it, and it expires on its own after thirty days."
+          },
+          {
+            "kind": "bullets",
+            "items": [
+              "It is not used to track you, here or anywhere else.",
+              "It is marked HttpOnly, so no script on the page can read it, and Secure, so it is never sent over an unencrypted connection.",
+              "Browsing and ordering as a guest sets no cookie at all."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "if-you-create-an-account",
+        "title": "If you create an account",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "An account saves your delivery addresses and lets you see the orders you placed while signed in, from any device. It is a convenience — nothing more is collected because you have one."
+          },
+          {
+            "kind": "bullets",
+            "items": [
+              "We record when you sign in, with the network address it came from, so we can spot someone trying to break into accounts.",
+              "Ask us to close your account and we will delete it, along with your saved addresses.",
+              "Order records survive that deletion where we are required to keep them for accounting."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "how-long-we-keep-it",
+        "title": "How long we keep it",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "Order records are kept as long as we need them for accounting and for handling returns. Ask us to delete your details and we will, unless we are required to keep a record of the transaction."
+          }
+        ]
+      },
+      {
+        "id": "your-choices",
+        "title": "Your choices",
+        "blocks": [
+          {
+            "kind": "bullets",
+            "items": [
+              "Ask what we hold about you — call or email and we will tell you.",
+              "Ask us to correct a wrong number or address.",
+              "Ask us to delete your details after an order is settled.",
+              "Close your account at any time — ask us and we will delete it and your saved addresses.",
+              "Clear your browser data to empty your shopping bag."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "questions",
+        "title": "Questions",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "Email hello@silentlifestylebd.com or call +880 1711-000000. Our address is Bashundhara City, Panthapath, Dhaka 1215."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "terms",
+    "title": "Terms & conditions",
+    "lead": "The terms you agree to when you order from us.",
+    "seoTitle": null,
+    "seoDescription": null,
+    "body": [
+      {
+        "id": "placing-an-order",
+        "title": "Placing an order",
+        "blocks": [
+          {
+            "kind": "bullets",
+            "items": [
+              "Placing an order is an offer to buy, not a completed sale. The sale is made when we confirm your order by phone.",
+              "We may decline or cancel an order — if an item is out of stock, the address is outside our delivery area, or we cannot reach you to confirm.",
+              "Give a mobile number you answer. Orders we cannot confirm are not dispatched."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "prices-and-payment",
+        "title": "Prices and payment",
+        "blocks": [
+          {
+            "kind": "bullets",
+            "items": [
+              "All prices are in Bangladeshi Taka and include VAT where applicable.",
+              "Payment is cash on delivery unless agreed otherwise. You pay the delivery rider when the parcel reaches you.",
+              "Delivery is charged at the rate shown at checkout and is calculated on the goods subtotal, so it can never push an order past the free-delivery threshold.",
+              "If a price is listed wrongly through an obvious error, we will contact you before dispatch rather than hold you to it."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "delivery",
+        "title": "Delivery",
+        "blocks": [
+          {
+            "kind": "bullets",
+            "items": [
+              "Stated timelines (1–2 days inside Dhaka, 2–4 days outside) run from confirmation, not from when you place the order.",
+              "Timelines are estimates. Holidays, weather and courier delays can extend them.",
+              "You may check the parcel before paying. If it is not what you ordered, refuse it and you pay nothing.",
+              "Repeatedly refusing confirmed orders without reason may mean we ask for advance payment on future orders."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "returns-and-exchanges",
+        "title": "Returns and exchanges",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "Our returns policy forms part of these terms. In short: 7 days, unused, with tags attached, subject to the exclusions listed there."
+          }
+        ]
+      },
+      {
+        "id": "products-and-images",
+        "title": "Products and images",
+        "blocks": [
+          {
+            "kind": "bullets",
+            "items": [
+              "We describe colours, fabrics and measurements as accurately as we can. Screens differ, and a slight colour variation is not a defect.",
+              "Measurements are garment-measured and may vary by up to half an inch.",
+              "Stock is limited. Listing an item does not guarantee availability until confirmed."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "use-of-this-site",
+        "title": "Use of this site",
+        "blocks": [
+          {
+            "kind": "bullets",
+            "items": [
+              "The content, photographs and branding on this site belong to us and may not be reused commercially without permission.",
+              "Do not attempt to disrupt the site or place orders you do not intend to accept."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "liability",
+        "title": "Liability",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "Our responsibility is limited to the value of the goods you ordered. We are not liable for indirect losses. Nothing here removes rights you have under Bangladeshi consumer law."
+          }
+        ]
+      },
+      {
+        "id": "governing-law",
+        "title": "Governing law",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "These terms are governed by the laws of Bangladesh, and disputes fall to the courts of Dhaka."
+          }
+        ]
+      },
+      {
+        "id": "contact",
+        "title": "Contact",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "Silent Lifestyle BD, Bashundhara City, Panthapath, Dhaka 1215. Call +880 1711-000000 or email hello@silentlifestylebd.com."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "returns",
+    "title": "7-day returns & exchange",
+    "lead": "Wrong size or changed your mind? Send it back within seven days of delivery.",
+    "seoTitle": null,
+    "seoDescription": null,
+    "body": [
+      {
+        "id": "how-to-arrange-it",
+        "title": "How to arrange it",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "Call or WhatsApp us on +880 1711-000000 with your order number. We will arrange a courier pickup, or you can drop the parcel at our store."
+          },
+          {
+            "kind": "bullets",
+            "items": [
+              "Tell us whether you want an exchange or a refund.",
+              "For exchanges, tell us the size or colour you want instead.",
+              "Keep the item, its tags and the original packaging together."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "what-we-take-back",
+        "title": "What we take back",
+        "blocks": [
+          {
+            "kind": "bullets",
+            "items": [
+              "Unused items with the tags still attached.",
+              "Wrong item, wrong size or wrong colour sent by us.",
+              "Manufacturing defects — a fault in stitching, fabric or hardware.",
+              "Items damaged in transit, reported within 48 hours of delivery."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "what-we-cannot-take-back",
+        "title": "What we cannot take back",
+        "blocks": [
+          {
+            "kind": "bullets",
+            "items": [
+              "Items that have been worn, washed or altered.",
+              "Items returned without tags or original packaging.",
+              "Innerwear and socks, for hygiene reasons.",
+              "Unstitched fabric that has already been cut or tailored.",
+              "Anything reported after 7 days of delivery."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "refunds",
+        "title": "Refunds",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "Because orders are paid in cash on delivery, refunds are sent by bKash or Nagad to the number on the order — or in cash if you return the item to our store in person."
+          },
+          {
+            "kind": "bullets",
+            "items": [
+              "Refunds are issued within 3–5 working days of us receiving the item back.",
+              "We refund the item price in full.",
+              "The original delivery charge is refunded only when the return is our mistake.",
+              "Return courier cost is on us for our mistakes, and on you for a change of mind."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "exchanges",
+        "title": "Exchanges",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "Exchanges are the faster route for a size change and are free within Dhaka. If the replacement costs more, you pay the difference on delivery; if it costs less, we refund the difference."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "about",
+    "title": "Everyday essentials, quietly well made",
+    "lead": "Silent Lifestyle BD sells menswear, accessories and Pakistani ladies collections to customers across Bangladesh.",
+    "seoTitle": null,
+    "seoDescription": null,
+    "body": [
+      {
+        "id": "what-we-do",
+        "title": "What we do",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "We stock the clothes people in Dhaka actually wear through a normal week — panjabi for Friday and Eid, formal shirts and pants for the office, t-shirts and polos for everything else, and the belts, wallets, watches and shoes that go with them. Alongside that we carry Pakistani stitched and unstitched three-piece sets, purses and bracelets."
+          },
+          {
+            "kind": "text",
+            "text": "The name is the idea: nothing loud, nothing trend-chasing. Pieces that look right for more than one season and hold up to being worn properly."
+          }
+        ]
+      },
+      {
+        "id": "how-we-sell",
+        "title": "How we sell",
+        "blocks": [
+          {
+            "kind": "bullets",
+            "items": [
+              "Cash on delivery, everywhere. You pay when the parcel reaches your hand — never before.",
+              "Honest pricing. When we show a discount, the higher price is one we actually charged. No inflated was-prices.",
+              "One delivery charge. Flat inside Dhaka, flat outside, free over the threshold. No surprises at checkout.",
+              "7-day returns. Wrong size or changed your mind — send it back."
+            ]
+          }
+        ]
+      },
+      {
+        "id": "where-to-find-us",
+        "title": "Where to find us",
+        "blocks": [
+          {
+            "kind": "text",
+            "text": "Our store is at Bashundhara City, Panthapath, Dhaka 1215. Call +880 1711-000000 between 10am and 9pm and a person will answer — the same person who can check a measurement or hold a size for you."
+          }
+        ]
+      }
+    ]
+  }
+]

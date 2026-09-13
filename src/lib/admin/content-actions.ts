@@ -4,6 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { db } from "@/lib/db";
 import { assertContentAccess } from "@/lib/admin/access";
 import { CONTENT_TAG } from "@/lib/catalog";
+import { slugifySection, type PageBlock } from "@/lib/page-blocks";
 import type { SaveResult } from "@/lib/admin/catalog-types";
 import {
   HERO_DESKTOP,
@@ -308,4 +309,69 @@ export async function reorderNavItems(ids: string[]): Promise<SaveResult> {
   );
   refreshContent();
   return { ok: true };
+}
+
+/* --- policy pages --------------------------------------------------------- */
+
+/**
+ * Saving an editable page.
+ *
+ * Blocks are validated into shape rather than trusted, and empty paragraphs
+ * and bullets are dropped — an editor that lets you add a row inevitably
+ * collects blank ones, and a blank paragraph renders as a gap nobody can
+ * explain.
+ *
+ * No sanitiser, because there is nothing to sanitise: the body is text and
+ * lists, and React escapes every string on the way out. A client who types a
+ * tag into the privacy policy publishes the characters.
+ */
+export async function savePage(input: {
+  slug: string;
+  title: string;
+  lead: string;
+  sections: { id: string; title: string; blocks: PageBlock[] }[];
+  seoTitle?: string;
+  seoDescription?: string;
+  isActive: boolean;
+}): Promise<SaveResult> {
+  await assertContentAccess();
+
+  const title = input.title.trim();
+  if (title.length < 2) return { ok: false, message: "Give the page a title." };
+
+  const sections = input.sections
+    .map((s) => ({
+      id: s.id || slugifySection(s.title),
+      title: s.title.trim(),
+      blocks: s.blocks
+        .map((b) =>
+          b.kind === "text"
+            ? { kind: "text" as const, text: b.text.trim() }
+            : {
+                kind: "bullets" as const,
+                items: b.items.map((i) => i.trim()).filter(Boolean),
+              },
+        )
+        .filter((b) => (b.kind === "text" ? b.text.length > 0 : b.items.length > 0)),
+    }))
+    .filter((s) => s.title.length > 0);
+
+  if (sections.length === 0) {
+    return { ok: false, message: "A page needs at least one section with something in it." };
+  }
+
+  const page = await db.page.update({
+    where: { slug: input.slug },
+    data: {
+      title,
+      lead: input.lead.trim() || null,
+      body: sections as unknown as object[],
+      seoTitle: input.seoTitle?.trim() || null,
+      seoDescription: input.seoDescription?.trim() || null,
+      isActive: input.isActive,
+    },
+  });
+
+  refreshContent([`/${input.slug}`]);
+  return { ok: true, id: page.id, slug: page.slug };
 }

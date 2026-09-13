@@ -171,3 +171,54 @@ export async function listLinkTargets(): Promise<{ href: string; label: string }
     { href: "/account", label: "My account" },
   ];
 }
+
+export interface AdminPage {
+  id: string;
+  slug: string;
+  title: string;
+  lead: string | null;
+  sections: import("@/lib/page-blocks").PageSection[];
+  seoTitle: string | null;
+  seoDescription: string | null;
+  isActive: boolean;
+  updatedAt: string;
+}
+
+/** The policy pages, in the order they appear in the footer. */
+const PAGE_ORDER = ["privacy", "terms", "returns", "about"];
+
+export async function listPages(): Promise<AdminPage[]> {
+  const { toSections } = await import("@/lib/page-blocks");
+  const rows = await db.page.findMany();
+
+  return rows
+    .map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      title: p.title,
+      lead: p.lead,
+      sections: toSections(p.body),
+      seoTitle: p.seoTitle,
+      seoDescription: p.seoDescription,
+      isActive: p.isActive,
+      updatedAt: p.updatedAt.toISOString(),
+    }))
+    .sort((a, b) => PAGE_ORDER.indexOf(a.slug) - PAGE_ORDER.indexOf(b.slug));
+}
+
+export async function getPage(slug: string): Promise<AdminPage | null> {
+  const { toSections } = await import("@/lib/page-blocks");
+  const p = await db.page.findUnique({ where: { slug } });
+  if (!p) return null;
+  return {
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    lead: p.lead,
+    sections: toSections(p.body),
+    seoTitle: p.seoTitle,
+    seoDescription: p.seoDescription,
+    isActive: p.isActive,
+    updatedAt: p.updatedAt.toISOString(),
+  };
+}

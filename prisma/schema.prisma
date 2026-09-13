@@ -563,12 +563,19 @@ model Page {
   slug           String   @unique
   title          String
   lead           String?
-  /// Rich text as HTML, produced by the admin editor and sanitised on save.
-  body           String
+  /// Ordered blocks: sections, each holding paragraphs and bullet lists.
+  ///
+  /// Structured rather than HTML, which is what this column first specified.
+  /// HTML would need a sanitiser on every save, would let a stray tag break
+  /// the page layout, and would throw away the storefront's own Section and
+  /// Bullets components — the very things that keep these pages looking like
+  /// the rest of the shop. Blocks map onto those components exactly, so the
+  /// editor cannot produce something the design cannot render.
+  body           Json
   seoTitle       String?
   seoDescription String?
-  /// Policy pages show "last updated"; a real date beats a hardcoded string.
   isActive       Boolean  @default(true)
+  /// Policy pages show "last updated"; a real date beats a hardcoded string.
   updatedAt      DateTime @updatedAt
 
   @@index([slug])
