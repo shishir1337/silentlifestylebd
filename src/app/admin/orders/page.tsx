@@ -70,6 +70,7 @@ export default async function AdminOrdersPage(props: PageProps<"/admin/orders">)
           ? `${statusCounts.PENDING} waiting to be confirmed. Call the customer, then mark it confirmed.`
           : "Everything is confirmed. Nothing is waiting on a phone call."
       }
+      dense
     >
       <FilterBar
         searchPlaceholder="Order number, name or phone…"
@@ -78,7 +79,9 @@ export default async function AdminOrdersPage(props: PageProps<"/admin/orders">)
           { value: "all", label: "All", count: statusCounts.all },
           ...CHIP_ORDER.filter((s) => statusCounts[s] > 0 || s === "PENDING").map((s) => ({
             value: s,
-            label: ORDER_STATUS[s].label,
+            // The same staff word the chips in the rows use, so filtering by
+            // "Pending" and reading "Pending" are obviously the same thing.
+            label: ORDER_STATUS[s].short,
             count: statusCounts[s] ?? 0,
           })),
         ]}
@@ -114,8 +117,19 @@ export default async function AdminOrdersPage(props: PageProps<"/admin/orders">)
         ]}
       />
 
-      <div className="mt-4">
-        <OrderTable rows={rows} filtered={filtered} role={staff.role} />
+      <div className="mt-3">
+        <OrderTable
+          rows={rows}
+          filtered={filtered}
+          role={staff.role}
+          /*
+            One clock for the whole page. Every row's "2h ago" is measured from
+            this, so they agree with each other and with the server that
+            rendered them — a relative time computed per row in the browser is
+            the classic hydration mismatch.
+          */
+          now={Date.now()}
+        />
         <Pagination
           page={page}
           pages={pages}

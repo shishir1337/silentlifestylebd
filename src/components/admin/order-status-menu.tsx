@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { OrderStatus, StaffRole } from "@prisma/client";
 import { HELD, ORDER_FLOW, RESTOCKING, transitionsFrom } from "@/lib/admin/order-flow";
-import { ORDER_STATUS } from "@/lib/order-status";
+import { ORDER_STATUS, STATUS_CHIP } from "@/lib/order-status";
 import { cn } from "@/lib/cn";
 
 /**
@@ -48,6 +48,7 @@ export function OrderStatusMenu({
   onPick,
   align = "right",
   trigger = "Status",
+  variant = "button",
 }: {
   status: OrderStatus;
   role: StaffRole;
@@ -56,6 +57,14 @@ export function OrderStatusMenu({
   onPick: (to: OrderStatus, note?: string) => void;
   align?: "left" | "right";
   trigger?: string;
+  /**
+   * `chip` makes the current status itself the control.
+   *
+   * In a list, a chip saying "Confirmed" next to a button saying "Status" is
+   * two controls for one fact, repeated on every row. The chip carries the
+   * status and opens the menu; the caret is what says it is pressable.
+   */
+  variant?: "button" | "chip";
 }) {
   const [open, setOpen] = useState(false);
   const [asking, setAsking] = useState<OrderStatus | null>(null);
@@ -110,17 +119,35 @@ export function OrderStatusMenu({
         disabled={busy}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="inline-flex h-8 items-center gap-1.5 rounded-[var(--radius-sm)] border border-line-strong px-2.5 text-[12.5px] font-medium transition-colors duration-[var(--dur-base)] hover:border-ink disabled:opacity-50"
+        aria-label={
+          variant === "chip"
+            ? `Status: ${ORDER_STATUS[status].label}. Change it.`
+            : undefined
+        }
+        className={cn(
+          "inline-flex items-center transition-colors duration-[var(--dur-base)] disabled:opacity-50",
+          variant === "chip"
+            ? cn(
+                "h-6 gap-1 rounded-full px-2 text-[10px] font-semibold tracking-wide uppercase",
+                "hover:brightness-95",
+                STATUS_CHIP[ORDER_STATUS[status].tone],
+              )
+            : "h-8 gap-1.5 rounded-[var(--radius-sm)] border border-line-strong px-2.5 text-[12.5px] font-medium hover:border-ink",
+        )}
       >
-        <Dot status={status} />
-        {trigger}
+        {variant === "chip" ? null : <Dot status={status} />}
+        {variant === "chip" ? ORDER_STATUS[status].short : trigger}
         <svg
           viewBox="0 0 24 24"
           aria-hidden
-          className={cn("size-3 transition-transform duration-[var(--dur-base)]", open && "rotate-180")}
+          className={cn(
+            "transition-transform duration-[var(--dur-base)]",
+            variant === "chip" ? "-mr-0.5 size-2.5 opacity-70" : "size-3",
+            open && "rotate-180",
+          )}
           fill="none"
           stroke="currentColor"
-          strokeWidth="2.25"
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeLinejoin="round"
         >

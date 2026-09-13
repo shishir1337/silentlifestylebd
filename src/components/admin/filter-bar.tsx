@@ -92,9 +92,20 @@ export function FilterBar({
     selects.some((s) => params.get(s.name));
 
   return (
-    <div className={cn("space-y-3", pending && "opacity-70")}>
+    /*
+      Two rows on a phone, one wherever the width allows. The chrome above a
+      list is not the work — every line of it is a row of orders the operator
+      cannot see.
+    */
+    <div className={cn("space-y-2", pending && "opacity-70")}>
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 sm:max-w-xs">
+        {/*
+          Full width on a phone. Sharing a line with three dropdowns squeezed
+          the search box down to an icon and a couple of characters — and search
+          is the filter somebody reaches for when they have a customer on the
+          phone reading out an order number.
+        */}
+        <div className="relative w-full min-w-0 sm:w-auto sm:max-w-xs sm:flex-1">
           <label htmlFor="filter-q" className="sr-only">
             Search
           </label>
