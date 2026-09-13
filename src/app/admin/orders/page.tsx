@@ -1,79 +1,128 @@
 import type { Metadata } from "next";
+import type { OrderStatus } from "@prisma/client";
 import { AdminPage } from "@/components/admin/admin-shell";
-import { Card } from "@/components/admin/admin-ui";
+import { FilterBar } from "@/components/admin/filter-bar";
+import { OrderTable } from "@/components/admin/order-table";
+import { Pagination } from "@/components/admin/pagination";
 import { requireStaff } from "@/lib/dal";
-import { db } from "@/lib/db";
+import {
+  listOrders,
+  ORDER_PER_PAGE,
+  type DateRange,
+  type OrderSort,
+} from "@/lib/admin/order-reads";
+import { ORDER_STATUS } from "@/lib/order-status";
+import type { DeliveryArea } from "@/lib/orders";
 
 export const metadata: Metadata = {
-  title: "Orders · Admin",
+  title: "Orders",
   robots: { index: false, follow: false },
 };
 
-/**
- * Orders — the list, pending the full workflow in the next phase.
- *
- * It exists now because the navigation links to it. A tab that 404s teaches an
- * operator that parts of their own admin panel are broken, which is a far more
- * expensive lesson than an unfinished screen saying so plainly.
- *
- * Any staff role reaches this: confirming and dispatching parcels is exactly
- * what a Staff account is for.
- */
-export default async function AdminOrdersPage() {
-  const staff = await requireStaff();
+/** Only the statuses worth a chip. Every one is a real place an order sits. */
+const CHIP_ORDER: OrderStatus[] = [
+  "PENDING",
+  "CONFIRMED",
+  "PACKED",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
+  "RETURNED",
+];
 
-  const [total, pending, recent] = await Promise.all([
-    db.order.count(),
-    db.order.count({ where: { status: "PENDING" } }),
-    db.order.findMany({
-      orderBy: { placedAt: "desc" },
-      take: 10,
-      select: {
-        orderNo: true,
-        customerName: true,
-        customerPhone: true,
-        status: true,
-        total: true,
-        placedAt: true,
-      },
-    }),
-  ]);
+const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+
+/**
+ * The order queue.
+ *
+ * Every filter is read from the URL, so a view is shareable, survives a
+ * refresh and behaves under the back button — and the page stays server
+ * rendered, which is where the rows are. Filtering and paging happen in
+ * Postgres, not in memory: orders only accumulate.
+ *
+ * Any staff role reaches this. Confirming and dispatching parcels is precisely
+ * what a Staff account exists for.
+ */
+export default async function AdminOrdersPage(props: PageProps<"/admin/orders">) {
+  const staff = await requireStaff();
+  const sp = await props.searchParams;
+
+  const query = {
+    q: one(sp.q),
+    status: (one(sp.status) ?? "all") as OrderStatus | "all",
+    range: (one(sp.range) ?? "all") as DateRange,
+    area: (one(sp.area) ?? "all") as DeliveryArea | "all",
+    sort: (one(sp.sort) ?? "newest") as OrderSort,
+    page: Number(one(sp.page) ?? 1) || 1,
+  };
+
+  const { rows, total, page, pages, statusCounts } = await listOrders(query);
+  const filtered = Boolean(
+    query.q || query.status !== "all" || query.range !== "all" || query.area !== "all",
+  );
 
   return (
     <AdminPage
       title="Orders"
-      lead={`${total} in total, ${pending} waiting to be confirmed.`}
+      lead={
+        statusCounts.PENDING
+          ? `${statusCounts.PENDING} waiting to be confirmed. Call the customer, then mark it confirmed.`
+          : "Everything is confirmed. Nothing is waiting on a phone call."
+      }
     >
-      <Card className="p-5">
-        <h2 className="text-[15px] font-semibold">Latest orders</h2>
-        <ul className="mt-3 divide-y divide-line">
-          {recent.map((o) => (
-            <li key={o.orderNo} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
-              <div className="min-w-0">
-                <p className="tabular text-[13px] font-medium">{o.orderNo}</p>
-                <p className="text-[12px] text-ink-muted">
-                  {o.customerName} · <span className="tabular">{o.customerPhone}</span>
-                </p>
-              </div>
-              <p className="tabular text-[13px]">
-                ৳{o.total.toLocaleString("en-BD")}{" "}
-                <span className="ml-2 text-[11px] tracking-wide text-ink-muted uppercase">
-                  {o.status}
-                </span>
-              </p>
-            </li>
-          ))}
-          {recent.length === 0 ? (
-            <li className="py-6 text-center text-[13px] text-ink-muted">No orders yet.</li>
-          ) : null}
-        </ul>
+      <FilterBar
+        searchPlaceholder="Order number, name or phone…"
+        chipName="status"
+        chips={[
+          { value: "all", label: "All", count: statusCounts.all },
+          ...CHIP_ORDER.filter((s) => statusCounts[s] > 0 || s === "PENDING").map((s) => ({
+            value: s,
+            label: ORDER_STATUS[s].label,
+            count: statusCounts[s] ?? 0,
+          })),
+        ]}
+        selects={[
+          {
+            name: "range",
+            label: "Date range",
+            options: [
+              { value: "all", label: "Any time" },
+              { value: "today", label: "Today" },
+              { value: "7d", label: "Last 7 days" },
+              { value: "30d", label: "Last 30 days" },
+            ],
+          },
+          {
+            name: "area",
+            label: "Delivery area",
+            options: [
+              { value: "all", label: "Anywhere" },
+              { value: "inside-dhaka", label: "Inside Dhaka" },
+              { value: "outside-dhaka", label: "Outside Dhaka" },
+            ],
+          },
+          {
+            name: "sort",
+            label: "Sort",
+            options: [
+              { value: "newest", label: "Newest first" },
+              { value: "oldest", label: "Oldest first" },
+              { value: "highest", label: "Highest value" },
+            ],
+          },
+        ]}
+      />
 
-        <p className="mt-4 rounded-[var(--radius-sm)] bg-subtle px-3.5 py-3 text-[13px] leading-relaxed text-ink-muted">
-          Confirming, packing and marking orders delivered — along with filters,
-          search and the audit trail — arrive in the next phase. Until then this
-          is a read-only view so nothing placed is invisible to you.
-        </p>
-      </Card>
+      <div className="mt-4">
+        <OrderTable rows={rows} filtered={filtered} />
+        <Pagination
+          page={page}
+          pages={pages}
+          total={total}
+          perPage={ORDER_PER_PAGE}
+          noun="orders"
+        />
+      </div>
     </AdminPage>
   );
 }

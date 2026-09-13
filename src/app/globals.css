@@ -380,3 +380,37 @@ dialog.admin-drawer[open]::backdrop {
     opacity: 0;
   }
 }
+
+
+/* --- Packing slip -----------------------------------------------------------
+   Printing an order should produce something a courier can read, not a
+   screenshot of an admin panel. The sidebar, the top bar and every control are
+   dropped; what survives is the items, the address and the amount to collect.
+
+   Backgrounds go too: a dark chip that costs a third of an ink cartridge to
+   print black is not a design decision anybody made on purpose. */
+@media print {
+  .admin-chrome,
+  dialog.admin-drawer,
+  dialog.admin-drawer::backdrop {
+    display: none !important;
+  }
+
+  [data-admin-work] {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  /* Grids collapse so the address is not stranded on a second page. */
+  [data-admin-work] .grid {
+    display: block !important;
+  }
+
+  [data-admin-work] .grid > * + * {
+    margin-top: 1rem;
+  }
+}

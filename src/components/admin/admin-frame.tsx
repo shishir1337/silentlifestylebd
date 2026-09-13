@@ -6,6 +6,7 @@ import type { StaffRole } from "@prisma/client";
 import { useOverlay } from "@/lib/use-overlay";
 import { AdminSidebar } from "./admin-sidebar";
 import { CloseIcon, MenuIcon } from "./admin-icons";
+import { ToastProvider } from "./toast";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { cn } from "@/lib/cn";
 
@@ -52,9 +53,10 @@ export function AdminFrame({
   useEffect(() => setOpen(false), [pathname]);
 
   return (
+    <ToastProvider>
     <div className="min-h-dvh bg-[var(--admin-bg)] lg:grid lg:h-dvh lg:grid-cols-[248px_minmax(0,1fr)] lg:overflow-hidden">
       {/* --------------------------------------------------- desktop rail */}
-      <aside className="hidden lg:block lg:h-dvh lg:overflow-hidden">
+      <aside className="admin-chrome hidden lg:block lg:h-dvh lg:overflow-hidden">
         <AdminSidebar role={role} pendingOrders={pendingOrders} />
       </aside>
 
@@ -62,7 +64,7 @@ export function AdminFrame({
       <div className="flex min-w-0 flex-col lg:h-dvh lg:overflow-hidden">
         <header
           className={cn(
-            "sticky top-0 z-[var(--z-header)] flex h-14 shrink-0 items-center gap-2 border-b border-line",
+            "admin-chrome sticky top-0 z-[var(--z-header)] flex h-14 shrink-0 items-center gap-2 border-b border-line",
             "bg-canvas/95 px-3 backdrop-blur-sm supports-[backdrop-filter]:bg-canvas/80 sm:px-5 lg:static",
           )}
         >
@@ -98,7 +100,7 @@ export function AdminFrame({
           </div>
         </header>
 
-        <main id="admin-main" className="min-w-0 flex-1 lg:overflow-y-auto">
+        <main id="admin-main" data-admin-work className="min-w-0 flex-1 lg:overflow-y-auto">
           {children}
         </main>
       </div>
@@ -134,6 +136,7 @@ export function AdminFrame({
         </dialog>
       ) : null}
     </div>
+    </ToastProvider>
   );
 }
 
