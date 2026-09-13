@@ -11,7 +11,7 @@ import {
   type DateRange,
   type OrderSort,
 } from "@/lib/admin/order-reads";
-import { ORDER_STATUS } from "@/lib/order-status";
+import { ORDER_STATUS, STATUS_CHIP } from "@/lib/order-status";
 import type { DeliveryArea } from "@/lib/orders";
 
 export const metadata: Metadata = {
@@ -75,14 +75,28 @@ export default async function AdminOrdersPage(props: PageProps<"/admin/orders">)
       <FilterBar
         searchPlaceholder="Order number, name or phone…"
         chipName="status"
+        /*
+          Every status, always, in the shop's own colours.
+
+          Hiding the empty ones made the row change shape through the day —
+          "Packed" appearing at lunchtime and shifting everything after it, so
+          the chip somebody was aiming for had moved. A fixed row in fixed
+          colours is read by shape, and an empty status is itself worth
+          knowing: nothing packed by four o'clock is a fact about the afternoon.
+
+          The colours are the ones on the rows underneath, so the chip and the
+          list it filters to say the same thing.
+        */
         chips={[
           { value: "all", label: "All", count: statusCounts.all },
-          ...CHIP_ORDER.filter((s) => statusCounts[s] > 0 || s === "PENDING").map((s) => ({
+          ...CHIP_ORDER.map((s) => ({
             value: s,
             // The same staff word the chips in the rows use, so filtering by
             // "Pending" and reading "Pending" are obviously the same thing.
             label: ORDER_STATUS[s].short,
             count: statusCounts[s] ?? 0,
+            tone: STATUS_CHIP[ORDER_STATUS[s].tone],
+            empty: (statusCounts[s] ?? 0) === 0,
           })),
         ]}
         selects={[

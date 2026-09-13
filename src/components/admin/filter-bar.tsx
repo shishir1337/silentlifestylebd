@@ -23,6 +23,17 @@ export interface ChipOption {
   value: string;
   label: string;
   count?: number;
+  /**
+   * Classes carrying the meaning of this value, e.g. a status colour.
+   *
+   * A row of identical outlines makes the operator read nine labels to find
+   * out where the work is. In the shop's colours, "22 on hold" is amber and
+   * "5 cancelled" is red before a word has been read, and the same colours are
+   * on the rows underneath — so the chip and the row it filters to agree.
+   */
+  tone?: string;
+  /** Dimmed when there is nothing in it, so the eye skips to what has work. */
+  empty?: boolean;
 }
 
 export interface SelectFilter {
@@ -168,10 +179,23 @@ export function FilterBar({
                 aria-pressed={on}
                 className={cn(
                   "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium whitespace-nowrap",
-                  "transition-colors duration-[var(--dur-base)] [transition-timing-function:var(--ease-out-soft)]",
-                  on
-                    ? "border-ink bg-ink text-white"
-                    : "border-line-strong bg-canvas text-ink-soft hover:border-ink hover:text-ink",
+                  "transition-[background-color,border-color,color,box-shadow] duration-[var(--dur-base)] [transition-timing-function:var(--ease-out-soft)]",
+                  /*
+                    Selection is a ring rather than a different fill. Repainting
+                    a coloured chip dark to say "chosen" throws away the colour
+                    that was the point of it, and leaves the row of chips with
+                    one that no longer matches the rows below.
+                  */
+                  c.tone
+                    ? cn(
+                        "border-transparent",
+                        c.tone,
+                        on && "ring-2 ring-ink ring-offset-1 ring-offset-[var(--admin-bg)]",
+                        c.empty && !on && "opacity-45",
+                      )
+                    : on
+                      ? "border-ink bg-ink text-white"
+                      : "border-line-strong bg-canvas text-ink-soft hover:border-ink hover:text-ink",
                 )}
               >
                 {c.label}
@@ -179,7 +203,7 @@ export function FilterBar({
                   <span
                     className={cn(
                       "tabular text-[11px]",
-                      on ? "text-white/70" : "text-ink-muted",
+                      c.tone ? "opacity-70" : on ? "text-white/70" : "text-ink-muted",
                     )}
                   >
                     {c.count}

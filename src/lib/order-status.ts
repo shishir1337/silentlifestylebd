@@ -88,12 +88,20 @@ export const ORDER_STATUS: Record<OrderStatusView, StatusCopy> = {
   },
 };
 
-/** Tailwind classes for the status chip, keyed by tone. */
+/**
+ * Tailwind classes for the status chip, keyed by tone.
+ *
+ * All tints, no solid fills. "Delivered" used to be solid green, which made it
+ * the loudest thing in a row of filter chips while usually having the fewest
+ * orders behind it — weight on a screen like this should follow how much work
+ * is in a bucket, not how final the word is. It keeps a ring instead, so it is
+ * still a step beyond the greens of confirmed, packed and shipped.
+ */
 export const STATUS_CHIP: Record<StatusCopy["tone"], string> = {
   neutral: "bg-muted text-ink-soft",
   progress: "bg-brand-tint text-brand",
   held: "bg-[var(--color-hold-tint)] text-[var(--color-hold)]",
-  done: "bg-brand text-on-brand",
+  done: "bg-brand-tint text-brand ring-1 ring-inset ring-brand/40",
   stopped: "bg-sale-tint text-sale",
 };
 
