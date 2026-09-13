@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { OrderStatus, StaffRole } from "@prisma/client";
-import { ORDER_FLOW, RESTOCKING, transitionsFrom } from "@/lib/admin/order-flow";
+import { HELD, ORDER_FLOW, RESTOCKING, transitionsFrom } from "@/lib/admin/order-flow";
 import { ORDER_STATUS } from "@/lib/order-status";
 import { cn } from "@/lib/cn";
 
@@ -32,6 +32,7 @@ function Dot({ status, className }: { status: OrderStatus; className?: string })
         "inline-block size-2 shrink-0 rounded-full",
         tone === "neutral" && "bg-ink-muted",
         tone === "progress" && "bg-ink",
+        tone === "held" && "bg-[var(--color-hold)]",
         tone === "done" && "bg-brand",
         tone === "stopped" && "bg-sale",
         className,
@@ -96,8 +97,9 @@ export function OrderStatusMenu({
 
   if (choices.length === 0) return null;
 
-  /** Two groups: the normal path, then the two that end it. */
+  /** Three groups: the normal path, parking it, then the two that end it. */
   const flow = choices.filter((s) => ORDER_FLOW.includes(s));
+  const held = choices.filter((s) => s === HELD);
   const ending = choices.filter((s) => RESTOCKING.includes(s));
 
   return (
@@ -204,6 +206,18 @@ export function OrderStatusMenu({
               {flow.map((to) => (
                 <Row key={to} to={to} onClick={() => pick(to)} />
               ))}
+
+              {held.length > 0 ? (
+                <div className="mt-1 border-t border-line pt-1">
+                  {held.map((to) => (
+                    <Row key={to} to={to} onClick={() => pick(to)} />
+                  ))}
+                  <p className="px-3 pt-0.5 pb-1 text-[11px] leading-snug text-ink-muted">
+                    Keeps the goods reserved. Use it when you cannot reach the
+                    customer yet.
+                  </p>
+                </div>
+              ) : null}
 
               {ending.length > 0 ? (
                 <div className="mt-1 border-t border-line pt-1">

@@ -23,6 +23,7 @@ export const metadata: Metadata = {
 const CHIP_ORDER: OrderStatus[] = [
   "PENDING",
   "CONFIRMED",
+  "ON_HOLD",
   "PACKED",
   "SHIPPED",
   "DELIVERED",

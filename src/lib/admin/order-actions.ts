@@ -226,6 +226,7 @@ class Stale extends Error {}
 const LABEL: Record<OrderStatus, string> = {
   PENDING: "pending confirmation",
   CONFIRMED: "confirmed",
+  ON_HOLD: "on hold",
   PACKED: "packed",
   SHIPPED: "out for delivery",
   DELIVERED: "delivered",

@@ -21,6 +21,7 @@ import type { OrderStatus, StaffRole } from "@prisma/client";
  * loses a sale and needs someone accountable for it.
  */
 
+/** The path a parcel takes when nothing goes wrong. */
 export const ORDER_FLOW: OrderStatus[] = [
   "PENDING",
   "CONFIRMED",
@@ -29,13 +30,24 @@ export const ORDER_FLOW: OrderStatus[] = [
   "DELIVERED",
 ];
 
+/**
+ * Parked, and not on the path.
+ *
+ * Held is its own thing: the order is alive, the goods are still the
+ * customer's, and nothing is happening until somebody gets hold of them. It is
+ * kept out of `ORDER_FLOW` so the progress track does not claim a held parcel
+ * is moving, and out of `RESTOCKING` so the goods are not sold to someone else
+ * while the shop is still trying to reach the first buyer.
+ */
+export const HELD: OrderStatus = "ON_HOLD";
+
 /** Statuses in which the goods are back on the shelf. */
 export const RESTOCKING: OrderStatus[] = ["CANCELLED", "RETURNED"];
 
 /** Cancelling is not part of the daily flow; it is a decision. */
 const OWNER_AND_MANAGER: OrderStatus[] = ["CANCELLED"];
 
-export const ALL_STATUSES: OrderStatus[] = [...ORDER_FLOW, ...RESTOCKING];
+export const ALL_STATUSES: OrderStatus[] = [...ORDER_FLOW, HELD, ...RESTOCKING];
 
 export function canTransition(
   role: StaffRole,
@@ -56,6 +68,7 @@ export function transitionsFrom(role: StaffRole, from: OrderStatus): OrderStatus
 export const TRANSITION_LABEL: Record<OrderStatus, string> = {
   PENDING: "Back to pending",
   CONFIRMED: "Confirm",
+  ON_HOLD: "Put on hold",
   PACKED: "Mark packed",
   SHIPPED: "Mark shipped",
   DELIVERED: "Mark delivered",
@@ -71,6 +84,9 @@ export const TRANSITION_LABEL: Record<OrderStatus, string> = {
  * to happen. Everything else is one tap further, in the menu beside it.
  */
 export function primaryNext(status: OrderStatus): OrderStatus | null {
+  // A held order's obvious next move is back onto the path, which is what the
+  // hold was waiting for: the customer confirming.
+  if (status === HELD) return "CONFIRMED";
   const i = ORDER_FLOW.indexOf(status);
   if (i === -1 || i === ORDER_FLOW.length - 1) return null;
   return ORDER_FLOW[i + 1];

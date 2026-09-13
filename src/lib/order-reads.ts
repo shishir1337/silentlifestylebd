@@ -42,6 +42,7 @@ export interface OrderView {
 export type OrderStatusView =
   | "PENDING"
   | "CONFIRMED"
+  | "ON_HOLD"
   | "PACKED"
   | "SHIPPED"
   | "DELIVERED"

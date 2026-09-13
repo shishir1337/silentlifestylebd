@@ -24,7 +24,7 @@ interface StatusCopy {
   label: string;
   /** One line, present tense, saying what is happening now. */
   detail: string;
-  tone: "neutral" | "progress" | "done" | "stopped";
+  tone: "neutral" | "progress" | "held" | "done" | "stopped";
 }
 
 export const ORDER_STATUS: Record<OrderStatusView, StatusCopy> = {
@@ -37,6 +37,12 @@ export const ORDER_STATUS: Record<OrderStatusView, StatusCopy> = {
     label: "Confirmed",
     detail: "Your order is confirmed and is being prepared.",
     tone: "progress",
+  },
+  ON_HOLD: {
+    label: "On hold",
+    detail:
+      "We are holding your order while we check something with you. We will call.",
+    tone: "held",
   },
   PACKED: {
     label: "Packed",
@@ -69,14 +75,19 @@ export const ORDER_STATUS: Record<OrderStatusView, StatusCopy> = {
 export const STATUS_CHIP: Record<StatusCopy["tone"], string> = {
   neutral: "bg-muted text-ink-soft",
   progress: "bg-brand-tint text-brand",
+  held: "bg-[var(--color-hold-tint)] text-[var(--color-hold)]",
   done: "bg-brand text-on-brand",
   stopped: "bg-sale-tint text-sale",
 };
 
 /**
  * How far along the track an order is, or -1 when it left the track.
+ *
  * Cancelled and returned orders have no position on a line that ends in
- * "Delivered", and pretending otherwise would show a parcel still moving.
+ * "Delivered", and pretending otherwise would show a parcel still moving. A
+ * held order is off the track for the same reason: it is not moving, and a
+ * progress bar that says otherwise is the shop telling the customer something
+ * untrue.
  */
 export function flowIndex(status: OrderStatusView): number {
   return ORDER_FLOW.indexOf(status);

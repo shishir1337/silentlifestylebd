@@ -444,6 +444,18 @@ model Order {
 enum OrderStatus {
   PENDING
   CONFIRMED
+  /// Parked, on purpose, with the goods still reserved.
+  ///
+  /// The state a cash-on-delivery shop is actually in most often: the customer
+  /// did not pick up, or asked to be called back tomorrow, or the address needs
+  /// checking. Without it those orders sit in PENDING for days, which makes the
+  /// "waiting to be confirmed" count — the one number the shop works from each
+  /// morning — a list of orders nobody can act on.
+  ///
+  /// Deliberately not a restocking status. A held order is still the customer's;
+  /// putting the goods back would sell them to somebody else while the shop is
+  /// still trying to reach the first buyer.
+  ON_HOLD
   PACKED
   SHIPPED
   DELIVERED

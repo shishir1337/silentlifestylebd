@@ -23,8 +23,15 @@ the customer, and if they confirm it you move it forward:
 
     Confirmation pending → Confirmed → Packed → Out for delivery → Delivered
 
-Two other endings exist: **Cancelled**, if the order is not going to happen, and
-**Returned**, if it comes back. Both put the stock back on the shelf
+**On hold** is beside that path rather than on it. Use it when the customer did
+not pick up, asked to be called tomorrow, or the address needs checking. The
+goods stay reserved for them — a held order is still theirs — and it drops out
+of the "waiting to be confirmed" count so your morning list is only the orders
+you can actually act on. It is also the one worth doing in bulk: if a size runs
+out, tick every order waiting on it and hold them in one action.
+
+Two other statuses end an order: **Cancelled**, if it is not going to happen,
+and **Returned**, if it comes back. Both put the stock back on the shelf
 automatically — you do not need to correct the numbers yourself.
 
 That arrow is the usual path, not a rule. An order can be moved to any status at

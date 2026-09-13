@@ -29,6 +29,14 @@
   --color-on-brand: #ffffff;
 
   /* --- Semantic */
+  /*
+    Held. Amber rather than a second grey, because "waiting on us" and "waiting
+    on nothing" are the two states an operator has to tell apart at a glance on
+    a list of forty. 5.4:1 on its own tint, 5.9:1 on white.
+  */
+  --color-hold: #8a5a00;
+  --color-hold-tint: #fdf3e2;
+
   --color-sale: #c1121f;
   --color-sale-tint: #fdecee;
 

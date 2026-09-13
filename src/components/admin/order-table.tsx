@@ -145,7 +145,12 @@ export function OrderTable({
           <p className="tabular mr-1 text-[13px] font-medium">
             {selected.size} selected
           </p>
-          {(["CONFIRMED", "PACKED", "SHIPPED", "DELIVERED"] as OrderStatus[]).map((to) => (
+          {/*
+            Holding in bulk is the one selection a shop makes often: a size runs
+            out, and every order waiting on it is parked in one action. Cancelling
+            is not here, because a reason that fits fifty orders is not a reason.
+          */}
+          {(["CONFIRMED", "ON_HOLD", "PACKED", "SHIPPED", "DELIVERED"] as OrderStatus[]).map((to) => (
             <button
               key={to}
               type="button"

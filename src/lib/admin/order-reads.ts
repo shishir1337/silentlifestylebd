@@ -157,6 +157,11 @@ export async function listOrders(query: OrderQuery): Promise<OrderListResult> {
       total: o.total,
       itemCount: o._count.items,
       hasAccount: o.customerId !== null,
+      /*
+        Only pending orders go overdue. A held order is waiting on purpose —
+        flagging it red every morning would train the operator to ignore the
+        colour on the ones that are genuinely late.
+      */
       overdue: o.status === "PENDING" && o.placedAt < yesterday,
     })),
     total,
