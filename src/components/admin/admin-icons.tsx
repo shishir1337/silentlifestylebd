@@ -101,6 +101,14 @@ export function MediaIcon({ className }: IconProps) {
   );
 }
 
+export function AnalyticsIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 20V10M10 20V4M16 20v-6M22 20H3" />
+    </svg>
+  );
+}
+
 export function CouponIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className}>

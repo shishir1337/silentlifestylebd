@@ -105,6 +105,41 @@ Deleting is permanent and is only offered for products nobody has ordered.
 
 ---
 
+## Analytics
+
+**Analytics** in the sidebar, over the last 7, 30 or 90 days, or the last year.
+
+The first four numbers are the ones that matter, and they are deliberately not
+the ones most shop dashboards show:
+
+| | |
+|---|---|
+| **Collected** | Delivered and paid for. The real number. |
+| **Still open** | Placed and still moving. Some of it will not arrive. |
+| **Lost** | Cancelled, refused at the door, or returned. |
+| **Fulfilment** | Delivered as a share of everything that reached an end. |
+
+Most dashboards call the value of orders *placed* "revenue". For a shop paid on
+delivery that is a fiction — a large share of orders never become money, and a
+shop that restocks against orders placed is restocking against sales it did not
+make.
+
+**Fulfilment is the number to watch.** If it drops, the problem is usually the
+phone calls, not the traffic: orders sitting too long before somebody rings,
+addresses not checked, sizes not confirmed. Buying more visitors does not fix
+that.
+
+**Best sellers counts delivered goods only.** A product that is ordered
+constantly and refused at the door is a returns problem, not a best seller, and
+ranking it first would send you to buy more of it.
+
+**Customers are counted by phone number**, because most of yours order as
+guests. "Returning" means the same number ordered more than once in the period.
+
+Every chart has the figures under it — tap *Show the figures*.
+
+---
+
 ## Discount codes
 
 **Discounts** in the sidebar. A code is one of three things: a percentage off,

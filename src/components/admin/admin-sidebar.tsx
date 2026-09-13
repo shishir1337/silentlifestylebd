@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { StaffRole } from "@prisma/client";
 import {
   ActivityIcon,
+  AnalyticsIcon,
   CategoriesIcon,
   CollectionsIcon,
   CustomersIcon,
@@ -70,6 +71,7 @@ export function AdminSidebar({
     { href: "/admin/collections", label: "Collections", Icon: CollectionsIcon, roles: ["OWNER", "MANAGER"] },
     { href: "/admin/coupons", label: "Discounts", Icon: CouponIcon, roles: ["OWNER", "MANAGER"] },
     { href: "/admin/customers", label: "Customers", Icon: CustomersIcon, roles: ["OWNER", "MANAGER", "STAFF"] },
+    { href: "/admin/analytics", label: "Analytics", Icon: AnalyticsIcon, roles: ["OWNER", "MANAGER"] },
     { href: "/admin/content", label: "Content", Icon: ContentIcon, roles: ["OWNER", "MANAGER"] },
     { href: "/admin/media", label: "Media", Icon: MediaIcon, roles: ["OWNER", "MANAGER"] },
     { href: "/admin/settings", label: "Settings", Icon: SettingsIcon, roles: ["OWNER"] },
