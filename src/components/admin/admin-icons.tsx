@@ -58,6 +58,28 @@ export function CategoriesIcon({ className }: IconProps) {
   );
 }
 
+export function CollectionsIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <rect x="3" y="4" width="7" height="7" rx="1.5" />
+      <rect x="14" y="4" width="7" height="7" rx="1.5" />
+      <rect x="3" y="15" width="7" height="5" rx="1.5" />
+      <rect x="14" y="15" width="7" height="5" rx="1.5" />
+    </svg>
+  );
+}
+
+export function CustomersIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <circle cx="9" cy="8" r="3.2" />
+      <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+      <path d="M16 5.5a3.2 3.2 0 0 1 0 5.4" />
+      <path d="M17.5 14.2A5.5 5.5 0 0 1 20.5 19" />
+    </svg>
+  );
+}
+
 export function MediaIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className}>

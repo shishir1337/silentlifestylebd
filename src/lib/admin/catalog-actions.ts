@@ -444,3 +444,75 @@ export async function updateVariantStock(
   if (product) revalidatePath(`/products/${product.slug}`);
   return { ok: true, id: productId };
 }
+
+/* --- collections ---------------------------------------------------------- */
+
+/**
+ * Editing a collection.
+ *
+ * Only what is genuinely content: the name, the description, which categories
+ * belong to it, and whether it shows. The *rule* behind "New In" or "Offers"
+ * is not editable, because it is not a setting — it is the predicate the
+ * storefront uses (`badge = new`, `compareAtPrice > price`), and changing it
+ * would mean changing code. The admin shows what the rule is so nobody has to
+ * guess why a product appeared.
+ *
+ * The slug is not editable either. These six are linked from the navigation,
+ * the footer and the homepage tiles; renaming one silently breaks all three.
+ */
+export async function saveCollection(input: {
+  id: string;
+  name: string;
+  description: string;
+  categoryIds: string[];
+  isActive: boolean;
+}): Promise<SaveResult> {
+  await assertCatalogAccess();
+
+  const name = input.name.trim();
+  const description = input.description.trim();
+  if (name.length < 2) return { ok: false, message: "Give the collection a name." };
+
+  const existing = await db.collection.findUnique({
+    where: { id: input.id },
+    select: { slug: true, kind: true },
+  });
+  if (!existing) return { ok: false, message: "That collection no longer exists." };
+
+  await db.$transaction(async (tx) => {
+    await tx.collection.update({
+      where: { id: input.id },
+      data: { name, description, isActive: input.isActive },
+    });
+
+    // Membership only applies to CATEGORY collections; a RULE one derives its
+    // products and has nothing to join.
+    if (existing.kind === "CATEGORY") {
+      await tx.categoryCollection.deleteMany({ where: { collectionId: input.id } });
+      if (input.categoryIds.length > 0) {
+        await tx.categoryCollection.createMany({
+          data: input.categoryIds.map((categoryId, position) => ({
+            collectionId: input.id,
+            categoryId,
+            position,
+          })),
+        });
+      }
+    }
+  });
+
+  refreshCatalog();
+  revalidatePath("/collections");
+  revalidatePath(`/collections/${existing.slug}`);
+  return { ok: true, id: input.id, slug: existing.slug };
+}
+
+export async function reorderCollections(ids: string[]): Promise<SaveResult> {
+  await assertCatalogAccess();
+  await db.$transaction(
+    ids.map((id, position) => db.collection.update({ where: { id }, data: { position } })),
+  );
+  refreshCatalog();
+  revalidatePath("/collections");
+  return { ok: true };
+}
