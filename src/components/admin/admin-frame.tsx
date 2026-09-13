@@ -100,7 +100,27 @@ export function AdminFrame({
           </div>
         </header>
 
-        <main id="admin-main" data-admin-work className="min-w-0 flex-1 lg:overflow-y-auto">
+        {/*
+          `relative` is load-bearing, not decoration.
+
+          This column is the scroll container from `lg` up, and the shell around
+          it is `overflow-hidden`. An absolutely positioned descendant with no
+          positioned ancestor resolves against the initial containing block
+          instead — so it is not clipped by either, and its static position,
+          which is somewhere far down the scrolled content, extends the document
+          itself. The symptom is a band of blank page below the whole panel on
+          any screen long enough to scroll.
+
+          The first one to do it was the visually-hidden file input in the
+          upload button, which is `sr-only` and therefore absolute. Making this
+          the containing block fixes that one and every future one, rather than
+          waiting to discover them a screen at a time.
+        */}
+        <main
+          id="admin-main"
+          data-admin-work
+          className="relative min-w-0 flex-1 lg:overflow-y-auto"
+        >
           {children}
         </main>
       </div>

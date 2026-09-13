@@ -5,7 +5,7 @@ import type { OrderStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { assertStaff } from "@/lib/dal";
 import { CAN_MANAGE_ORDERS } from "@/lib/admin/access";
-import { canTransition, RESTOCKING } from "@/lib/admin/order-flow";
+import { canTransition, stockEffect } from "@/lib/admin/order-flow";
 import { CATALOG_TAG, PRODUCTS_TAG } from "@/lib/catalog";
 import { getOrder, type AdminOrderDetail } from "@/lib/admin/order-reads";
 import type { SaveResult } from "@/lib/admin/catalog-types";
@@ -39,7 +39,7 @@ export async function changeOrderStatus(
 
   const order = await db.order.findUnique({
     where: { orderNo },
-    select: { id: true, status: true },
+    select: { id: true, status: true, stockRestored: true },
   });
   if (!order) return { ok: false, message: "That order no longer exists." };
 
@@ -49,13 +49,7 @@ export async function changeOrderStatus(
   }
 
   if (!canTransition(staff.role, order.status, to)) {
-    return {
-      ok: false,
-      message:
-        staff.role === "STAFF" && to === "CANCELLED"
-          ? "Only the owner or a manager can cancel an order."
-          : `An order that is ${LABEL[order.status]} cannot be moved to ${LABEL[to]}.`,
-    };
+    return { ok: false, message: "Only the owner or a manager can cancel an order." };
   }
 
   if (to === "CANCELLED" && !note?.trim()) {
@@ -75,9 +69,14 @@ export async function changeOrderStatus(
        * whole transaction is abandoned rather than applying a transition from
        * a state that is no longer true.
        */
+      const effect = stockEffect(order.stockRestored, to);
+
       const { count } = await tx.order.updateMany({
         where: { id: order.id, status: order.status },
-        data: { status: to },
+        data: {
+          status: to,
+          ...(effect === "none" ? {} : { stockRestored: effect === "restore" }),
+        },
       });
       if (count !== 1) throw new Stale();
 
@@ -91,23 +90,51 @@ export async function changeOrderStatus(
         },
       });
 
-      if (RESTOCKING.includes(to)) {
-        /**
-         * Put the goods back.
-         *
-         * Only from a status that had taken them — which is all of them, since
-         * stock is decremented at placement. Both restocking statuses are
-         * terminal, so an order cannot pass through twice and cannot be
-         * restocked twice.
-         */
+      /*
+        Stock follows the flag, not the status.
+
+        An order can now be moved anywhere from anywhere, so "cancelled means
+        put it back" is no longer enough: cancelling an already-cancelled order
+        would restore twice, and reinstating one would leave the shop counting
+        goods it has already promised to somebody. `stockEffect` compares what
+        has actually been done with what this status implies, and does only the
+        difference.
+
+        Taking stock back can drive a size below zero, if it was sold while the
+        order sat cancelled. That is allowed and recorded rather than refused —
+        the shop really is short, and hiding it behind a rejected status change
+        would leave the order wrong as well as the inventory.
+      */
+      if (effect !== "none") {
         const items = await tx.orderItem.findMany({
           where: { orderId: order.id, variantId: { not: null } },
           select: { variantId: true, qty: true },
         });
+
+        const short: string[] = [];
         for (const item of items) {
-          await tx.productVariant.update({
+          const variant = await tx.productVariant.update({
             where: { id: item.variantId! },
-            data: { stock: { increment: item.qty } },
+            data: {
+              stock:
+                effect === "restore"
+                  ? { increment: item.qty }
+                  : { decrement: item.qty },
+            },
+            select: { stock: true, size: true, product: { select: { name: true } } },
+          });
+          if (variant.stock < 0) {
+            short.push(`${variant.product.name}${variant.size ? ` (${variant.size})` : ""}`);
+          }
+        }
+
+        if (short.length > 0) {
+          await tx.orderEvent.create({
+            data: {
+              orderId: order.id,
+              note: `Stock is now short on ${short.join(", ")} — these were sold while the order was ${LABEL[order.status]}.`,
+              actorId: staff.id,
+            },
           });
         }
       }

@@ -402,6 +402,15 @@ model Order {
   /// Human-readable, read aloud over the phone: SLB-YYMMDD-XXXX.
   orderNo  String      @unique
   status   OrderStatus @default(PENDING)
+  /// Whether this order's goods are currently back on the shelf.
+  ///
+  /// Not derived from the status. An order can be moved anywhere from
+  /// anywhere — cancelled and then reinstated, returned and then marked
+  /// delivered again — and the stock has to follow without ever being restored
+  /// or taken twice. The status says where the order is; this says what has
+  /// actually been done to inventory, which is the only safe thing to compare
+  /// the next move against.
+  stockRestored Boolean @default(false)
 
   customerId String?
 

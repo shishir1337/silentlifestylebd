@@ -62,10 +62,10 @@ export function OrderTable({
    * meantime the change is refused rather than applied to a different order
    * than the one on screen.
    */
-  function move(orderNo: string, from: OrderStatus, to: OrderStatus) {
+  function move(orderNo: string, from: OrderStatus, to: OrderStatus, note?: string) {
     setBusy(orderNo);
     startTransition(async () => {
-      const result = await changeOrderStatus(orderNo, to);
+      const result = await changeOrderStatus(orderNo, to, note);
       setBusy(null);
       if (!result.ok) {
         toast.error(result.message);
@@ -285,7 +285,7 @@ export function OrderTable({
                           status={row.status}
                           role={role}
                           busy={working}
-                          onPick={(to) => move(row.orderNo, row.status, to)}
+                          onPick={(to, why) => move(row.orderNo, row.status, to, why)}
                         />
                         <button
                           type="button"
@@ -390,7 +390,7 @@ export function OrderTable({
                   status={row.status}
                   role={role}
                   busy={working}
-                  onPick={(to) => move(row.orderNo, row.status, to)}
+                  onPick={(to, why) => move(row.orderNo, row.status, to, why)}
                 />
               </div>
             </li>
@@ -403,9 +403,9 @@ export function OrderTable({
         role={role}
         busy={pending}
         onClose={() => setViewing(null)}
-        onPick={(orderNo, to) => {
+        onPick={(orderNo, to, why) => {
           const row = rows.find((r) => r.orderNo === orderNo);
-          if (row) move(orderNo, row.status, to);
+          if (row) move(orderNo, row.status, to, why);
           setViewing(null);
         }}
       />

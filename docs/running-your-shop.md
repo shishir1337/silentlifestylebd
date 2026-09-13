@@ -27,11 +27,22 @@ Two other endings exist: **Cancelled**, if the order is not going to happen, and
 **Returned**, if it comes back. Both put the stock back on the shelf
 automatically — you do not need to correct the numbers yourself.
 
-**Moving an order.** The dark button on each row is the next step. Everything
-else the order can do is behind **Status** beside it. An order never goes
-backwards: once it is delivered it can only be returned, and a cancelled order
-stays cancelled. If you cancelled one by mistake, place it again as a new order —
-that is also what the customer experiences.
+That arrow is the usual path, not a rule. An order can be moved to any status at
+any time.
+
+**Moving an order.** The dark button on each row is the usual next step.
+**Status** beside it moves the order to *any* status — forwards, backwards, or
+straight to the end. If something was marked delivered by mistake, or a customer
+rings back about an order you cancelled, put it where it actually is.
+
+Stock keeps up on its own. Cancelling or returning puts the goods back on the
+shelf; moving the order out of either takes them again — once, never twice,
+however many times you change your mind. If a size was sold in the meantime, the
+order records that you are now short rather than refusing the change.
+
+**Cancelling** asks why. There are three common reasons to tap, or write your
+own. It is what staff repeat to the customer on the phone, and it stays on the
+order.
 
 **View** opens the order beside the list without losing your place: the items,
 the address, the amount to collect, and everything that has happened to it. Use

@@ -40,7 +40,7 @@ export function OrderQuickView({
   orderNo: string | null;
   role: StaffRole;
   onClose: () => void;
-  onPick: (orderNo: string, to: OrderStatus) => void;
+  onPick: (orderNo: string, to: OrderStatus, note?: string) => void;
   busy: boolean;
 }) {
   const open = orderNo !== null;
@@ -244,7 +244,7 @@ export function OrderQuickView({
               role={role}
               busy={busy}
               align="left"
-              onPick={(to) => onPick(order.orderNo, to)}
+              onPick={(to, why) => onPick(order.orderNo, to, why)}
             />
             <Link
               href={`/admin/orders/${order.orderNo}`}

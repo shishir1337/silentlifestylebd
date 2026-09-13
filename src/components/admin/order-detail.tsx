@@ -11,7 +11,8 @@ import { useToast } from "./toast";
 import { PhoneIcon } from "@/components/ui/icons";
 import { inputClass } from "@/components/ui/field";
 import { addOrderNote, changeOrderStatus } from "@/lib/admin/order-actions";
-import { canTransition, NEXT_STATUSES, TRANSITION_LABEL } from "@/lib/admin/order-flow";
+import { primaryNext, transitionsFrom, TRANSITION_LABEL } from "@/lib/admin/order-flow";
+import { OrderStatusMenu } from "./order-status-menu";
 import { ORDER_FLOW, ORDER_STATUS, STATUS_CHIP, flowIndex } from "@/lib/order-status";
 import { formatOrderDate } from "@/lib/orders";
 import type { AdminOrderDetail } from "@/lib/admin/order-reads";
@@ -35,15 +36,17 @@ export function OrderDetail({
   const router = useRouter();
   const toast = useToast();
   const [pending, startTransition] = useTransition();
-  const [cancelling, setCancelling] = useState(false);
-  const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
 
   const status = ORDER_STATUS[order.status];
   const reached = flowIndex(order.status);
-  const options = NEXT_STATUSES[order.status].filter((to) =>
-    canTransition(role, order.status, to),
-  );
+  const options = transitionsFrom(role, order.status);
+  /*
+    One prominent button for the obvious next step, and the whole list behind
+    the menu beside it. Seven buttons in a row is a wall to read every time; one
+    button and a menu is a decision only when it is not the usual one.
+  */
+  const next = primaryNext(order.status);
 
   function move(to: OrderStatus, why?: string) {
     startTransition(async () => {
@@ -52,8 +55,6 @@ export function OrderDetail({
         toast.error(result.message);
         return;
       }
-      setCancelling(false);
-      setReason("");
       toast.success(`Order ${order.orderNo} — ${ORDER_STATUS[to].label.toLowerCase()}.`);
       router.refresh();
     });
@@ -94,71 +95,37 @@ export function OrderDetail({
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {options.map((to) => {
-                const destructive = to === "CANCELLED";
-                return (
-                  <button
-                    key={to}
-                    type="button"
-                    disabled={pending}
-                    onClick={() => (destructive ? setCancelling(true) : move(to))}
-                    className={cn(
-                      "inline-flex h-10 items-center rounded-[var(--radius-sm)] px-3.5 text-[13px] font-medium",
-                      "transition-[background-color,border-color,opacity] duration-[var(--dur-base)] disabled:opacity-50",
-                      destructive
-                        ? "border border-line-strong text-ink-muted hover:border-sale hover:text-sale"
-                        : "bg-ink text-white hover:bg-ink/90",
-                    )}
-                  >
-                    {TRANSITION_LABEL[to]}
-                  </button>
-                );
-              })}
-              {options.length === 0 ? (
-                <p className="text-[13px] text-ink-muted">
-                  This order is finished — nothing more to do.
-                </p>
+            <div className="flex flex-wrap items-center gap-2">
+              {next ? (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => move(next)}
+                  className={cn(
+                    "inline-flex h-10 items-center rounded-[var(--radius-sm)] bg-ink px-3.5 text-[13px] font-medium text-white",
+                    "transition-[background-color,opacity] duration-[var(--dur-base)] hover:bg-ink/90 disabled:opacity-50",
+                  )}
+                >
+                  {TRANSITION_LABEL[next]}
+                </button>
               ) : null}
+
+              {options.length > 0 ? (
+                <OrderStatusMenu
+                  status={order.status}
+                  role={role}
+                  busy={pending}
+                  align="left"
+                  trigger="Change status"
+                  onPick={(to, why) => move(to, why)}
+                />
+              ) : (
+                <p className="text-[13px] text-ink-muted">
+                  Nobody with your access can move this order.
+                </p>
+              )}
             </div>
           </div>
-
-          {/* Cancelling asks for a reason, because the reason is what staff
-              repeat to the customer on the phone. */}
-          {cancelling ? (
-            <div className="mt-4 rounded-[var(--radius-sm)] border border-sale/40 bg-sale/5 p-3.5">
-              <label htmlFor="cancel-reason" className="block text-[13px] font-medium">
-                Why is this being cancelled?
-              </label>
-              <p className="mt-0.5 text-[12px] text-ink-muted">
-                Saved on the order, and it restores the stock.
-              </p>
-              <input
-                id="cancel-reason"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                placeholder="Customer changed their mind"
-                className={cn(inputClass(), "mt-2 h-10 bg-canvas")}
-              />
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  disabled={pending || !reason.trim()}
-                  onClick={() => move("CANCELLED", reason)}
-                  className="inline-flex h-9 items-center rounded-[var(--radius-sm)] bg-sale px-3.5 text-[13px] font-medium text-white disabled:opacity-50"
-                >
-                  {pending ? "Cancelling…" : "Cancel this order"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCancelling(false)}
-                  className="inline-flex h-9 items-center rounded-[var(--radius-sm)] border border-line-strong px-3 text-[13px] font-medium"
-                >
-                  Keep it
-                </button>
-              </div>
-            </div>
-          ) : null}
 
           {/* A track, not a decoration: cancelled and returned orders have no
               place on a line that ends in "Delivered". */}
