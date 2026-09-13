@@ -4,7 +4,7 @@ import { Container } from "@/components/ui/container";
 import { PageHeader } from "@/components/ui/page-header";
 import { PageBody } from "@/components/content/page-body";
 import { getStorePage } from "@/lib/pages";
-import { site } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 
 const SLUG = "returns";
 
@@ -13,7 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
   if (!page) return { title: "Returns & exchange" };
   return {
     title: page.seoTitle ?? page.title,
-    description: page.seoDescription ?? page.lead ?? site.description,
+    description:
+      page.seoDescription ?? page.lead ?? (await getSiteSettings()).description,
     alternates: { canonical: `/${SLUG}` },
   };
 }

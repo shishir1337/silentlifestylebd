@@ -9,7 +9,7 @@ import { formatOrderDate } from "@/lib/orders";
 import { myRecentOrders, trackOrder } from "@/lib/order-actions";
 import { ORDER_FLOW, ORDER_STATUS, STATUS_CHIP, flowIndex } from "@/lib/order-status";
 import type { OrderView } from "@/lib/order-reads";
-import { delivery, site } from "@/data/site";
+import { useSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/cn";
 
 type Screen = "idle" | "found" | "missing";
@@ -31,6 +31,7 @@ type Screen = "idle" | "found" | "missing";
  * the sake of a list that is usually empty.
  */
 export function OrderTracker() {
+  const site = useSettings();
   const [orderNo, setOrderNo] = useState("");
   const [phone, setPhone] = useState("");
   const [screen, setScreen] = useState<Screen>("idle");
@@ -185,6 +186,7 @@ export function OrderTracker() {
 }
 
 function OrderProgress({ order }: { order: OrderView }) {
+  const { delivery } = useSettings();
   const eta =
     order.area === "inside-dhaka" ? delivery.insideDhakaDays : delivery.outsideDhakaDays;
   const status = ORDER_STATUS[order.status];

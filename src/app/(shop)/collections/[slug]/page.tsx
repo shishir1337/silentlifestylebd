@@ -13,7 +13,8 @@ import {
   resolveCollection,
 } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
-import { site } from "@/data/site";
+import { siteUrl } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 
 /**
  * Collection listing.
@@ -174,7 +175,7 @@ export default async function CollectionPage(
  * understand that this is a category rather than a single product, and to pick
  * up the members without re-crawling each one first.
  */
-function CollectionJsonLd({
+async function CollectionJsonLd({
   name,
   description,
   slug,
@@ -185,13 +186,15 @@ function CollectionJsonLd({
   slug: string;
   items: { name: string; slug: string; price: number }[];
 }) {
+  const site = await getSiteSettings();
+
   const json = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
     name,
     description,
-    url: `${site.url}/collections/${slug}`,
-    isPartOf: { "@type": "WebSite", name: site.legalName, url: site.url },
+    url: `${siteUrl}/collections/${slug}`,
+    isPartOf: { "@type": "WebSite", name: site.legalName, url: siteUrl },
     mainEntity: {
       "@type": "ItemList",
       numberOfItems: items.length,
@@ -199,7 +202,7 @@ function CollectionJsonLd({
         "@type": "ListItem",
         position: i + 1,
         name: p.name,
-        url: `${site.url}/products/${p.slug}`,
+        url: `${siteUrl}/products/${p.slug}`,
       })),
     },
   };

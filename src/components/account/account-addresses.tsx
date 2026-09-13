@@ -6,7 +6,7 @@ import { CheckIcon, PinIcon, PlusIcon, TrashIcon } from "@/components/ui/icons";
 import { useAddresses, type Address } from "@/lib/account";
 import { validateCheckout, type CheckoutErrors } from "@/lib/orders";
 import { Field, inputClass } from "@/components/ui/field";
-import { delivery } from "@/data/site";
+import { useDelivery } from "@/lib/site-settings";
 import { cn } from "@/lib/cn";
 
 /** An empty id means "not saved yet" — whichever store owns it mints its own. */
@@ -30,6 +30,7 @@ const blank = (): Address => ({
  * decision.
  */
 export function AccountAddresses() {
+  const delivery = useDelivery();
   const { addresses, ready, signedIn, upsert, remove, makeDefault } = useAddresses();
   const [draft, setDraft] = useState<Address | null>(null);
   const [errors, setErrors] = useState<CheckoutErrors>({});

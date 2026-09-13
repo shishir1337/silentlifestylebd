@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PageBody } from "@/components/content/page-body";
 import { ButtonLink } from "@/components/ui/button";
 import { getStorePage } from "@/lib/pages";
-import { site } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 import storefront from "@/assets/hero/hero-3-formals.jpg";
 
 const SLUG = "about";
@@ -16,7 +16,8 @@ export async function generateMetadata(): Promise<Metadata> {
   if (!page) return { title: "About us" };
   return {
     title: page.seoTitle ?? page.title,
-    description: page.seoDescription ?? page.lead ?? site.description,
+    description:
+      page.seoDescription ?? page.lead ?? (await getSiteSettings()).description,
     alternates: { canonical: "/about" },
   };
 }

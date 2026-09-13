@@ -1,7 +1,7 @@
 import { Container } from "@/components/ui/container";
 import { ButtonLink } from "@/components/ui/button";
 import { CashIcon, PhoneIcon } from "@/components/ui/icons";
-import { delivery, site } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 import { Taka } from "@/components/ui/price";
 
 /**
@@ -11,7 +11,10 @@ import { Taka } from "@/components/ui/price";
  * hesitation peaks, and offers phone ordering for shoppers who don't trust
  * an online form yet.
  */
-export function DeliveryNote() {
+export async function DeliveryNote() {
+  const site = await getSiteSettings();
+  const { delivery } = site;
+
   return (
     <section aria-labelledby="cod-explainer" className="py-8 sm:py-12">
       <Container>

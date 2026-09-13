@@ -4,7 +4,7 @@ import { Container } from "@/components/ui/container";
 import { OrderConfirmation } from "@/components/checkout/order-confirmation";
 import { PhoneIcon } from "@/components/ui/icons";
 import { getOrderForViewer } from "@/lib/order-reads";
-import { site } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Order confirmed",
@@ -23,7 +23,10 @@ export const metadata: Metadata = {
  */
 export default async function OrderPage(props: PageProps<"/order/[id]">) {
   const { id } = await props.params;
-  const order = await getOrderForViewer(id.toUpperCase());
+  const [order, site] = await Promise.all([
+    getOrderForViewer(id.toUpperCase()),
+    getSiteSettings(),
+  ]);
 
   if (!order) {
     return (

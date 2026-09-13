@@ -9,15 +9,16 @@ import {
   PinIcon,
   WhatsAppIcon,
 } from "@/components/ui/icons";
-import { site } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 
-export const metadata: Metadata = {
-  title: "Contact us",
-  description: `Call, WhatsApp or visit Silent Lifestyle BD. ${site.address}.`,
-  alternates: { canonical: "/contact" },
-};
-
-const whatsApp = `https://wa.me/${site.phone.replace(/[^0-9]/g, "")}`;
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getSiteSettings();
+  return {
+    title: "Contact us",
+    description: `Call, WhatsApp or visit ${site.name}. ${site.address}.`,
+    alternates: { canonical: "/contact" },
+  };
+}
 
 /**
  * Contact.
@@ -26,7 +27,10 @@ const whatsApp = `https://wa.me/${site.phone.replace(/[^0-9]/g, "")}`;
  * goes nowhere costs more trust than it earns — in Bangladesh a phone number
  * and a WhatsApp link are how customers actually reach a shop anyway.
  */
-export default function ContactPage() {
+export default async function ContactPage() {
+  const site = await getSiteSettings();
+  const whatsApp = `https://wa.me/${site.phone.replace(/[^0-9]/g, "")}`;
+
   return (
     <Container>
       <PageHeader

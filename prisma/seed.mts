@@ -271,6 +271,7 @@ async function seedSettings() {
     helpText?: string;
   }[] = [
     { key: "site.name", value: site.name, type: "STRING", group: "store", label: "Store name" },
+    { key: "site.legalName", value: site.legalName, type: "STRING", group: "store", label: "Registered business name", helpText: "Used in search-engine structured data. Usually the same as the store name." },
     { key: "site.tagline", value: site.tagline, type: "STRING", group: "store", label: "Tagline" },
     { key: "site.description", value: site.description, type: "TEXT", group: "store", label: "Store description", helpText: "Used for search engines and social sharing." },
     { key: "site.phone", value: site.phone, type: "STRING", group: "contact", label: "Phone number", helpText: "International format, e.g. +8801711000000." },

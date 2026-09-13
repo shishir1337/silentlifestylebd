@@ -8,7 +8,8 @@ import { PromoTiles } from "@/components/home/promo-tiles";
 import { DeliveryNote } from "@/components/home/delivery-note";
 import { Newsletter } from "@/components/home/newsletter";
 import { getBestSellers, getNewArrivals, getOnOffer } from "@/lib/catalog";
-import { delivery, site } from "@/data/site";
+import { siteUrl } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -97,12 +98,15 @@ export default async function HomePage() {
  * Structured data. `OnlineStore` plus the shipping/return terms Google surfaces
  * directly in Shopping results — the same COD facts the UI leads with.
  */
-function StoreJsonLd() {
+async function StoreJsonLd() {
+  const site = await getSiteSettings();
+  const { delivery } = site;
+
   const json = {
     "@context": "https://schema.org",
     "@type": "OnlineStore",
     name: site.legalName,
-    url: site.url,
+    url: siteUrl,
     description: site.description,
     telephone: site.phone,
     email: site.email,
@@ -119,7 +123,7 @@ function StoreJsonLd() {
       "@type": "SearchAction",
       target: {
         "@type": "EntryPoint",
-        urlTemplate: `${site.url}/search?q={search_term_string}`,
+        urlTemplate: `${siteUrl}/search?q={search_term_string}`,
       },
       "query-input": "required name=search_term_string",
     },

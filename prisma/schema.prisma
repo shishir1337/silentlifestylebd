@@ -286,6 +286,7 @@ model User {
   addresses   CustomerAddress[]
   orders      Order[]
   orderEvents OrderEvent[]
+  auditEvents AuditEvent[]
 
   @@index([staffRole])
 }
@@ -488,6 +489,34 @@ model OrderEvent {
 ///
 /// Key-value rather than a one-row table so adding a setting needs no migration.
 /// `type` tells the admin form which control to render and how to parse.
+/// Who changed what, outside orders.
+///
+/// `OrderEvent` already records every status change on an order, and proved
+/// its worth the first time two people disagreed about who cancelled one.
+/// This is the same idea for the things that have no order to hang off:
+/// settings, staff roles, and the page and content edits.
+///
+/// The actor's name is copied in rather than joined. An audit trail that goes
+/// blank when someone's account is removed is not an audit trail, and this is
+/// the one table where a deleted staff member must still be nameable.
+model AuditEvent {
+  id        String   @id @default(cuid())
+  /// Dotted verb, e.g. `settings.updated`, `staff.granted`, `staff.revoked`.
+  action    String
+  /// What was acted on: a setting key, a user id, a page slug.
+  subject   String
+  /// Written for the person reading the log, not assembled from columns later.
+  summary   String
+  actorId   String?
+  actorName String
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([action, createdAt])
+}
+
 model Setting {
   key       String      @id
   value     String

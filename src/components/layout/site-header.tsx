@@ -4,8 +4,7 @@ import { SearchIcon, UserIcon } from "@/components/ui/icons";
 import { CartButton } from "./cart-button";
 import { Logo } from "./logo";
 import { MobileMenu } from "./mobile-menu";
-import { nav } from "@/data/site";
-import { getCategories, getCategoryCounts } from "@/lib/catalog";
+import { getCategories, getCategoryCounts, getNav } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 
 /**
@@ -19,9 +18,10 @@ import { cn } from "@/lib/cn";
  * away from appearing in every menu on the site.
  */
 export async function SiteHeader() {
-  const [categories, counts] = await Promise.all([
+  const [categories, counts, nav] = await Promise.all([
     getCategories(),
     getCategoryCounts(),
+    getNav(),
   ]);
   const menuCategories = categories.map((c) => ({
     slug: c.slug,
@@ -33,7 +33,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-[var(--z-header)] border-b border-line bg-canvas/95 backdrop-blur-sm supports-[backdrop-filter]:bg-canvas/80">
       <Container>
         <div className="flex h-14 items-center gap-2 sm:h-16 sm:gap-4">
-          <MobileMenu categories={menuCategories} />
+          <MobileMenu categories={menuCategories} nav={nav} />
 
           <Logo className="mr-auto" />
 
@@ -47,7 +47,7 @@ export async function SiteHeader() {
                     href={item.href}
                     className={cn(
                       "inline-flex h-10 items-center rounded-[var(--radius-sm)] px-3 text-sm font-medium transition-colors duration-[var(--dur-base)] hover:bg-muted",
-                      "highlight" in item && item.highlight && "text-sale",
+                      item.highlight && "text-sale",
                     )}
                   >
                     {item.label}

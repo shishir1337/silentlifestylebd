@@ -121,3 +121,23 @@ export interface SizeChart {
   columns: string[];
   rows: string[][];
 }
+
+/**
+ * The menus.
+ *
+ * Here rather than beside the query that reads them, because the mobile menu
+ * is a Client Component. A type-only import is erased by TypeScript, but the
+ * bundler still resolves the module — so importing this from `lib/catalog.ts`
+ * would pull Prisma into the browser bundle and the chunk would fail to build.
+ */
+export interface NavLink {
+  label: string;
+  href: string;
+  highlight?: boolean;
+}
+
+export interface SiteNav {
+  primary: NavLink[];
+  help: NavLink[];
+  company: NavLink[];
+}

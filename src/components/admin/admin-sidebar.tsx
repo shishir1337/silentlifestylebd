@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { StaffRole } from "@prisma/client";
 import {
+  ActivityIcon,
   CategoriesIcon,
   CollectionsIcon,
   CustomersIcon,
@@ -12,7 +13,9 @@ import {
   MediaIcon,
   OrdersIcon,
   ProductsIcon,
+  SettingsIcon,
   ShopIcon,
+  StaffIcon,
 } from "./admin-icons";
 import { cn } from "@/lib/cn";
 
@@ -67,6 +70,9 @@ export function AdminSidebar({
     { href: "/admin/customers", label: "Customers", Icon: CustomersIcon, roles: ["OWNER", "MANAGER", "STAFF"] },
     { href: "/admin/content", label: "Content", Icon: ContentIcon, roles: ["OWNER", "MANAGER"] },
     { href: "/admin/media", label: "Media", Icon: MediaIcon, roles: ["OWNER", "MANAGER"] },
+    { href: "/admin/settings", label: "Settings", Icon: SettingsIcon, roles: ["OWNER"] },
+    { href: "/admin/staff", label: "Staff", Icon: StaffIcon, roles: ["OWNER"] },
+    { href: "/admin/audit", label: "Activity", Icon: ActivityIcon, roles: ["OWNER"] },
   ];
 
   const visible = sections.filter((s) => s.roles.includes(role));

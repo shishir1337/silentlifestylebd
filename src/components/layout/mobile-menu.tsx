@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useOverlay } from "@/lib/use-overlay";
 import Link from "next/link";
 import { CloseIcon, MenuIcon, PhoneIcon } from "@/components/ui/icons";
-import { nav, site } from "@/data/site";
+import { useSettings } from "@/lib/site-settings";
+import type { SiteNav } from "@/types/catalog";
 
 /**
  * Just enough of a category to draw a menu row.
@@ -27,10 +28,17 @@ export interface MenuCategory {
  * handler and inert background for free — an inlined re-implementation of all
  * three would be more code and worse behaviour.
  *
- * Categories are a prop because this runs in the browser and the catalogue is
- * in Postgres. `SiteHeader` reads them on the server and passes them down.
+ * Categories and the menus are props because this runs in the browser and both
+ * live in Postgres. `SiteHeader` reads them on the server and passes them down.
  */
-export function MobileMenu({ categories }: { categories: MenuCategory[] }) {
+export function MobileMenu({
+  categories,
+  nav,
+}: {
+  categories: MenuCategory[];
+  nav: SiteNav;
+}) {
+  const site = useSettings();
   const [open, setOpen] = useState(false);
   const { mounted, ref: attach, node } = useOverlay(open);
 
@@ -88,7 +96,7 @@ export function MobileMenu({ categories }: { categories: MenuCategory[] }) {
                   onClick={() => setOpen(false)}
                   className="flex min-h-12 items-center rounded-[var(--radius-sm)] px-3 text-[15px] font-medium transition-colors duration-[var(--dur-base)] hover:bg-muted"
                 >
-                  <span className={"highlight" in item && item.highlight ? "text-sale" : undefined}>
+                  <span className={item.highlight ? "text-sale" : undefined}>
                     {item.label}
                   </span>
                 </Link>

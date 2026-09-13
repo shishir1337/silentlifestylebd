@@ -6,7 +6,7 @@ import { BagIcon, ChevronRightIcon, PhoneIcon } from "@/components/ui/icons";
 import { formatOrderDate } from "@/lib/orders";
 import { ORDER_STATUS, STATUS_CHIP } from "@/lib/order-status";
 import type { OrderView } from "@/lib/order-reads";
-import { site } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 import { cn } from "@/lib/cn";
 
 /**
@@ -17,7 +17,9 @@ import { cn } from "@/lib/cn";
  * "Shipped" badge nobody updated would have been a lie a customer acts on.
  * Staff move the status in the admin panel now, so it says what is true.
  */
-export function AccountOrders({ orders }: { orders: OrderView[] }) {
+export async function AccountOrders({ orders }: { orders: OrderView[] }) {
+  const site = await getSiteSettings();
+
   return (
     <div className="pb-4">
       <h1 className="text-[24px] leading-tight font-bold tracking-[-0.02em] sm:text-[30px]">

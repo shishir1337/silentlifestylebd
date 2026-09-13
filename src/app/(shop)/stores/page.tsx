@@ -3,13 +3,17 @@ import { Container } from "@/components/ui/container";
 import { PageHeader, Section, Bullets } from "@/components/ui/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { MailIcon, PhoneIcon, PinIcon } from "@/components/ui/icons";
-import { site } from "@/data/site";
+import { siteUrl } from "@/data/site";
+import { getSiteSettings, type SiteSettings } from "@/lib/settings";
 
-export const metadata: Metadata = {
-  title: "Store location",
-  description: `Visit ${site.legalName} at ${site.address}. Open 10am–9pm.`,
-  alternates: { canonical: "/stores" },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getSiteSettings();
+  return {
+    title: "Store location",
+    description: `Visit ${site.legalName} at ${site.address}. Open 10am–9pm.`,
+    alternates: { canonical: "/stores" },
+  };
+}
 
 const hours = [
   ["Saturday – Thursday", "10:00am – 9:00pm"],
@@ -23,7 +27,9 @@ const hours = [
  * card below is the unit to repeat — and the `LocalBusiness` JSON-LD becomes a
  * list rather than a single entity.
  */
-export default function StoresPage() {
+export default async function StoresPage() {
+  const site = await getSiteSettings();
+
   return (
     <Container>
       <PageHeader
@@ -100,17 +106,17 @@ export default function StoresPage() {
         </p>
       </Section>
 
-      <StoreJsonLd />
+      <StoreJsonLd site={site} />
     </Container>
   );
 }
 
-function StoreJsonLd() {
+function StoreJsonLd({ site }: { site: SiteSettings }) {
   const json = {
     "@context": "https://schema.org",
     "@type": "ClothingStore",
     name: site.legalName,
-    url: `${site.url}/stores`,
+    url: `${siteUrl}/stores`,
     telephone: site.phone,
     email: site.email,
     currenciesAccepted: "BDT",

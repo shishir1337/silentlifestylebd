@@ -1,6 +1,6 @@
 import { CashIcon, TruckIcon } from "@/components/ui/icons";
 import { Container } from "@/components/ui/container";
-import { delivery } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 import { Taka } from "@/components/ui/price";
 
 /**
@@ -8,7 +8,9 @@ import { Taka } from "@/components/ui/price";
  * placed before anything else: you can pay on delivery, and here is what
  * shipping costs. No countdown, no marquee — those cost trust, not build it.
  */
-export function AnnouncementBar() {
+export async function AnnouncementBar() {
+  const { delivery } = await getSiteSettings();
+
   return (
     <div className="bg-ink text-white">
       <Container className="flex h-9 items-center justify-center gap-x-6 text-[11px] sm:h-10 sm:text-xs">

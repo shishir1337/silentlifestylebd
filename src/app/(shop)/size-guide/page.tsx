@@ -3,7 +3,7 @@ import { Container } from "@/components/ui/container";
 import { PageHeader, Section, Bullets } from "@/components/ui/page-header";
 import { ButtonLink } from "@/components/ui/button";
 import { getSizeCharts } from "@/lib/catalog";
-import { delivery } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Size guide",
@@ -22,7 +22,10 @@ export const metadata: Metadata = {
  * wrong size to be ordered in the first place.
  */
 export default async function SizeGuidePage() {
-  const sizeCharts = await getSizeCharts();
+  const [sizeCharts, { delivery }] = await Promise.all([
+    getSizeCharts(),
+    getSiteSettings(),
+  ]);
 
   return (
     <Container>

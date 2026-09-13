@@ -1,4 +1,3 @@
-import { delivery } from "@/data/site";
 import { BD_MOBILE, normalisePhone } from "@/lib/phone";
 
 /**
@@ -24,10 +23,19 @@ export type DeliveryArea = "inside-dhaka" | "outside-dhaka";
  * The free-delivery threshold applies to the goods subtotal, never to the
  * total — otherwise the charge itself could push an order over the line and
  * pay for its own removal.
+ *
+ * The rates are an argument rather than an import. This function runs in the
+ * browser, where the rates arrive from the settings context, and on the server,
+ * where they are read from the database — and there is no third copy of the
+ * numbers for either to disagree with.
  */
-export function deliveryChargeFor(area: DeliveryArea, subtotal: number): number {
-  if (subtotal >= delivery.freeThreshold) return 0;
-  return area === "inside-dhaka" ? delivery.insideDhaka : delivery.outsideDhaka;
+export function deliveryChargeFor(
+  area: DeliveryArea,
+  subtotal: number,
+  rates: { insideDhaka: number; outsideDhaka: number; freeThreshold: number },
+): number {
+  if (subtotal >= rates.freeThreshold) return 0;
+  return area === "inside-dhaka" ? rates.insideDhaka : rates.outsideDhaka;
 }
 
 /** `2026-09-12T10:04:00Z` -> `12 Sep 2026`. Fixed format, no locale surprises. */

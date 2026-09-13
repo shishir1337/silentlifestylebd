@@ -15,7 +15,7 @@ import {
 } from "@/lib/orders";
 import { placeOrder } from "@/lib/order-actions";
 import { normalisePhone } from "@/lib/phone";
-import { delivery } from "@/data/site";
+import { useDelivery } from "@/lib/site-settings";
 import { defaultAddress, useAddresses, useProfile } from "@/lib/account";
 import { Field, inputClass } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
@@ -37,6 +37,7 @@ import { cn } from "@/lib/cn";
  * server believed the number this form sent it.
  */
 export function CheckoutForm() {
+  const delivery = useDelivery();
   const { lines, subtotal, count, ready, clear } = useCart();
 
   const [name, setName] = useState("");
@@ -79,7 +80,7 @@ export function CheckoutForm() {
   const phoneRef = useRef<HTMLInputElement>(null);
   const addressRef = useRef<HTMLTextAreaElement>(null);
 
-  const deliveryCharge = deliveryChargeFor(area, subtotal);
+  const deliveryCharge = deliveryChargeFor(area, subtotal, delivery);
   const total = subtotal + deliveryCharge;
   const shortfall = delivery.freeThreshold - subtotal;
 

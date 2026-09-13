@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import { site } from "@/data/site";
+import { siteUrl } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 
 /**
  * Two variable families, latin only, self-hosted by next/font — no render-
@@ -23,41 +24,52 @@ const jakarta = Plus_Jakarta_Sans({
   preload: true,
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL(site.url),
-  title: {
-    default: `${site.name} — Fashion & Accessories in Bangladesh`,
-    template: `%s | ${site.name}`,
-  },
-  description: site.description,
-  applicationName: site.name,
-  keywords: [
-    "online shopping bangladesh",
-    "panjabi",
-    "formal shirt",
-    "gabardine pant",
-    "leather belt",
-    "wallet",
-    "ladies purse",
-    "watch",
-    "Pakistani stitched collection",
-    "cash on delivery",
-  ],
-  openGraph: {
-    type: "website",
-    locale: "en_BD",
-    siteName: site.name,
-    title: `${site.name} — Fashion & Accessories in Bangladesh`,
+/**
+ * Titles and descriptions come from the settings the client edits.
+ *
+ * `metadataBase` does not. The canonical origin is where the site is deployed,
+ * not a preference — pointing it somewhere else would silently rewrite every
+ * canonical URL and every Open Graph image on the shop.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getSiteSettings();
+
+  return {
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: `${site.name} — Fashion & Accessories in Bangladesh`,
+      template: `%s | ${site.name}`,
+    },
     description: site.description,
-    url: site.url,
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `${site.name} — Fashion & Accessories in Bangladesh`,
-    description: site.description,
-  },
-  robots: { index: true, follow: true },
-};
+    applicationName: site.name,
+    keywords: [
+      "online shopping bangladesh",
+      "panjabi",
+      "formal shirt",
+      "gabardine pant",
+      "leather belt",
+      "wallet",
+      "ladies purse",
+      "watch",
+      "Pakistani stitched collection",
+      "cash on delivery",
+    ],
+    openGraph: {
+      type: "website",
+      locale: "en_BD",
+      siteName: site.name,
+      title: `${site.name} — Fashion & Accessories in Bangladesh`,
+      description: site.description,
+      url: siteUrl,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${site.name} — Fashion & Accessories in Bangladesh`,
+      description: site.description,
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",

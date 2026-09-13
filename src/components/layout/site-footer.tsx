@@ -9,17 +9,27 @@ import {
   PinIcon,
   WhatsAppIcon,
 } from "@/components/ui/icons";
-import { delivery, nav, site } from "@/data/site";
+import { getNav } from "@/lib/catalog";
+import { getSiteSettings } from "@/lib/settings";
 import { Logo } from "./logo";
 import { Taka } from "@/components/ui/price";
 
-const socials = [
-  { href: "https://facebook.com", label: "Facebook", Icon: FacebookIcon },
-  { href: "https://instagram.com", label: "Instagram", Icon: InstagramIcon },
-  { href: "https://wa.me/8801711000000", label: "WhatsApp", Icon: WhatsAppIcon },
-];
+export async function SiteFooter() {
+  const [site, nav] = await Promise.all([getSiteSettings(), getNav()]);
+  const { delivery } = site;
 
-export function SiteFooter() {
+  // wa.me wants the number without a leading plus, and it should be the same
+  // number the client edits in Settings — not a second one to keep in step.
+  const socials = [
+    { href: "https://facebook.com", label: "Facebook", Icon: FacebookIcon },
+    { href: "https://instagram.com", label: "Instagram", Icon: InstagramIcon },
+    {
+      href: `https://wa.me/${site.phone.replace(/\D/g, "")}`,
+      label: "WhatsApp",
+      Icon: WhatsAppIcon,
+    },
+  ];
+
   return (
     <footer className="mt-16 border-t border-line bg-subtle sm:mt-24">
       <Container>

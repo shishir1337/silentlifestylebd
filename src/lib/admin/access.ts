@@ -52,6 +52,23 @@ export function requireContentAccess(): Promise<StaffUser> {
   return requireStaff(CAN_MANAGE_CONTENT);
 }
 
+/** Settings and staff are owner-only, so these two are the narrowest guards. */
+export function requireSettingsAccess(): Promise<StaffUser> {
+  return requireStaff(CAN_MANAGE_SETTINGS);
+}
+
+export function assertSettingsAccess(): Promise<StaffUser> {
+  return assertStaff(CAN_MANAGE_SETTINGS);
+}
+
+export function requireStaffAccess(): Promise<StaffUser> {
+  return requireStaff(CAN_MANAGE_STAFF);
+}
+
+export function assertStaffAccess(): Promise<StaffUser> {
+  return assertStaff(CAN_MANAGE_STAFF);
+}
+
 export function can(role: StaffRole, allowed: StaffRole[]): boolean {
   return allowed.includes(role);
 }

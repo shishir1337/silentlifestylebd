@@ -4,6 +4,8 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { CartProvider } from "@/lib/cart";
 import { CartDrawer } from "@/components/layout/cart-drawer";
+import { SettingsProvider } from "@/lib/site-settings";
+import { getSiteSettings } from "@/lib/settings";
 
 /**
  * The storefront.
@@ -17,7 +19,9 @@ import { CartDrawer } from "@/components/layout/cart-drawer";
  * back office — and the cart provider was mounting on every admin screen for a
  * person who is not shopping.
  */
-export default function ShopLayout({ children }: LayoutProps<"/">) {
+export default async function ShopLayout({ children }: LayoutProps<"/">) {
+  const settings = await getSiteSettings();
+
   return (
     /*
       Bottom padding clears the fixed mobile tab bar for ALL content, footer
@@ -32,18 +36,20 @@ export default function ShopLayout({ children }: LayoutProps<"/">) {
         Skip to main content
       </a>
 
-      <CartProvider>
-        <AnnouncementBar />
-        <SiteHeader />
+      <SettingsProvider settings={settings}>
+        <CartProvider>
+          <AnnouncementBar />
+          <SiteHeader />
 
-        <main id="main" className="flex-1">
-          {children}
-        </main>
+          <main id="main" className="flex-1">
+            {children}
+          </main>
 
-        <SiteFooter />
-        <MobileTabBar />
-        <CartDrawer />
-      </CartProvider>
+          <SiteFooter />
+          <MobileTabBar />
+          <CartDrawer />
+        </CartProvider>
+      </SettingsProvider>
     </div>
   );
 }

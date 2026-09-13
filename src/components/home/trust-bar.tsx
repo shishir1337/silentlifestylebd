@@ -1,6 +1,6 @@
 import { Container } from "@/components/ui/container";
 import { CashIcon, ReturnIcon, ShieldIcon, TruckIcon } from "@/components/ui/icons";
-import { delivery } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 import { Taka } from "@/components/ui/price";
 
 /**
@@ -11,39 +11,41 @@ import { Taka } from "@/components/ui/price";
  * 2×2 on phones so nothing shrinks below a readable size; a single row from
  * `lg`. Concrete numbers only — "fast delivery" persuades nobody.
  */
-const items: {
-  Icon: typeof CashIcon;
-  title: string;
-  body: React.ReactNode;
-}[] = [
-  {
-    Icon: CashIcon,
-    title: "Cash on Delivery",
-    body: "Pay only when the parcel reaches your hand.",
-  },
-  {
-    Icon: TruckIcon,
-    title: "Delivery charge",
-    body: (
-      <>
-        <Taka amount={delivery.insideDhaka} /> inside Dhaka ·{" "}
-        <Taka amount={delivery.outsideDhaka} /> outside.
-      </>
-    ),
-  },
-  {
-    Icon: ReturnIcon,
-    title: `${delivery.returnWindowDays}-day return`,
-    body: "Wrong size or changed your mind? Send it back.",
-  },
-  {
-    Icon: ShieldIcon,
-    title: "100% authentic",
-    body: "Checked before dispatch. No copy products.",
-  },
-];
+export async function TrustBar() {
+  const { delivery } = await getSiteSettings();
 
-export function TrustBar() {
+  const items: {
+    Icon: typeof CashIcon;
+    title: string;
+    body: React.ReactNode;
+  }[] = [
+    {
+      Icon: CashIcon,
+      title: "Cash on Delivery",
+      body: "Pay only when the parcel reaches your hand.",
+    },
+    {
+      Icon: TruckIcon,
+      title: "Delivery charge",
+      body: (
+        <>
+          <Taka amount={delivery.insideDhaka} /> inside Dhaka ·{" "}
+          <Taka amount={delivery.outsideDhaka} /> outside.
+        </>
+      ),
+    },
+    {
+      Icon: ReturnIcon,
+      title: `${delivery.returnWindowDays}-day return`,
+      body: "Wrong size or changed your mind? Send it back.",
+    },
+    {
+      Icon: ShieldIcon,
+      title: "100% authentic",
+      body: "Checked before dispatch. No copy products.",
+    },
+  ];
+
   return (
     <section aria-label="Why shop with us" className="border-y border-line bg-subtle">
       <Container>

@@ -9,7 +9,7 @@ import { useAddresses, useProfile, defaultAddress } from "@/lib/account";
 import { formatOrderDate } from "@/lib/orders";
 import { ORDER_STATUS, STATUS_CHIP } from "@/lib/order-status";
 import type { OrderView } from "@/lib/order-reads";
-import { delivery } from "@/data/site";
+import { useDelivery } from "@/lib/site-settings";
 import { cn } from "@/lib/cn";
 
 /**
@@ -25,6 +25,7 @@ import { cn } from "@/lib/cn";
  * two kinds of data genuinely differ in where they live.
  */
 export function AccountOverview({ orders }: { orders: OrderView[] }) {
+  const delivery = useDelivery();
   const { profile, ready: profileReady } = useProfile();
   const { addresses, ready: addressReady } = useAddresses();
 

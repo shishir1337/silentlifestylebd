@@ -4,7 +4,7 @@ import { PageHeader, Section, Bullets } from "@/components/ui/page-header";
 import { Taka } from "@/components/ui/price";
 import { ButtonLink } from "@/components/ui/button";
 import { CashIcon, TruckIcon } from "@/components/ui/icons";
-import { delivery, site } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 
 export const metadata: Metadata = {
   title: "Delivery & charges",
@@ -14,11 +14,16 @@ export const metadata: Metadata = {
 };
 
 /**
- * Every number on this page comes from `data/site.ts` — the same source the
- * homepage, product page, drawer and checkout read. A policy page that
- * contradicts the checkout is worse than no policy page.
+ * Every number on this page comes from the settings rows — the same source the
+ * homepage, product page, drawer and checkout read, and the same rows the
+ * client edits. A policy page that contradicts the checkout is worse than no
+ * policy page, and that is exactly what a second copy of these numbers would
+ * eventually become.
  */
-export default function DeliveryPage() {
+export default async function DeliveryPage() {
+  const site = await getSiteSettings();
+  const { delivery } = site;
+
   return (
     <Container>
       <PageHeader

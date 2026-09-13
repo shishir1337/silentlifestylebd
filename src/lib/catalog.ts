@@ -6,11 +6,15 @@ import type {
   Category,
   HeroSlide,
   ImageRef,
+  NavLink,
   Product,
   ProductBadge,
   PromoTile,
+  SiteNav,
   SizeChart,
 } from "@/types/catalog";
+
+export type { NavLink, SiteNav } from "@/types/catalog";
 
 /**
  * Read layer over the catalogue.
@@ -444,5 +448,35 @@ export const getSizeCharts = unstable_cache(
     }));
   },
   ["content:size-charts"],
+  { ...CACHE, tags: [CONTENT_TAG] },
+);
+
+/**
+ * The menus.
+ *
+ * Shaped like the constant it replaces — three named groups of links — so the
+ * header, footer and mobile menu did not have to change how they read it, only
+ * where it comes from. Stage 4 gave the client an editor for these rows; until
+ * this existed, that editor wrote to a table nothing rendered.
+ */
+export const getNav = unstable_cache(
+  async (): Promise<SiteNav> => {
+    const rows = await db.navItem.findMany({
+      where: { isActive: true },
+      orderBy: [{ group: "asc" }, { position: "asc" }],
+    });
+
+    const pick = (group: "PRIMARY" | "HELP" | "COMPANY"): NavLink[] =>
+      rows
+        .filter((r) => r.group === group)
+        .map((r) => ({
+          label: r.label,
+          href: r.href,
+          ...(r.highlight ? { highlight: true } : {}),
+        }));
+
+    return { primary: pick("PRIMARY"), help: pick("HELP"), company: pick("COMPANY") };
+  },
+  ["content:nav"],
   { ...CACHE, tags: [CONTENT_TAG] },
 );

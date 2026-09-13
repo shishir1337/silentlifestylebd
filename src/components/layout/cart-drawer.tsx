@@ -14,7 +14,7 @@ import {
   TrashIcon,
   TruckIcon,
 } from "@/components/ui/icons";
-import { delivery } from "@/data/site";
+import { useDelivery } from "@/lib/site-settings";
 import { cn } from "@/lib/cn";
 
 /**
@@ -32,6 +32,7 @@ import { cn } from "@/lib/cn";
  * how a panel ends up clipped at the bottom edge.
  */
 export function CartDrawer() {
+  const delivery = useDelivery();
   const { lines, count, subtotal, drawerOpen, closeDrawer, remove, setQty } = useCart();
   const { mounted, ref: attach, node } = useOverlay(drawerOpen);
 

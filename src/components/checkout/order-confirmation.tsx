@@ -6,7 +6,7 @@ import { CashIcon, CheckIcon, PhoneIcon, TruckIcon } from "@/components/ui/icons
 import { formatOrderDate } from "@/lib/orders";
 import { ORDER_STATUS, STATUS_CHIP } from "@/lib/order-status";
 import type { OrderView } from "@/lib/order-reads";
-import { delivery, site } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 import { cn } from "@/lib/cn";
 
 /**
@@ -21,7 +21,9 @@ import { cn } from "@/lib/cn";
  * real, so it states plainly what happens next, what they will pay, and how to
  * reach a human — rather than a bare "thank you for your order".
  */
-export function OrderConfirmation({ order }: { order: OrderView }) {
+export async function OrderConfirmation({ order }: { order: OrderView }) {
+  const site = await getSiteSettings();
+  const { delivery } = site;
   const eta =
     order.area === "inside-dhaka" ? delivery.insideDhakaDays : delivery.outsideDhakaDays;
   const status = ORDER_STATUS[order.status];

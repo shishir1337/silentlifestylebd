@@ -14,7 +14,8 @@ import {
 } from "@/components/ui/icons";
 import { Taka } from "@/components/ui/price";
 import { allProductSlugs, getCategory, getGallery, getProduct, getRelated } from "@/lib/catalog";
-import { delivery, site } from "@/data/site";
+import { siteUrl } from "@/data/site";
+import { getSiteSettings } from "@/lib/settings";
 import { formatBDT } from "@/lib/currency";
 
 /**
@@ -190,7 +191,9 @@ function Breadcrumbs({
  * actually gets made — a shopper who read the homepage ten minutes ago should
  * not have to go back for the delivery charge.
  */
-function TrustPanel({ freeDelivery }: { freeDelivery?: boolean }) {
+async function TrustPanel({ freeDelivery }: { freeDelivery?: boolean }) {
+  const { delivery } = await getSiteSettings();
+
   const rows = [
     {
       Icon: CashIcon,
@@ -239,7 +242,7 @@ function TrustPanel({ freeDelivery }: { freeDelivery?: boolean }) {
   );
 }
 
-function ProductJsonLd({
+async function ProductJsonLd({
   name,
   description,
   sku,
@@ -256,17 +259,19 @@ function ProductJsonLd({
   inStock: boolean;
   slug: string;
 }) {
+  const site = await getSiteSettings();
+
   const json = {
     "@context": "https://schema.org",
     "@type": "Product",
     name,
     description,
     sku,
-    image: [`${site.url}${image}`],
+    image: [`${siteUrl}${image}`],
     brand: { "@type": "Brand", name: site.legalName },
     offers: {
       "@type": "Offer",
-      url: `${site.url}/products/${slug}`,
+      url: `${siteUrl}/products/${slug}`,
       priceCurrency: "BDT",
       price,
       availability: inStock
