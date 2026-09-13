@@ -15,7 +15,8 @@
     "db:reset": "prisma migrate reset --force && pnpm db:seed",
     "db:seed": "node --experimental-strip-types --disable-warning=ExperimentalWarning prisma/seed.mts",
     "db:studio": "prisma studio",
-    "admin:grant": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/grant-staff.mts"
+    "admin:grant": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/grant-staff.mts",
+    "admin:create": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/create-owner.mts"
   },
   "dependencies": {
     "@prisma/client": "^7.10.0",
