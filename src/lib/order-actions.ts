@@ -12,6 +12,23 @@ import { DeliveryArea as PrismaArea } from "@prisma/client";
 import type { DeliveryArea } from "@/lib/orders";
 import type { PlaceOrderInput, PlaceOrderLine, PlaceOrderResult } from "@/lib/order-types";
 import { getViewerOrders, lookupOrder, type OrderView } from "@/lib/order-reads";
+import { consume } from "@/lib/redis";
+import { headers } from "next/headers";
+
+/**
+ * Who is asking, for rate limiting.
+ *
+ * `x-forwarded-for` is the client's address behind the reverse proxy this
+ * shop is deployed behind; the first entry is the original client and the
+ * rest are proxies. It is spoofable by anyone who can reach the app directly,
+ * which is why the proxy must be the only thing that can — the same
+ * assumption better-auth's own limiter already makes here.
+ */
+async function callerKey(): Promise<string> {
+  const h = await headers();
+  const forwarded = h.get("x-forwarded-for")?.split(",")[0]?.trim();
+  return forwarded || h.get("x-real-ip") || "unknown";
+}
 
 /**
  * Placing an order.
@@ -47,6 +64,25 @@ const toPrismaArea = (a: DeliveryArea): PrismaArea =>
   a === "inside-dhaka" ? PrismaArea.INSIDE_DHAKA : PrismaArea.OUTSIDE_DHAKA;
 
 export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResult> {
+  /* --- 0. not a hundred of them ----------------------------------------- */
+
+  /*
+    Generous on purpose: a household ordering three times in an evening is
+    normal, and a shop that refuses a real customer to stop a hypothetical
+    script has the trade backwards. What this stops is the script — junk orders
+    that decrement stock and have to be cancelled one at a time in the morning.
+
+    Fails *open*. An order that cannot be placed is a sale lost for certain,
+    against abuse that is only possible while Redis is down.
+  */
+  const rate = await consume(`order:${await callerKey()}`, 600, 8);
+  if (rate && !rate.allowed) {
+    return {
+      ok: false,
+      message: `That is a lot of orders at once. Try again in ${Math.ceil(rate.retryAfter / 60)} minutes, or call us and we will place it for you.`,
+    };
+  }
+
   /* --- 1. the details, checked again ------------------------------------ */
 
   const name = input.name.trim();
@@ -329,9 +365,49 @@ class SoldOut extends Error {
 export async function trackOrder(
   orderNo: string,
   phone: string,
-): Promise<OrderView | null> {
-  return lookupOrder(orderNo, phone);
+): Promise<TrackResult> {
+  /*
+    This one is guessable, so this one is counted.
+
+    An order number is four random characters on a known date, and a
+    Bangladeshi mobile is eleven digits with a known prefix. Together they are
+    a reasonable proof for a guest — but only while a stranger cannot sit there
+    trying combinations. Twelve attempts in five minutes is far more than a
+    customer reading their own confirmation aloud needs.
+
+    Fails *closed*, which is the opposite of placing an order and for a good
+    reason: what is behind this is other people's names, phone numbers and home
+    addresses. If the counters are unavailable, "call us" costs the shop a
+    phone call; guessing unchecked costs a customer their address.
+  */
+  const rate = await consume(`track:${await callerKey()}`, 300, 12);
+  if (!rate) {
+    return {
+      ok: false,
+      message:
+        "We cannot look orders up at the moment. Please call us and we will check it for you.",
+    };
+  }
+  if (!rate.allowed) {
+    return {
+      ok: false,
+      message: `Too many tries. Wait ${Math.ceil(rate.retryAfter / 60)} minutes, or call us and we will check it for you.`,
+    };
+  }
+
+  return { ok: true, order: await lookupOrder(orderNo, phone) };
 }
+
+/**
+ * Found, not found, or not right now.
+ *
+ * `null` used to mean both "no such order" and "we are not going to tell you",
+ * which left the tracker unable to say the one thing a blocked customer needs
+ * to hear — that the shop can still help on the phone.
+ */
+export type TrackResult =
+  | { ok: true; order: OrderView | null }
+  | { ok: false; message: string };
 
 /**
  * Orders this browser has placed, or this customer's if signed in.

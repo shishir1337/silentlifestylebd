@@ -42,3 +42,22 @@ export const getStorePage = unstable_cache(
   ["content:page"],
   { revalidate: 31_536_000, tags: [CONTENT_TAG] },
 );
+
+/**
+ * The written pages that are live, for the sitemap.
+ *
+ * A page hidden from the shop is hidden from crawlers too — the footer link is
+ * gone, and a sitemap entry pointing at a 404 is the shop telling Google about
+ * a page it has taken down.
+ */
+export const getLivePageEntries = unstable_cache(
+  async (): Promise<{ path: string; lastModified: Date }[]> => {
+    const rows = await db.page.findMany({
+      where: { isActive: true },
+      select: { slug: true, updatedAt: true },
+    });
+    return rows.map((p) => ({ path: `/${p.slug}`, lastModified: p.updatedAt }));
+  },
+  ["content:page-entries"],
+  { revalidate: 31_536_000, tags: [CONTENT_TAG] },
+);

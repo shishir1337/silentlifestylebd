@@ -12,7 +12,7 @@ import type { OrderView } from "@/lib/order-reads";
 import { useSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/cn";
 
-type Screen = "idle" | "found" | "missing";
+type Screen = "idle" | "found" | "missing" | "blocked";
 
 /**
  * Order lookup.
@@ -35,6 +35,7 @@ export function OrderTracker() {
   const [orderNo, setOrderNo] = useState("");
   const [phone, setPhone] = useState("");
   const [screen, setScreen] = useState<Screen>("idle");
+  const [blocked, setBlocked] = useState("");
   const [order, setOrder] = useState<OrderView | null>(null);
   const [recent, setRecent] = useState<OrderView[]>([]);
   const [busy, setBusy] = useState(false);
@@ -62,9 +63,17 @@ export function OrderTracker() {
 
     setBusy(true);
     try {
-      const found = await trackOrder(orderNo, phone);
-      setOrder(found);
-      setScreen(found ? "found" : "missing");
+      const result = await trackOrder(orderNo, phone);
+      if (!result.ok) {
+        // Refused rather than not found — the shop can still help by phone,
+        // and saying "we can't find it" here would be untrue.
+        setOrder(null);
+        setBlocked(result.message);
+        setScreen("blocked");
+        return;
+      }
+      setOrder(result.order);
+      setScreen(result.order ? "found" : "missing");
     } catch {
       setOrder(null);
       setScreen("missing");
@@ -157,6 +166,25 @@ export function OrderTracker() {
             ))}
           </ul>
         </section>
+      ) : null}
+
+      {screen === "blocked" ? (
+        <div
+          role="alert"
+          className="mt-6 rounded-[var(--radius-md)] border border-line bg-subtle p-5"
+        >
+          <p className="text-[15px] font-medium">We can&apos;t check that right now</p>
+          <p className="mt-1.5 max-w-prose text-[14px] leading-relaxed text-ink-muted">
+            {blocked}
+          </p>
+          <a
+            href={`tel:${site.phone}`}
+            className="mt-4 inline-flex h-11 items-center gap-2 rounded-[var(--radius-sm)] bg-ink px-5 text-sm font-medium text-white"
+          >
+            <PhoneIcon className="size-4" />
+            <span className="tabular">{site.phoneDisplay}</span>
+          </a>
+        </div>
       ) : null}
 
       {screen === "missing" ? (

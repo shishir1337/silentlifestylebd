@@ -519,3 +519,63 @@ export const getNav = unstable_cache(
   ["content:nav", SHAPE],
   { ...CACHE, tags: [CONTENT_TAG] },
 );
+
+/**
+ * Everything with its own address, and when it last changed.
+ *
+ * For the sitemap. `lastModified` is the row's own `updatedAt` rather than the
+ * time the file was generated — a sitemap that reports every page as modified
+ * today teaches a crawler to ignore the field, and then a genuine price change
+ * takes as long to be noticed as a typo fix.
+ *
+ * Hidden products and inactive collections are left out. A crawler that
+ * follows a sitemap entry to a 404 has been sent somewhere the shop said
+ * existed, which is worse than not listing it.
+ */
+export interface SitemapEntry {
+  path: string;
+  lastModified: Date;
+}
+
+export const getSitemapEntries = unstable_cache(
+  async (): Promise<SitemapEntry[]> => {
+    const [products, categories, collections] = await Promise.all([
+      db.product.findMany({
+        where: { isActive: true },
+        select: { slug: true, updatedAt: true },
+        orderBy: { position: "asc" },
+      }),
+      db.category.findMany({
+        where: { isActive: true },
+        select: { slug: true, updatedAt: true },
+        orderBy: { position: "asc" },
+      }),
+      db.collection.findMany({
+        where: { isActive: true },
+        select: { slug: true, updatedAt: true },
+        orderBy: { position: "asc" },
+      }),
+    ]);
+
+    /*
+      Categories and collections share the /collections/ space, and a category
+      can carry the same slug as a collection. Listing an address twice is a
+      malformed sitemap, so the first one wins.
+    */
+    const seen = new Set<string>();
+    const groups: SitemapEntry[] = [];
+    for (const row of [...categories, ...collections]) {
+      const path = `/collections/${row.slug}`;
+      if (seen.has(path)) continue;
+      seen.add(path);
+      groups.push({ path, lastModified: row.updatedAt });
+    }
+
+    return [
+      ...products.map((p) => ({ path: `/products/${p.slug}`, lastModified: p.updatedAt })),
+      ...groups,
+    ];
+  },
+  ["catalog:sitemap", SHAPE],
+  { ...CACHE, tags: [CATALOG_TAG, PRODUCTS_TAG, CATEGORIES_TAG] },
+);

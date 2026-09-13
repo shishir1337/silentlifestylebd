@@ -45,7 +45,12 @@ export async function generateMetadata(
       type: "website",
       title: `${product.name} — ${formatBDT(product.price)}`,
       description: product.description,
-      images: [{ url: product.image.url }],
+      /*
+        No `images` here on purpose. Setting it overrides the generated card in
+        `opengraph-image.tsx`, which is this photograph *plus* the name, the
+        price and "cash on delivery" — the three things that decide whether a
+        link pasted into WhatsApp becomes an order.
+      */
     },
   };
 }

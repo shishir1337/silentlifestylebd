@@ -233,5 +233,10 @@ exist — open it and add a picture.
 **An order will not move.** If somebody else moved it a moment ago, the panel
 refuses rather than overwriting them. Reload and look at where it actually is.
 
+**A customer says the tracker will not check their order.** After a dozen tries
+in five minutes it stops answering, so that a stranger cannot sit there guessing
+at other people's order numbers. It says so, and it shows your phone number.
+Look the order up for them in the panel — it is not blocked for you.
+
 **You cannot see Settings, Staff or Activity.** Those are owner-only. Ask an
 owner.

@@ -118,3 +118,49 @@ export const rateLimitStorage: BetterAuthRateLimitStorage = {
     }
   },
 };
+
+/**
+ * The same counter, for things that are not sign-in.
+ *
+ * better-auth guards its own endpoints. Everything else a stranger can reach
+ * has to guard itself, and this storefront has two that matter: placing an
+ * order, and looking one up.
+ *
+ * Returns whether the caller may proceed and, when not, how long until the
+ * window ends — so the refusal can say when to try again rather than just no.
+ */
+export interface RateVerdict {
+  allowed: boolean;
+  /** Seconds until the window ends. Zero when allowed. */
+  retryAfter: number;
+}
+
+export async function consume(
+  key: string,
+  window: number,
+  max: number,
+): Promise<RateVerdict | null> {
+  try {
+    const client = await redis();
+    const reply = (await client.eval(CONSUME, {
+      keys: [`slbd:rl:${key}`],
+      arguments: [String(window), String(max)],
+    })) as [number, number];
+    return { allowed: reply[0] === 1, retryAfter: reply[1] };
+  } catch (error) {
+    /*
+      `null` means "could not count", not "allowed".
+
+      The caller decides what that is worth, because the answer differs: an
+      order that cannot be placed is a lost sale, and an order lookup that
+      cannot be counted is a stranger free to guess at other people's
+      addresses. Returning a cheerful `allowed: true` here would make that
+      decision silently, in the wrong place.
+    */
+    console.error(
+      "[redis] rate limiting is BLIND — counters unavailable:",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  }
+}
