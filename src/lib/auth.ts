@@ -5,6 +5,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@/lib/db";
 import { rateLimitStorage } from "@/lib/redis";
+import { TRUSTED_PROXIES } from "@/lib/client-ip";
 import { sendMail } from "@/lib/mailer";
 
 /**
@@ -125,6 +126,26 @@ export const auth = betterAuth({
       // The app sits behind the client's reverse proxy, so the socket address
       // is the proxy. Without this, every request rate-limits as one IP.
       ipAddressHeaders: ["x-forwarded-for"],
+      /**
+       * Which hops in that header are ours.
+       *
+       * This is not optional tuning — without it better-auth cannot use the
+       * header safely and falls back to one of two broken behaviours: a chain
+       * of one entry is believed outright, so a forged `X-Forwarded-For`
+       * defeats the sign-in limiter entirely (proven: rotating the value, a
+       * dozen wrong passwords in a row went uncounted), and a chain of more
+       * than one resolves to no address at all, so every visitor on earth
+       * shares a single five-attempts-a-minute bucket.
+       *
+       * With it, the chain is read from the right and the first hop that is
+       * not ours is the caller — the one entry a client cannot choose. Same
+       * list as the storefront limiters; see `client-ip.ts`.
+       */
+      trustedProxies: TRUSTED_PROXIES,
+      // Count an IPv6 caller by its /64, which is the smallest block an ISP
+      // hands to one subscriber. Per-address would let one customer rotate
+      // through a prefix and never be counted twice.
+      ipv6Subnet: 64,
     },
   },
 

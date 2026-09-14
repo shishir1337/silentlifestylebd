@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { assertUser, getSession } from "@/lib/dal";
-import { isBDMobile, normalisePhone } from "@/lib/phone";
+import { canonicalPhone, isBDMobile } from "@/lib/phone";
 import type { Address, AccountSnapshot, Profile } from "@/lib/account-types";
 import type { DeliveryArea as StorefrontArea } from "@/lib/orders";
 import { DeliveryArea } from "@prisma/client";
@@ -74,8 +74,8 @@ export async function saveProfile(input: Profile): Promise<Profile> {
   const session = await assertUser();
 
   const name = input.name.trim();
-  const phone = normalisePhone(input.phone).trim();
-  const altPhone = normalisePhone(input.altPhone).trim();
+  const phone = canonicalPhone(input.phone);
+  const altPhone = canonicalPhone(input.altPhone);
 
   // Re-validated here, not just in the form. The form's validation is a
   // courtesy to the customer; this is the one that decides what gets stored.
@@ -109,7 +109,7 @@ export async function saveAddress(input: Address): Promise<Address[]> {
   const data = {
     label: input.label.trim() || "Home",
     recipient: input.recipient.trim(),
-    phone: normalisePhone(input.phone),
+    phone: canonicalPhone(input.phone),
     address: input.address.trim(),
     area: toPrismaArea(input.area),
   };

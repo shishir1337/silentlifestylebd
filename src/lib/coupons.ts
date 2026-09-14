@@ -2,7 +2,7 @@ import "server-only";
 
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { db } from "@/lib/db";
-import { normalisePhone } from "@/lib/phone";
+import { canonicalPhone } from "@/lib/phone";
 import type { DeliveryArea } from "@/lib/orders";
 import type { DeliverySettings } from "@/types/settings";
 
@@ -172,7 +172,7 @@ export async function quoteCoupon(input: {
   }
 
   if (coupon.perPhoneLimit > 0) {
-    const phone = normalisePhone(input.phone);
+    const phone = canonicalPhone(input.phone);
     if (phone) {
       const used = await prisma.order.count({
         where: {

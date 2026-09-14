@@ -8,27 +8,48 @@ import { grantOrderAccess } from "@/lib/order-access";
 import { getDeliverySettings } from "@/lib/settings";
 import { baseDelivery, quoteCoupon } from "@/lib/coupons";
 import { CATALOG_TAG, PRODUCTS_TAG } from "@/lib/catalog";
-import { isBDMobile, normalisePhone } from "@/lib/phone";
+import { canonicalPhone, isBDMobile } from "@/lib/phone";
 import { DeliveryArea as PrismaArea } from "@prisma/client";
 import type { DeliveryArea } from "@/lib/orders";
 import type { PlaceOrderInput, PlaceOrderLine, PlaceOrderResult } from "@/lib/order-types";
 import { getViewerOrders, lookupOrder, type OrderView } from "@/lib/order-reads";
 import { consume } from "@/lib/redis";
+import { clientIp } from "@/lib/client-ip";
 import { headers } from "next/headers";
 
 /**
- * Who is asking, for rate limiting.
+ * Who is asking, for rate limiting — or null when that cannot be established.
  *
- * `x-forwarded-for` is the client's address behind the reverse proxy this
- * shop is deployed behind; the first entry is the original client and the
- * rest are proxies. It is spoofable by anyone who can reach the app directly,
- * which is why the proxy must be the only thing that can — the same
- * assumption better-auth's own limiter already makes here.
+ * See `client-ip.ts` for why this is not simply the first entry of
+ * `x-forwarded-for`, and for what "trusted" means here.
+ *
+ * Null is a real answer and each caller below handles it deliberately, because
+ * the safe failure is different for each one. Collapsing it to a placeholder
+ * string would put every stranger in the world in one shared bucket, which is
+ * the right call for a lookup that leaks addresses and the wrong one for a
+ * customer trying to buy something.
  */
-async function callerKey(): Promise<string> {
-  const h = await headers();
-  const forwarded = h.get("x-forwarded-for")?.split(",")[0]?.trim();
-  return forwarded || h.get("x-real-ip") || "unknown";
+async function callerKey(): Promise<string | null> {
+  return clientIp(await headers());
+}
+
+/**
+ * Said once per process, not once per request.
+ *
+ * An unresolvable caller means the deployment is wrong — no reverse proxy, or
+ * `TRUSTED_PROXIES` does not describe it — and it silently changes what every
+ * limiter in this file does. It has to be visible in the logs without
+ * drowning them.
+ */
+let warnedAboutIp = false;
+function warnOnce(): void {
+  if (warnedAboutIp) return;
+  warnedAboutIp = true;
+  console.error(
+    "[rate-limit] cannot identify the caller: no usable address in " +
+      "x-forwarded-for. Check that the reverse proxy sets it and that " +
+      "TRUSTED_PROXIES matches the hops in front of this app.",
+  );
 }
 
 /**
@@ -76,7 +97,16 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     Fails *open*. An order that cannot be placed is a sale lost for certain,
     against abuse that is only possible while Redis is down.
   */
-  const rate = await consume(`order:${await callerKey()}`, 600, 8);
+  const who = await callerKey();
+  if (!who) warnOnce();
+  /*
+    An unidentifiable caller is not counted at all, rather than counted in a
+    bucket shared with everybody else. Eight orders per ten minutes across the
+    entire shop would refuse real customers on the first busy evening, and the
+    thing this limit protects against — a script filing junk orders — is worth
+    less than the sales that would cost.
+  */
+  const rate = who ? await consume(`order:${who}`, 600, 8) : null;
   if (rate && !rate.allowed) {
     return {
       ok: false,
@@ -87,8 +117,10 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   /* --- 1. the details, checked again ------------------------------------ */
 
   const name = input.name.trim();
-  const phone = normalisePhone(input.phone);
-  const altPhone = input.altPhone ? normalisePhone(input.altPhone) : "";
+  // Canonical, not merely tidied: this is the string the customer will be
+  // asked for again on the tracking page, and the one `perPhoneLimit` counts.
+  const phone = canonicalPhone(input.phone);
+  const altPhone = input.altPhone ? canonicalPhone(input.altPhone) : "";
   const address = input.address.trim();
 
   if (name.length < 3) return { ok: false, message: "Enter your full name." };
@@ -457,7 +489,17 @@ export async function trackOrder(
     addresses. If the counters are unavailable, "call us" costs the shop a
     phone call; guessing unchecked costs a customer their address.
   */
-  const rate = await consume(`track:${await callerKey()}`, 300, 12);
+  const who = await callerKey();
+  if (!who) warnOnce();
+  /*
+    The opposite choice to placing an order, for the same reason this one
+    fails closed: behind here are other people's names, phone numbers and home
+    addresses. An unidentifiable caller shares one bucket with every other
+    unidentifiable caller — worse for the honest customer, who is told to ring
+    the shop, and the only option that does not hand a stranger unlimited
+    guesses at somebody's address.
+  */
+  const rate = await consume(`track:${who ?? "unidentified"}`, 300, 12);
   if (!rate) {
     return {
       ok: false,
@@ -503,7 +545,11 @@ export async function previewCoupon(input: {
   area: DeliveryArea;
   phone: string;
 }): Promise<{ ok: true; summary: string; discount: number; deliveryCharge: number; total: number } | { ok: false; message: string }> {
-  const rate = await consume(`coupon:${await callerKey()}`, 300, 20);
+  const who = await callerKey();
+  if (!who) warnOnce();
+  // A discount code is worth money, so this shares the tracker's reasoning:
+  // one bucket for everyone we cannot tell apart, rather than none.
+  const rate = await consume(`coupon:${who ?? "unidentified"}`, 300, 20);
   if (rate && !rate.allowed) {
     return { ok: false, message: "Too many codes tried. Wait a few minutes." };
   }

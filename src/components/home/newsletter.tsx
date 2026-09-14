@@ -82,7 +82,8 @@ export function Newsletter() {
                   <Button
                     type="submit"
                     size="lg"
-                    className="h-12 bg-white text-ink hover:bg-white/90 active:bg-white/80 sm:px-7"
+                    variant="invert"
+                    className="h-12 sm:px-7"
                   >
                     Notify me
                   </Button>

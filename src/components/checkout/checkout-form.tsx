@@ -51,6 +51,33 @@ export function CheckoutForm() {
   const [placing, setPlacing] = useState(false);
   const [prefilled, setPrefilled] = useState(false);
 
+  /**
+   * Take an error back the moment the field is right.
+   *
+   * These were only ever set, never cleared: `setErrors` ran on submit and
+   * nowhere else, so a customer who fixed all three fields still sat looking
+   * at three red borders and three error messages — with `aria-invalid` still
+   * true, so a screen reader agreed with them. On the one page in the shop
+   * where somebody is deciding whether to go through with it.
+   *
+   * Clearing as they type rather than re-validating as they type, which is the
+   * other half of the same mistake: nobody wants "that is not a valid mobile
+   * number" after the first digit. Nothing new is raised here — the next
+   * submit does that — this only withdraws a complaint that is no longer true.
+   */
+  function clearIfFixed(
+    field: keyof CheckoutErrors,
+    next: Partial<Record<keyof CheckoutErrors, string>>,
+  ) {
+    setErrors((current) => {
+      if (!current[field]) return current;
+      const still = validateCheckout({ name, phone, address, ...next });
+      if (still[field]) return current;
+      const { [field]: _fixed, ...rest } = current;
+      return rest;
+    });
+  }
+
   const { profile, ready: profileReady, save: saveProfile } = useProfile();
   const { addresses, ready: addressReady, upsert: saveAddress } = useAddresses();
 
@@ -137,11 +164,30 @@ export function CheckoutForm() {
 
   /*
     A quote is about one basket going to one place. Change either and it is
-    answering a question nobody asked any more, so it goes — silently, because
-    the customer changing their bag has not done anything wrong.
+    answering a question nobody asked any more, so it goes.
+
+    It used to go silently, on the reasoning that the customer had not done
+    anything wrong — but the total jumps back up by the discount and nothing
+    on screen accounts for it, which reads as the shop quietly withdrawing an
+    offer. Saying so, and saying it is one tap to get back, is the difference
+    between a re-quote and a bait-and-switch.
   */
+  const quotedFor = useRef<string | null>(null);
   useEffect(() => {
-    setApplied(null);
+    const basket = `${subtotal}:${area}`;
+    if (quotedFor.current === null || quotedFor.current === basket) {
+      quotedFor.current = basket;
+      return;
+    }
+    quotedFor.current = basket;
+    setApplied((was) => {
+      if (was) {
+        setCouponError(
+          `${was.code} needs checking again for this order. Tap Apply to use it.`,
+        );
+      }
+      return null;
+    });
   }, [subtotal, area]);
 
   const baseCharge = deliveryChargeFor(area, subtotal, delivery);
@@ -311,7 +357,10 @@ export function CheckoutForm() {
                   name="name"
                   autoComplete="name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    clearIfFixed("name", { name: e.target.value });
+                  }}
                   aria-invalid={errors.name ? true : undefined}
                   aria-describedby={errors.name ? "name-error" : "name-hint"}
                   className={inputClass(Boolean(errors.name))}
@@ -334,7 +383,10 @@ export function CheckoutForm() {
                   autoComplete="tel"
                   placeholder="01712345678"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    setPhone(e.target.value);
+                    clearIfFixed("phone", { phone: e.target.value });
+                  }}
                   aria-invalid={errors.phone ? true : undefined}
                   aria-describedby={errors.phone ? "phone-error" : "phone-hint"}
                   className={inputClass(Boolean(errors.phone))}
@@ -373,7 +425,10 @@ export function CheckoutForm() {
                   rows={3}
                   autoComplete="street-address"
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                    clearIfFixed("address", { address: e.target.value });
+                  }}
                   aria-invalid={errors.address ? true : undefined}
                   aria-describedby={errors.address ? "address-error" : "address-hint"}
                   className={cn(inputClass(Boolean(errors.address)), "h-auto py-2.5")}

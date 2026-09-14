@@ -3,7 +3,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/dal";
 import { canOpenOrder, deviceOrderNumbers } from "@/lib/order-access";
-import { normalisePhone } from "@/lib/phone";
+import { canonicalPhone } from "@/lib/phone";
 import type { DeliveryArea } from "@/lib/orders";
 
 /**
@@ -166,7 +166,7 @@ export async function lookupOrder(
   phone: string,
 ): Promise<OrderView | null> {
   const trimmed = orderNo.trim().toUpperCase();
-  const normalised = normalisePhone(phone);
+  const normalised = canonicalPhone(phone);
   if (!trimmed || !normalised) return null;
 
   const row = await db.order.findFirst({

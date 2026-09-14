@@ -2,7 +2,7 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
-type Variant = "primary" | "secondary" | "ghost" | "brand";
+type Variant = "primary" | "secondary" | "ghost" | "brand" | "invert";
 type Size = "sm" | "md" | "lg";
 
 const base =
@@ -20,6 +20,18 @@ const variants: Record<Variant, string> = {
   // leaves the brand green free to mean "trust" rather than "click me".
   primary: "bg-ink text-white hover:bg-ink/90 active:bg-ink/80",
   brand: "bg-brand text-on-brand hover:bg-brand-hover active:bg-brand-hover",
+  /**
+   * The primary, inverted — for a button sitting on a dark panel.
+   *
+   * A variant rather than `className="bg-white text-ink"` at the call site.
+   * `cn` is a plain joiner, so passing `text-ink` next to the variant's
+   * `text-white` puts two `color` utilities on one element and lets stylesheet
+   * order decide. It decided `text-white`, and the newsletter's "Notify me"
+   * button spent its life as white text on a white background — 1:1 contrast,
+   * invisible, on the shop's one email-capture form. Colours belong in this
+   * map, where nothing can be competing with them.
+   */
+  invert: "bg-white text-ink hover:bg-white/90 active:bg-white/80",
   secondary:
     "bg-surface text-ink border border-line-strong hover:bg-subtle active:bg-muted",
   ghost: "bg-transparent text-ink hover:bg-muted active:bg-line",
