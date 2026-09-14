@@ -67,8 +67,14 @@ export function AccountProfile() {
         email: form.email.trim(),
       });
       setSaved(true);
-    } catch {
-      setFailure("Could not save your details. Check your connection and try again.");
+    } catch (error) {
+      // The server says what is wrong when it knows; "check your connection"
+      // is for when nothing came back at all, not for a rejected value.
+      setFailure(
+        error instanceof Error && error.message
+          ? error.message
+          : "Could not save your details. Check your connection and try again.",
+      );
     } finally {
       setBusy(false);
     }

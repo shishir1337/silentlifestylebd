@@ -23,6 +23,17 @@ export interface CartLine {
   price: number;
   image: string;
   size?: string;
+  /**
+   * The colour they chose, carried all the way to the order.
+   *
+   * Not a stock dimension — colour has no variant row and never limits what
+   * can be sold — but it is what has to go in the parcel. It used to be
+   * picked on the product page and then dropped on the floor: the swatch set
+   * state, the state was displayed, and `add` was never given it. A customer
+   * could choose Navy, watch "Colour: Navy" appear above the button, and have
+   * nothing about Navy reach the shop.
+   */
+  color?: string;
   qty: number;
 }
 
@@ -32,7 +43,7 @@ interface CartApi {
   subtotal: number;
   /** True once localStorage has been read; badges stay blank until then. */
   ready: boolean;
-  add: (product: Product, size?: string, qty?: number) => void;
+  add: (product: Product, size?: string, qty?: number, color?: string) => void;
   remove: (key: string) => void;
   setQty: (key: string, qty: number) => void;
   clear: () => void;
@@ -45,7 +56,8 @@ interface CartApi {
 
 const CartContext = createContext<CartApi | null>(null);
 
-const lineKey = (id: string, size?: string) => (size ? `${id}::${size}` : id);
+const lineKey = (id: string, size?: string, color?: string) =>
+  [id, size ?? "", color ?? ""].join("::").replace(/:+$/, "");
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
@@ -60,7 +72,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed: unknown = JSON.parse(raw);
-        if (Array.isArray(parsed)) setLines(parsed as CartLine[]);
+        /*
+          Sieved, not trusted. This has been on the customer's disk since who
+          knows when, through who knows how many versions of this code, and
+          one bad line poisons the whole bag: a line with `qty: 0` counted as
+          an empty cart, so checkout showed "Your bag is empty" to somebody
+          who could see their item in the drawer and had no way to remove it.
+
+          Dropping the bad line is the only option that leaves them able to
+          shop. Keeping it strands them; clearing everything throws away the
+          items that were fine.
+        */
+        if (Array.isArray(parsed)) {
+          setLines(
+            (parsed as CartLine[]).filter(
+              (l) =>
+                l &&
+                typeof l.key === "string" &&
+                typeof l.productId === "string" &&
+                Number.isFinite(l.qty) &&
+                Number.isInteger(l.qty) &&
+                l.qty > 0,
+            ),
+          );
+        }
       }
     } catch {
       // Private mode, quota, or corrupt JSON — an empty cart is a fine fallback.
@@ -77,9 +112,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [lines, ready]);
 
-  const add = useCallback((product: Product, size?: string, qty = 1) => {
+  const add = useCallback((product: Product, size?: string, qty = 1, color?: string) => {
     setLines((prev) => {
-      const key = lineKey(product.id, size);
+      const key = lineKey(product.id, size, color);
       const existing = prev.find((l) => l.key === key);
       if (existing) {
         return prev.map((l) => (l.key === key ? { ...l, qty: l.qty + qty } : l));
@@ -94,6 +129,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           price: product.price,
           image: product.image.url,
           size,
+          color,
           qty,
         },
       ];

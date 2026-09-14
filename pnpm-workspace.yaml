@@ -21,3 +21,4 @@ allowBuilds:
 
   # Cloudflare Workers runtime — unused, this deploys as a Node server.
   workerd: false
+

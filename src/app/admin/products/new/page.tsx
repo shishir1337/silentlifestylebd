@@ -10,7 +10,9 @@ export const metadata: Metadata = {
 };
 
 export default async function NewProductPage() {
-  const staff = await requireCatalogAccess();
+  // Called for the guard, not the value: it redirects anyone who should not
+  // be here. See `access.ts`.
+  await requireCatalogAccess();
   const [categories, assets] = await Promise.all([listCategories(), listAssets()]);
 
   return (

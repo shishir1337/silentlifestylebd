@@ -184,6 +184,7 @@ export function OrderQuickView({
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] leading-snug">{item.name}</p>
                         <p className="mt-0.5 text-[12px] text-ink-muted">
+                          {item.color ? `${item.color} · ` : ""}
                           {item.size ? `Size ${item.size} · ` : ""}
                           {item.qty} × <Taka amount={item.unitPrice} />
                         </p>

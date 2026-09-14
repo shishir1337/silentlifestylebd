@@ -21,6 +21,16 @@ try {
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const db = new PrismaClient({ adapter });
 
+/**
+ * The seed file, as loosely as it deserves.
+ *
+ * `any` rather than `unknown` on purpose, and the only one in the project:
+ * this reads a hand-maintained JSON fixture and walks it a dozen levels deep,
+ * so `unknown` would mean a cast at every step and buy nothing — there is no
+ * caller to protect and a wrong shape fails loudly on the next line. Anywhere
+ * an untrusted value crosses a boundary, it is typed properly instead.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: see above — a local fixture reader, not a boundary.
 type Json = Record<string, any>;
 const data: Json = JSON.parse(
   readFileSync(new URL("./seed/data.json", import.meta.url), "utf-8"),

@@ -18,17 +18,28 @@ export async function SiteFooter() {
   const [site, nav] = await Promise.all([getSiteSettings(), getNav()]);
   const { delivery } = site;
 
-  // wa.me wants the number without a leading plus, and it should be the same
-  // number the client edits in Settings — not a second one to keep in step.
+  /*
+    From Settings, and only what is filled in.
+
+    These were `https://facebook.com` and `https://instagram.com` — the
+    platforms' own front pages, hardcoded in two files. An icon that promises
+    the shop's page and delivers Facebook's is worse than no icon, and because
+    they were in the source rather than in Settings, fixing them needed a
+    developer. That is the one thing this admin panel exists to avoid.
+
+    WhatsApp falls back to the shop's phone number, because that is almost
+    always the same number and asking for it twice invites the two to drift.
+  */
+  const whatsapp = site.social.whatsapp || site.phone;
   const socials = [
-    { href: "https://facebook.com", label: "Facebook", Icon: FacebookIcon },
-    { href: "https://instagram.com", label: "Instagram", Icon: InstagramIcon },
+    { href: site.social.facebook, label: "Facebook", Icon: FacebookIcon },
+    { href: site.social.instagram, label: "Instagram", Icon: InstagramIcon },
     {
-      href: `https://wa.me/${site.phone.replace(/\D/g, "")}`,
+      href: whatsapp ? `https://wa.me/${whatsapp.replace(/\D/g, "")}` : "",
       label: "WhatsApp",
       Icon: WhatsAppIcon,
     },
-  ];
+  ].filter((s) => s.href);
 
   return (
     <footer className="mt-16 border-t border-line bg-subtle sm:mt-24">

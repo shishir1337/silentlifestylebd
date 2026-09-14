@@ -109,11 +109,16 @@ export function SettingsForm({ groups }: { groups: SettingGroup[] }) {
                 >
                   {g.title}
                   {n > 0 ? (
-                    <span
-                      aria-label={`${n} unsaved`}
-                      className="inline-flex min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-on-brand"
-                    >
+                    <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-semibold text-on-brand">
                       {n}
+                      {/*
+                        A bare `<span>` has no role, so an `aria-label` on it
+                        is ignored — this badge used to carry one and announced
+                        nothing at all. The count is the only thing telling
+                        somebody they have unsaved changes on a tab they cannot
+                        see, so the words go in the tree as text instead.
+                      */}
+                      <span className="sr-only"> unsaved</span>
                     </span>
                   ) : null}
                 </button>

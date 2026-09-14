@@ -11,7 +11,9 @@ export const metadata: Metadata = {
 };
 
 export default async function EditProductPage(props: PageProps<"/admin/products/[id]">) {
-  const staff = await requireCatalogAccess();
+  // Called for the guard, not the value: it redirects anyone who should not
+  // be here. See `access.ts`.
+  await requireCatalogAccess();
   const { id } = await props.params;
 
   const [product, categories, assets] = await Promise.all([

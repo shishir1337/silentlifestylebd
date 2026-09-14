@@ -103,7 +103,9 @@ export async function AccountOrders({ orders }: { orders: OrderView[] }) {
                           {line.name}
                         </Link>
                         <p className="tabular mt-0.5 text-[12px] text-ink-muted">
-                          {line.size ? `Size ${line.size} · ` : ""}Qty {line.qty}
+                          {[line.color, line.size && `Size ${line.size}`, `Qty ${line.qty}`]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </p>
                       </div>
                       <Taka

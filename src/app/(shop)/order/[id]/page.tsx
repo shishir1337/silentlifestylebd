@@ -6,11 +6,28 @@ import { PhoneIcon } from "@/components/ui/icons";
 import { getOrderForViewer } from "@/lib/order-reads";
 import { getSiteSettings } from "@/lib/settings";
 
-export const metadata: Metadata = {
-  title: "Order confirmed",
-  // Nothing to rank for, and it renders a customer's name, phone and address.
-  robots: { index: false, follow: false },
-};
+/**
+ * The title has to agree with the page.
+ *
+ * It was a constant "Order confirmed", which is the wrong thing to put in a
+ * browser tab, a bookmark and a shared link when the body says "we can't find
+ * that order" — and that is the case a confused customer is most likely to be
+ * looking at, and most likely to send to someone for help.
+ *
+ * `getOrderForViewer` is wrapped in React's `cache`, so asking here and again
+ * in the page body is one query, not two.
+ */
+export async function generateMetadata(
+  props: PageProps<"/order/[id]">,
+): Promise<Metadata> {
+  const { id } = await props.params;
+  const order = await getOrderForViewer(id.toUpperCase());
+  return {
+    title: order ? `Order ${order.orderNo}` : "Order not found",
+    // Nothing to rank for, and it renders a customer's name, phone and address.
+    robots: { index: false, follow: false },
+  };
+}
 
 /**
  * Order confirmation.

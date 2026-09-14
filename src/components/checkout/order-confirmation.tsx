@@ -167,7 +167,9 @@ export async function OrderConfirmation({ order }: { order: OrderView }) {
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-2 text-[13px] leading-snug">{line.name}</p>
                     <p className="tabular mt-0.5 text-[12px] text-ink-muted">
-                      {line.size ? `Size ${line.size} · ` : ""}Qty {line.qty}
+                      {[line.color, line.size && `Size ${line.size}`, `Qty ${line.qty}`]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   </div>
                   {/*

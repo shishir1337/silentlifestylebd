@@ -139,6 +139,7 @@ export function CheckoutForm() {
         lines: lines.map((l) => ({
           productId: l.productId,
           size: l.size ?? "",
+          color: l.color,
           qty: l.qty,
         })),
         area,
@@ -225,6 +226,7 @@ export function CheckoutForm() {
       lines: lines.map((l) => ({
         productId: l.productId,
         size: l.size ?? "",
+        color: l.color,
         qty: l.qty,
       })),
       ...customer,
@@ -525,7 +527,9 @@ export function CheckoutForm() {
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-2 text-[13px] leading-snug">{line.name}</p>
                     <p className="tabular mt-0.5 text-[12px] text-ink-muted">
-                      {line.size ? `Size ${line.size} · ` : ""}Qty {line.qty}
+                      {[line.color, line.size && `Size ${line.size}`, `Qty ${line.qty}`]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
                   </div>
                   <Taka amount={line.price * line.qty} className="text-[13px] font-semibold" />

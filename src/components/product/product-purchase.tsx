@@ -43,7 +43,7 @@ export function ProductPurchase({ product }: { product: Product }) {
 
   function addToBag() {
     if (!validate()) return;
-    add(product, size, qty);
+    add(product, size, qty, color);
     setAdded(true);
     openDrawer();
     window.setTimeout(() => setAdded(false), 2000);
@@ -51,7 +51,7 @@ export function ProductPurchase({ product }: { product: Product }) {
 
   function buyNow() {
     if (!validate()) return;
-    add(product, size, qty);
+    add(product, size, qty, color);
     router.push("/checkout");
   }
 
@@ -101,7 +101,13 @@ export function ProductPurchase({ product }: { product: Product }) {
             </legend>
             <a
               href="/size-guide"
-              className="inline-flex min-h-6 items-center text-[12px] font-medium text-brand underline underline-offset-2"
+              /*
+                A standalone control, so it gets a standalone target.
+                `min-h-6` sat it exactly on the 24px WCAG floor with nothing
+                to spare; the height comes from padding so the underline still
+                hugs the words rather than floating away from them.
+              */
+              className="-my-2 inline-flex min-h-11 items-center py-2 text-[12px] font-medium text-brand underline underline-offset-2"
             >
               Size guide
             </a>

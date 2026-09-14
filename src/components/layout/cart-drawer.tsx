@@ -122,8 +122,12 @@ export function CartDrawer() {
                   >
                     {line.name}
                   </Link>
-                  {line.size ? (
-                    <p className="mt-0.5 text-[12px] text-ink-muted">Size: {line.size}</p>
+                  {line.size || line.color ? (
+                    <p className="mt-0.5 text-[12px] text-ink-muted">
+                      {[line.color, line.size && `Size ${line.size}`]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
                   ) : null}
 
                   <div className="mt-auto flex items-center justify-between gap-2 pt-2">

@@ -29,7 +29,16 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function ContactPage() {
   const site = await getSiteSettings();
-  const whatsApp = `https://wa.me/${site.phone.replace(/[^0-9]/g, "")}`;
+  // Same source as the footer: Settings, falling back to the shop number.
+  const whatsAppNumber = site.social.whatsapp || site.phone;
+  const whatsApp = whatsAppNumber
+    ? `https://wa.me/${whatsAppNumber.replace(/[^0-9]/g, "")}`
+    : "";
+  const socials = [
+    { href: site.social.facebook, label: "Facebook", Icon: FacebookIcon },
+    { href: site.social.instagram, label: "Instagram", Icon: InstagramIcon },
+    { href: whatsApp, label: "WhatsApp", Icon: WhatsAppIcon },
+  ].filter((s) => s.href);
 
   return (
     <Container>
@@ -110,11 +119,7 @@ export default async function ContactPage() {
 
       <Section id="social" title="Find us online">
         <ul className="flex items-center gap-2">
-          {[
-            { href: "https://facebook.com", label: "Facebook", Icon: FacebookIcon },
-            { href: "https://instagram.com", label: "Instagram", Icon: InstagramIcon },
-            { href: whatsApp, label: "WhatsApp", Icon: WhatsAppIcon },
-          ].map(({ href, label, Icon }) => (
+          {socials.map(({ href, label, Icon }) => (
             <li key={label}>
               <a
                 href={href}

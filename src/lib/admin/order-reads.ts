@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Prisma, type OrderStatus } from "@prisma/client";
+import type { Prisma, OrderStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { DeliveryArea } from "@/lib/orders";
 
@@ -192,6 +192,7 @@ export interface AdminOrderDetail {
     name: string;
     slug: string;
     size: string | null;
+    color: string | null;
     unitPrice: number;
     qty: number;
     imageUrl: string;
@@ -232,6 +233,7 @@ export async function getOrder(orderNo: string): Promise<AdminOrderDetail | null
           name: true,
           slug: true,
           size: true,
+          color: true,
           unitPrice: true,
           qty: true,
           imageUrl: true,

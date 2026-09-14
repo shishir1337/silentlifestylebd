@@ -31,5 +31,20 @@ export interface SiteSettings {
   phoneDisplay: string;
   email: string;
   address: string;
+  /**
+   * Where the shop is, off the shop.
+   *
+   * Empty means "we are not on that one", and the link is not rendered — an
+   * icon linking to facebook.com rather than to the page is worse than no
+   * icon, and that is exactly what these were hardcoded to.
+   */
+  social: SocialLinks;
   delivery: DeliverySettings;
+}
+
+export interface SocialLinks {
+  facebook: string;
+  instagram: string;
+  /** Just the number; the wa.me URL is built from it. */
+  whatsapp: string;
 }

@@ -30,7 +30,7 @@ export default function SignInPage() {
           New here?{" "}
           <Link
             href="/signup"
-            className="font-medium text-brand underline underline-offset-2"
+            className="-my-2 inline-flex min-h-11 items-center py-2 font-medium text-brand underline underline-offset-2"
           >
             Create an account
           </Link>

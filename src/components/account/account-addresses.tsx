@@ -63,8 +63,12 @@ export function AccountAddresses() {
       await upsert({ ...draft, label: draft.label.trim() || "Address" });
       setDraft(null);
       setErrors({});
-    } catch {
-      setFailure("Could not save that address. Check your connection and try again.");
+    } catch (error) {
+      setFailure(
+        error instanceof Error && error.message
+          ? error.message
+          : "Could not save that address. Check your connection and try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -75,8 +79,12 @@ export function AccountAddresses() {
     setFailure(null);
     try {
       await action;
-    } catch {
-      setFailure("That did not go through. Check your connection and try again.");
+    } catch (error) {
+      setFailure(
+        error instanceof Error && error.message
+          ? error.message
+          : "That did not go through. Check your connection and try again.",
+      );
     }
   }
 

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import type { DeliveryArea } from "@/lib/orders";
 import type { OrderStatusView } from "@/lib/order-reads";

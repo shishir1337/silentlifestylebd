@@ -12,6 +12,8 @@ export interface PlaceOrderLine {
   productId: string;
   /** Empty string for products sold without a size. */
   size: string;
+  /** Display-only, and checked against the product before it is stored. */
+  color?: string;
   qty: number;
 }
 

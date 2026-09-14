@@ -104,7 +104,7 @@ export function SignInForm() {
       <div className="flex justify-end">
         <Link
           href="/forgot-password"
-          className="text-[13px] font-medium text-brand underline underline-offset-2"
+          className="-my-2 inline-flex min-h-11 items-center py-2 text-[13px] font-medium text-brand underline underline-offset-2"
         >
           Forgot your password?
         </Link>

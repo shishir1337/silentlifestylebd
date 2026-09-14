@@ -29,7 +29,9 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
  * and put a number in".
  */
 export default async function AdminProductsPage(props: PageProps<"/admin/products">) {
-  const staff = await requireCatalogAccess();
+  // Called for the guard, not the value: it redirects anyone who should not
+  // be here. See `access.ts`.
+  await requireCatalogAccess();
   const sp = await props.searchParams;
 
   const query = {

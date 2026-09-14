@@ -70,7 +70,28 @@ export async function loadAccount(): Promise<AccountSnapshot> {
   };
 }
 
-export async function saveProfile(input: Profile): Promise<Profile> {
+/**
+ * Returned, not thrown.
+ *
+ * These messages are written for the customer — "Enter your full name", not a
+ * stack trace — and a thrown one never reaches them: Next redacts a Server
+ * Action error in production and hands the client a digest instead, so the
+ * screen fell back to "Check your connection and try again" for a problem that
+ * has nothing to do with their connection. Advice that is not merely useless
+ * but wrong.
+ *
+ * Authentication still throws. Somebody who is not signed in has no business
+ * here and there is nothing useful to tell them.
+ */
+export type ProfileResult =
+  | { ok: true; profile: Profile }
+  | { ok: false; message: string };
+
+export type AddressResult =
+  | { ok: true; addresses: Address[] }
+  | { ok: false; message: string };
+
+export async function saveProfile(input: Profile): Promise<ProfileResult> {
   const session = await assertUser();
 
   const name = input.name.trim();
@@ -79,10 +100,14 @@ export async function saveProfile(input: Profile): Promise<Profile> {
 
   // Re-validated here, not just in the form. The form's validation is a
   // courtesy to the customer; this is the one that decides what gets stored.
-  if (name.length < 3) throw new Error("Enter your full name.");
-  if (phone && !isBDMobile(phone)) throw new Error("Enter a valid mobile number.");
+  if (name.length < 3) {
+    return { ok: false, message: "Enter your full name." };
+  }
+  if (phone && !isBDMobile(phone)) {
+    return { ok: false, message: "Enter a valid mobile number." };
+  }
   if (altPhone && !isBDMobile(altPhone)) {
-    throw new Error("Enter a valid alternative number.");
+    return { ok: false, message: "Enter a valid alternative number." };
   }
 
   const user = await db.user.update({
@@ -96,14 +121,17 @@ export async function saveProfile(input: Profile): Promise<Profile> {
 
   revalidatePath("/account");
   return {
-    name: user.name,
-    email: user.email,
-    phone: user.phone ?? "",
-    altPhone: user.altPhone ?? "",
+    ok: true,
+    profile: {
+      name: user.name,
+      email: user.email,
+      phone: user.phone ?? "",
+      altPhone: user.altPhone ?? "",
+    },
   };
 }
 
-export async function saveAddress(input: Address): Promise<Address[]> {
+export async function saveAddress(input: Address): Promise<AddressResult> {
   const session = await assertUser();
 
   const data = {
@@ -114,9 +142,15 @@ export async function saveAddress(input: Address): Promise<Address[]> {
     area: toPrismaArea(input.area),
   };
 
-  if (data.recipient.length < 3) throw new Error("Enter who should receive it.");
-  if (!isBDMobile(data.phone)) throw new Error("Enter a valid mobile number.");
-  if (data.address.length < 10) throw new Error("Enter the full address.");
+  if (data.recipient.length < 3) {
+    return { ok: false, message: "Enter who should receive it." };
+  }
+  if (!isBDMobile(data.phone)) {
+    return { ok: false, message: "Enter a valid mobile number." };
+  }
+  if (data.address.length < 10) {
+    return { ok: false, message: "Enter the full address." };
+  }
 
   /**
    * One transaction, because "exactly one default" is a rule about the whole
@@ -158,7 +192,7 @@ export async function saveAddress(input: Address): Promise<Address[]> {
   });
 
   revalidatePath("/account/addresses");
-  return listAddresses(session.id);
+  return { ok: true, addresses: await listAddresses(session.id) };
 }
 
 export async function deleteAddress(id: string): Promise<Address[]> {

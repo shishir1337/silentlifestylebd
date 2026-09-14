@@ -31,7 +31,38 @@ import type { SaveResult } from "@/lib/admin/catalog-types";
 function validate(key: string, type: string, value: string): string | null {
   const trimmed = value.trim();
 
-  if (!trimmed) return "This cannot be left blank.";
+  /*
+    The social links may be blank, and blank is meaningful: it means "we are
+    not on that one", and the footer then renders no icon rather than a dead
+    one. Every other setting is load-bearing and an empty value would be a
+    silent hole in the shop.
+  */
+  if (!trimmed) {
+    return key.startsWith("social.") ? null : "This cannot be left blank.";
+  }
+
+  if (key === "social.facebook" || key === "social.instagram") {
+    let url: URL;
+    try {
+      url = new URL(trimmed);
+    } catch {
+      return "Paste the whole address, starting with https://";
+    }
+    if (url.protocol !== "https:") return "The address must start with https://";
+    const expected = key === "social.facebook" ? "facebook.com" : "instagram.com";
+    if (!url.hostname.endsWith(expected)) {
+      return `That is not a ${expected} address.`;
+    }
+    // The bug this whole field exists to fix: a link to the platform rather
+    // than to the shop. A page address has something after the slash.
+    if (url.pathname.replace(/\/+$/, "") === "") {
+      return `That is ${expected} itself, not your page on it. Open your page and copy the address from the browser.`;
+    }
+  }
+
+  if (key === "social.whatsapp" && !isBDMobile(trimmed)) {
+    return "Use a Bangladeshi mobile number, or leave it blank to use the phone number above.";
+  }
 
   if (type === "INT") {
     if (!/^\d+$/.test(trimmed)) return "Use whole numbers only — no decimals, no symbols.";
@@ -74,7 +105,10 @@ export async function saveSettings(
     const problem = validate(row.key, row.type, next);
     if (problem) return { ok: false, message: `${row.label}: ${problem}` };
 
-    const to = row.key === "site.phone" ? normalisePhone(next.trim()) : next.trim();
+    const to =
+      row.key === "site.phone" || row.key === "social.whatsapp"
+        ? normalisePhone(next.trim())
+        : next.trim();
     if (to !== row.value) {
       changes.push({ key: row.key, label: row.label, from: row.value, to });
     }

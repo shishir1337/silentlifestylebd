@@ -492,6 +492,10 @@ model OrderItem {
 
   name      String
   size      String?
+  /// Which colour the customer picked. Display-only — it is not a stock
+  /// dimension — but it is what has to go in the parcel, so it is recorded
+  /// here rather than left on the page they chose it from.
+  color     String?
   unitPrice Int
   qty       Int
   imageUrl  String

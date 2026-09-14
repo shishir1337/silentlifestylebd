@@ -16,7 +16,9 @@
     "db:seed": "node --experimental-strip-types --disable-warning=ExperimentalWarning prisma/seed.mts",
     "db:studio": "prisma studio",
     "admin:grant": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/grant-staff.mts",
-    "admin:create": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/create-owner.mts"
+    "admin:create": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/create-owner.mts",
+    "lint": "biome lint",
+    "lint:fix": "biome lint --write"
   },
   "dependencies": {
     "@prisma/client": "^7.10.0",
@@ -32,6 +34,7 @@
     "server-only": "^0.0.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.13",
     "@imagekit/nodejs": "^7.11.0",
     "@prisma/adapter-pg": "7.10.0",
     "@tailwindcss/postcss": "^4",

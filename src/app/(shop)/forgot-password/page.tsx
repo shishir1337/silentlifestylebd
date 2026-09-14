@@ -19,7 +19,7 @@ export default function ForgotPasswordPage() {
           Remembered it?{" "}
           <Link
             href="/signin"
-            className="font-medium text-brand underline underline-offset-2"
+            className="-my-2 inline-flex min-h-11 items-center py-2 font-medium text-brand underline underline-offset-2"
           >
             Back to sign in
           </Link>

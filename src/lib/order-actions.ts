@@ -101,12 +101,18 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
   if (!who) warnOnce();
   /*
     An unidentifiable caller is not counted at all, rather than counted in a
-    bucket shared with everybody else. Eight orders per ten minutes across the
-    entire shop would refuse real customers on the first busy evening, and the
-    thing this limit protects against — a script filing junk orders — is worth
-    less than the sales that would cost.
+    bucket shared with everybody else. A shop-wide cap would refuse real
+    customers on the first busy evening, and the thing this limit protects
+    against — a script filing junk orders — is worth less than that.
+
+    The IP budget is deliberately loose. Grameenphone, Robi and Banglalink all
+    put large numbers of subscribers behind carrier-grade NAT, so in this
+    country one public address is a neighbourhood rather than a person — and a
+    campaign evening puts a lot of that neighbourhood on the site at once.
+    Eight orders per ten minutes was a number for a world with one customer
+    per address; here it would have refused people who had done nothing wrong.
   */
-  const rate = who ? await consume(`order:${who}`, 600, 8) : null;
+  const rate = who ? await consume(`order:${who}`, 600, 40) : null;
   if (rate && !rate.allowed) {
     return {
       ok: false,
@@ -137,6 +143,27 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     return { ok: false, message: "Your bag is empty." };
   }
 
+  /*
+    The tighter net, and the one that actually identifies somebody.
+
+    Now that the address is loose enough not to catch a whole mobile network
+    (see above), this is what is left holding a script back — and it is the
+    better question anyway: a phone number is one customer, where an IP in
+    Bangladesh is a neighbourhood. Six orders on one number in ten minutes is
+    already more than anybody buying clothes, and the refusal names the phone
+    so a household placing genuine orders can use their second number.
+
+    Counted only once the number is known to be a real mobile, so junk input
+    cannot be used to fill somebody else's bucket.
+  */
+  const phoneRate = await consume(`order-phone:${phone}`, 600, 6);
+  if (phoneRate && !phoneRate.allowed) {
+    return {
+      ok: false,
+      message: `That is a lot of orders on this number. Try again in ${Math.ceil(phoneRate.retryAfter / 60)} minutes, or call us and we will place it for you.`,
+    };
+  }
+
   /**
    * Collapse duplicates before pricing.
    *
@@ -153,11 +180,15 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     if (qty > 50) {
       return { ok: false, message: "Ordering more than 50 of one item? Please call us." };
     }
-    const key = `${line.productId} ${line.size ?? ""}`;
+    // Colour is part of the identity of a line, not a label on it: two
+    // panjabis of the same size in different colours are two things to put in
+    // the parcel, and collapsing them would quietly ship one of them twice.
+    const key = `${line.productId} ${line.size ?? ""} ${line.color ?? ""}`;
     const seen = wanted.get(key);
     wanted.set(key, {
       productId: line.productId,
       size: line.size ?? "",
+      color: line.color,
       qty: (seen?.qty ?? 0) + qty,
     });
   }
@@ -172,6 +203,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       name: true,
       price: true,
       variants: { select: { id: true, size: true, stock: true } },
+      colors: { select: { name: true } },
       images: {
         where: { role: "PRIMARY" },
         take: 1,
@@ -188,6 +220,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     name: string;
     slug: string;
     size: string;
+    color: string | null;
     unitPrice: number;
     qty: number;
     imageUrl: string;
@@ -218,6 +251,13 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       name: product.name,
       slug: product.slug,
       size: line.size,
+      /*
+        Checked against the catalogue, like everything else here. A colour is
+        only a label, but it is a label that ends up on a picking slip — so a
+        line claiming a colour this product is not made in is dropped rather
+        than printed.
+      */
+      color: product.colors.some((c) => c.name === line.color) ? line.color! : null,
       // The price as it is *now*, never the one the browser sent.
       unitPrice: product.price,
       qty: line.qty,
@@ -377,6 +417,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
                 // Null, not "", for a product sold without a size — the column
                 // is nullable and an empty string would render as a blank size.
                 size: l.size || null,
+                color: l.color,
                 unitPrice: l.unitPrice,
                 qty: l.qty,
                 imageUrl: l.imageUrl,

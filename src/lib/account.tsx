@@ -139,7 +139,12 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const persistProfile = useCallback(
     async (next: Profile) => {
       if (signedIn) {
-        setProfile(await saveProfile(next));
+        const result = await saveProfile(next);
+        // Thrown here rather than there: a Server Action error is redacted in
+        // production, but this is an ordinary client-side throw and the
+        // message survives to the screen that has to show it.
+        if (!result.ok) throw new Error(result.message);
+        setProfile(result.profile);
         return;
       }
       setProfile(next);
@@ -151,7 +156,9 @@ export function AccountProvider({ children }: { children: ReactNode }) {
   const upsertAddress = useCallback(
     async (entry: Address) => {
       if (signedIn) {
-        setAddresses(await saveAddress(entry));
+        const result = await saveAddress(entry);
+        if (!result.ok) throw new Error(result.message);
+        setAddresses(result.addresses);
         return;
       }
       setAddresses((prev) => {

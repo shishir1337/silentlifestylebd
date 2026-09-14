@@ -44,6 +44,9 @@ const FALLBACK: SiteSettings = {
   phoneDisplay: "+880 1711-000000",
   email: "hello@silentlifestylebd.com",
   address: "Bashundhara City, Panthapath, Dhaka 1215",
+  // Blank, deliberately. A social icon that goes to the platform rather than
+  // to the shop is a dead end; better to show nothing until it is filled in.
+  social: { facebook: "", instagram: "", whatsapp: "" },
   delivery: {
     insideDhaka: 60,
     outsideDhaka: 120,
@@ -79,6 +82,11 @@ export const getSiteSettings = unstable_cache(
       phoneDisplay: text("site.phoneDisplay", f.phoneDisplay),
       email: text("site.email", f.email),
       address: text("site.address", f.address),
+      social: {
+        facebook: text("social.facebook", f.social.facebook),
+        instagram: text("social.instagram", f.social.instagram),
+        whatsapp: text("social.whatsapp", f.social.whatsapp),
+      },
       delivery: {
         insideDhaka: int("delivery.insideDhaka", f.delivery.insideDhaka),
         outsideDhaka: int("delivery.outsideDhaka", f.delivery.outsideDhaka),

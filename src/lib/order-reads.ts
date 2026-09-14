@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/dal";
 import { canOpenOrder, deviceOrderNumbers } from "@/lib/order-access";
@@ -18,6 +19,7 @@ export interface OrderItemView {
   name: string;
   slug: string;
   size: string | null;
+  color: string | null;
   unitPrice: number;
   qty: number;
   imageUrl: string;
@@ -74,6 +76,7 @@ const SELECT = {
       name: true,
       slug: true,
       size: true,
+      color: true,
       unitPrice: true,
       qty: true,
       imageUrl: true,
@@ -136,7 +139,9 @@ function toView(row: Row): OrderView {
  * confirmation page a slow but usable way to harvest names, phone numbers and
  * home addresses.
  */
-export async function getOrderForViewer(orderNo: string): Promise<OrderView | null> {
+export const getOrderForViewer = cache(async function getOrderForViewer(
+  orderNo: string,
+): Promise<OrderView | null> {
   const [session, allowedByDevice] = await Promise.all([
     getSession(),
     canOpenOrder(orderNo),
@@ -152,7 +157,7 @@ export async function getOrderForViewer(orderNo: string): Promise<OrderView | nu
   if (!owned && !allowedByDevice) return null;
 
   return toView(row as Row);
-}
+});
 
 /**
  * Public lookup for the tracking page: order number **and** the phone it was

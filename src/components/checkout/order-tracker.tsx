@@ -7,7 +7,7 @@ import { Field, inputClass } from "@/components/ui/field";
 import { CashIcon, CheckIcon, PhoneIcon, SearchIcon, TruckIcon } from "@/components/ui/icons";
 import { formatOrderDate } from "@/lib/orders";
 import { myRecentOrders, trackOrder } from "@/lib/order-actions";
-import { ORDER_FLOW, ORDER_STATUS, STATUS_CHIP, flowIndex } from "@/lib/order-status";
+import { ORDER_STATUS, STATUS_CHIP, flowIndex } from "@/lib/order-status";
 import type { OrderView } from "@/lib/order-reads";
 import { useSettings } from "@/lib/site-settings";
 import { cn } from "@/lib/cn";
