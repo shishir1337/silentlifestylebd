@@ -33,9 +33,28 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-[var(--z-header)] border-b border-line bg-canvas/95 backdrop-blur-sm supports-[backdrop-filter]:bg-canvas/80">
       <Container>
         <div className="flex h-14 items-center gap-2 sm:h-16 sm:gap-4">
-          <MobileMenu categories={menuCategories} nav={nav} />
+          {/*
+            Two rails of equal width on either side of the mark, so the mark
+            lands in the middle of the screen rather than wherever the controls
+            beside it happen to end.
 
-          <Logo className="mr-auto" />
+            `flex-1` on both is what does it: they split the leftover space in
+            half, whatever is inside them. That matters here because they are
+            *not* the same size — the menu button is 44px and the bag is 36px,
+            and the account link appears at `sm` and not before. Centring the
+            logo by eye, or by padding, would drift every time one of those
+            changed. This cannot.
+
+            Below `lg` only. On desktop the rail collapses, the menu button is
+            already hidden, and the mark goes back to the left with the nav
+            beside it — which is the right shape once there is a nav to put
+            there.
+          */}
+          <div className="flex flex-1 items-center lg:hidden">
+            <MobileMenu categories={menuCategories} nav={nav} />
+          </div>
+
+          <Logo className="lg:mr-auto" />
 
 
           {/* Desktop primary nav */}
@@ -78,7 +97,8 @@ export async function SiteHeader() {
             </div>
           </form>
 
-          <div className="flex items-center">
+          {/* The other rail. See the note on the first one. */}
+          <div className="flex flex-1 items-center justify-end lg:flex-none">
             <Link
               href="/account"
               aria-label="Your account"
