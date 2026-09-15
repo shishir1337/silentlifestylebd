@@ -3,45 +3,77 @@
 import { useRef, useState } from "react";
 import { createUploadAuth, recordUpload } from "@/lib/admin/media-actions";
 import type { AssetRow } from "@/lib/admin/catalog-reads";
+import { cn } from "@/lib/cn";
 
-/** ImageKit's own limit on the free and starter plans, and plenty for a photo. */
+/** ImageKit's own limit on the free and starter plans. */
 const MAX_BYTES = 25 * 1024 * 1024;
-const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+/**
+ * MP4 first, deliberately.
+ *
+ * It is the one container every phone in this market records and every browser
+ * plays. WebM and QuickTime are accepted because a customer's phone or a
+ * designer's Mac will produce them, and refusing the file somebody already has
+ * is worse than transcoding it at ImageKit's edge.
+ */
+const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+
+interface Job {
+  name: string;
+  /** 0–100 of this file's bytes, as reported by the browser. */
+  pct: number;
+  state: "uploading" | "saving" | "done" | "failed";
+  problem?: string;
+}
 
 /**
- * Upload a picture.
+ * Upload pictures and video.
  *
  * The file goes from the browser straight to ImageKit, using a signature this
  * server minted moments earlier. It never passes through the app — a single VPS
- * has better things to do than buffer a 4 MB photo on its way somewhere else,
+ * has better things to do than buffer a 20 MB video on its way somewhere else,
  * and the private key stays where it belongs.
  *
  * Afterwards the server is told the file id and reads the real details back
  * from ImageKit itself, so what lands in the database is what ImageKit has,
  * not what a browser claimed.
  *
+ * ## Why XMLHttpRequest, in 2026
+ *
+ * `fetch` cannot report how much of a request body has been sent. There is no
+ * progress event and no way to add one; the upload is opaque until it finishes.
+ * That was tolerable for a 2 MB photograph and is not for a product video —
+ * "Uploading…" sitting unchanged for ninety seconds on a Bangladeshi mobile
+ * connection is indistinguishable from a page that has hung, and the honest
+ * response to that is to press the button again. `XMLHttpRequest` still has
+ * `upload.onprogress`, so it is what this uses.
+ *
  * Several files at once, and one at a time on the wire. A shop photographs a
  * garment front, back and detail in one sitting and has no reason to do three
- * round trips through a file dialog — but each upload still needs its own
- * signature, and firing ten at a browser's six-connection limit only makes the
- * last one slower. They go in sequence with a count on the button, so a slow
- * connection looks like progress rather than a hang.
+ * round trips through a file dialog — but each upload needs its own signature,
+ * and firing ten at a browser's six-connection limit only makes the last one
+ * slower.
  */
 export function UploadButton({
   onUploaded,
   multiple = false,
   label = "Upload",
   id = "admin-upload",
+  accept = "image",
 }: {
   onUploaded: (asset: AssetRow) => void;
   multiple?: boolean;
   label?: string;
   id?: string;
+  /** `both` opens the picker to video as well. */
+  accept?: "image" | "both";
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+
+  const allowed = accept === "both" ? [...IMAGE_TYPES, ...VIDEO_TYPES] : IMAGE_TYPES;
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
     const files = [...(e.target.files ?? [])];
@@ -50,28 +82,48 @@ export function UploadButton({
     if (files.length === 0) return;
 
     setBusy(true);
-    setError(null);
-    setProgress(files.length > 1 ? { done: 0, total: files.length } : null);
+    setJobs(files.map((f) => ({ name: f.name, pct: 0, state: "uploading" as const })));
 
-    const refused: string[] = [];
     for (const [i, file] of files.entries()) {
-      if (files.length > 1) setProgress({ done: i, total: files.length });
-      const problem = await upload(file);
-      if (problem) refused.push(`${file.name}: ${problem}`);
+      const problem = await upload(file, (pct) => {
+        setJobs((prev) => prev.map((j, n) => (n === i ? { ...j, pct } : j)));
+      }, () => {
+        setJobs((prev) => prev.map((j, n) => (n === i ? { ...j, pct: 100, state: "saving" } : j)));
+      });
+
+      setJobs((prev) =>
+        prev.map((j, n) =>
+          n === i
+            ? problem
+              ? { ...j, state: "failed", problem }
+              : { ...j, pct: 100, state: "done" }
+            : j,
+        ),
+      );
     }
 
     setBusy(false);
-    setProgress(null);
     /*
-      One bad file out of five must not throw away the four that worked, so
-      each is reported by name. The others are already on screen.
+      Successful rows clear themselves; the pictures are already on screen and
+      a list of green ticks is just clutter. Failures stay until the next pick,
+      because one bad file out of five must not disappear quietly.
     */
-    setError(refused.length > 0 ? refused.join(" · ") : null);
+    setTimeout(() => {
+      setJobs((prev) => prev.filter((j) => j.state === "failed"));
+    }, 1200);
   }
 
   /** Uploads one file. Returns a sentence on failure, null on success. */
-  async function upload(file: File): Promise<string | null> {
-    if (!ACCEPTED.includes(file.type)) return "not a JPG, PNG or WebP";
+  async function upload(
+    file: File,
+    onProgress: (pct: number) => void,
+    onSent: () => void,
+  ): Promise<string | null> {
+    if (!allowed.includes(file.type)) {
+      return accept === "both"
+        ? "not a JPG, PNG, WebP or MP4"
+        : "not a JPG, PNG or WebP";
+    }
     if (file.size > MAX_BYTES) {
       return `${Math.round(file.size / 1024 / 1024)} MB, over the 25 MB limit`;
     }
@@ -91,13 +143,11 @@ export function UploadButton({
       // library is browsable by a human later.
       body.append("useUniqueFileName", "true");
 
-      const res = await fetch(auth.uploadUrl, { method: "POST", body });
-      if (!res.ok) {
-        const detail = (await res.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(detail?.message ?? `Upload failed (${res.status})`);
-      }
-      const uploaded = (await res.json()) as { fileId?: string };
+      const uploaded = await send(auth.uploadUrl, body, onProgress);
       if (!uploaded.fileId) throw new Error("Upload finished without a file id.");
+
+      // The bytes are across; what is left is the server reading them back.
+      onSent();
 
       const recorded = await recordUpload({ fileId: uploaded.fileId });
       if (!recorded.ok) throw new Error(recorded.message);
@@ -112,6 +162,9 @@ export function UploadButton({
         bytes: file.size,
         createdAt: new Date().toISOString(),
         usedBy: [],
+        kind: VIDEO_TYPES.includes(file.type) ? "VIDEO" : "IMAGE",
+        posterUrl: null,
+        durationSeconds: null,
         ...preview,
       });
       return null;
@@ -120,56 +173,167 @@ export function UploadButton({
     }
   }
 
+  const active = jobs.filter((j) => j.state !== "done");
+  const overall = jobs.length
+    ? Math.round(jobs.reduce((sum, j) => sum + j.pct, 0) / jobs.length)
+    : 0;
+
   return (
-    <div className="flex items-center gap-2">
-      {error ? (
-        <span role="alert" className="max-w-[16rem] text-[12px] text-sale">
-          {error}
-        </span>
+    <div className="min-w-0">
+      <div className="flex items-center gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          accept={allowed.join(",")}
+          multiple={multiple}
+          onChange={onPick}
+          className="sr-only"
+          id={id}
+        />
+        <label
+          htmlFor={id}
+          className={cn(
+            "inline-flex h-9 cursor-pointer items-center rounded-[var(--radius-sm)] bg-ink px-3.5 text-[13px] font-medium text-white",
+            "transition-[background-color,opacity] duration-[var(--dur-base)] hover:bg-ink/90",
+            busy && "pointer-events-none opacity-50",
+          )}
+          aria-disabled={busy}
+        >
+          {busy ? `Uploading ${overall}%` : label}
+        </label>
+      </div>
+
+      {/*
+        One row per file, with the real byte count behind the bar. A single
+        aggregate would hide the one file that is stuck, which on a batch of a
+        photo and a video is exactly the one worth seeing.
+      */}
+      {jobs.length > 0 ? (
+        <ul
+          aria-live="polite"
+          aria-label="Upload progress"
+          className="mt-2.5 max-w-sm space-y-1.5"
+        >
+          {jobs.map((job) => (
+            <li key={job.name}>
+              <div className="flex items-baseline justify-between gap-3 text-[11.5px]">
+                <span className="min-w-0 truncate text-ink-soft">{job.name}</span>
+                <span
+                  className={cn(
+                    "tabular shrink-0",
+                    job.state === "failed" ? "text-sale" : "text-ink-muted",
+                  )}
+                >
+                  {job.state === "failed"
+                    ? job.problem
+                    : job.state === "saving"
+                      ? "saving…"
+                      : job.state === "done"
+                        ? "done"
+                        : `${job.pct}%`}
+                </span>
+              </div>
+              {job.state !== "failed" ? (
+                <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-[width] duration-200 ease-out",
+                      job.state === "done" ? "bg-brand" : "bg-ink",
+                    )}
+                    style={{ width: `${job.pct}%` }}
+                  />
+                </div>
+              ) : null}
+            </li>
+          ))}
+        </ul>
       ) : null}
-      <input
-        ref={fileRef}
-        type="file"
-        accept={ACCEPTED.join(",")}
-        multiple={multiple}
-        onChange={onPick}
-        className="sr-only"
-        id={id}
-      />
-      <label
-        htmlFor={id}
-        className="inline-flex h-9 cursor-pointer items-center rounded-[var(--radius-sm)] bg-ink px-3.5 text-[13px] font-medium text-white transition-[background-color,opacity] duration-[var(--dur-base)] hover:bg-ink/90 aria-disabled:opacity-50"
-        aria-disabled={busy}
-        aria-live="polite"
-      >
-        {busy
-          ? progress
-            ? `Uploading ${progress.done + 1} of ${progress.total}…`
-            : "Uploading…"
-          : label}
-      </label>
+
+      {active.length === 0 && jobs.some((j) => j.state === "failed") ? (
+        <p role="alert" className="sr-only">
+          Some files could not be uploaded.
+        </p>
+      ) : null}
     </div>
   );
 }
 
 /**
- * A local preview so the newly chosen picture appears at once.
+ * POST a body and report how much of it has gone.
+ *
+ * The one thing `fetch` cannot do. Resolves with ImageKit's JSON, rejects with
+ * ImageKit's own message where there is one — "file size exceeds" is far more
+ * use to somebody than "Upload failed (400)".
+ */
+function send(
+  url: string,
+  body: FormData,
+  onProgress: (pct: number) => void,
+): Promise<{ fileId?: string }> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+
+    xhr.upload.addEventListener("progress", (e) => {
+      // `lengthComputable` is false on a body of unknown size; there is nothing
+      // honest to show then, so the bar simply stays where it was.
+      if (e.lengthComputable && e.total > 0) {
+        onProgress(Math.min(99, Math.round((e.loaded / e.total) * 100)));
+      }
+    });
+
+    xhr.addEventListener("load", () => {
+      let payload: { fileId?: string; message?: string } | null = null;
+      try {
+        payload = JSON.parse(xhr.responseText) as { fileId?: string; message?: string };
+      } catch {
+        payload = null;
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(payload ?? {});
+      } else {
+        reject(new Error(payload?.message ?? `Upload failed (${xhr.status})`));
+      }
+    });
+
+    xhr.addEventListener("error", () =>
+      reject(new Error("The connection dropped before the upload finished.")),
+    );
+    xhr.addEventListener("abort", () => reject(new Error("Upload cancelled.")));
+
+    xhr.send(body);
+  });
+}
+
+/**
+ * A local preview so the newly chosen file appears at once.
  *
  * The blob URL lives only until the page is reloaded, at which point the real
  * ImageKit URL has arrived from the server. Showing nothing for that second
  * reads as a failed upload.
+ *
+ * Video is measured the same way, from its own metadata — a video element will
+ * report `videoWidth` once it has the header, without downloading the file.
  */
 async function previewOf(file: File): Promise<{ url: string; width: number; height: number }> {
   const url = URL.createObjectURL(file);
-  try {
+
+  if (VIDEO_TYPES.includes(file.type)) {
     const size = await new Promise<{ width: number; height: number }>((resolve) => {
-      const img = new window.Image();
-      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      img.onerror = () => resolve({ width: 0, height: 0 });
-      img.src = url;
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.onloadedmetadata = () => resolve({ width: v.videoWidth, height: v.videoHeight });
+      v.onerror = () => resolve({ width: 0, height: 0 });
+      v.src = url;
     });
     return { url, ...size };
-  } catch {
-    return { url, width: 0, height: 0 };
   }
+
+  const size = await new Promise<{ width: number; height: number }>((resolve) => {
+    const img = new window.Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => resolve({ width: 0, height: 0 });
+    img.src = url;
+  });
+  return { url, ...size };
 }

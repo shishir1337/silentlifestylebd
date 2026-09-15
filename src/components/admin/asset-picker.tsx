@@ -41,7 +41,16 @@ export function AssetPicker({
 }) {
   const [open, setOpen] = useState(false);
   const { mounted, ref: attach, node } = useOverlay(open);
-  const [library, setLibrary] = useState(assets);
+  /*
+    Pictures only, deliberately.
+
+    This picker fills the single-image slots — a category tile, a hero banner,
+    a promo tile — and every one of those renders through `next/image` into a
+    fixed box. A video in any of them is a broken tile, so it is not offered
+    here at all rather than offered and then refused on save. Product galleries
+    use the media manager, which does take video.
+  */
+  const [library, setLibrary] = useState(assets.filter((a) => a.kind !== "VIDEO"));
 
   const selected = library.find((a) => a.id === value) ?? null;
 

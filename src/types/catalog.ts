@@ -15,6 +15,25 @@ export interface ImageRef {
   height: number;
   blurDataURL: string | null;
   alt: string | null;
+  /**
+   * Picture or video.
+   *
+   * Optional, and absent means a picture. An entry cached by an earlier release
+   * has no `kind` at all, and a product page is not worth a 500 over a field
+   * that did not exist when the entry was written — the same reason `gallery`
+   * is read with `?? []`. Every consumer treats a missing kind as IMAGE, which
+   * is exactly what those entries are.
+   */
+  kind?: "IMAGE" | "VIDEO";
+  /** A still frame, for a video. Null or absent for a picture. */
+  poster?: string | null;
+  /** Length in whole seconds, when ImageKit reported one. */
+  durationSeconds?: number | null;
+}
+
+/** True when this entry needs a `<video>` rather than an `<Image>`. */
+export function isVideo(ref: ImageRef): boolean {
+  return ref.kind === "VIDEO";
 }
 
 export interface Category {

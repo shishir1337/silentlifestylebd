@@ -110,6 +110,33 @@ export async function saveProduct(input: ProductInput): Promise<SaveResult> {
     return { ok: false, message: "Choose a main picture. The shop cannot show a product without one." };
   }
 
+  /*
+    The main and hover pictures must be pictures.
+
+    A video in either slot is not a styling problem, it is four broken things:
+    the product card in every grid renders it through `next/image`, the social
+    card is drawn by Satori which cannot decode video at all, the structured
+    data hands a crawler an `image` that is not one, and the hover swap has
+    nothing to swap to. The gallery is where video belongs, and the form only
+    ever offers it there — this is the check that holds if the form is ever
+    wrong, or bypassed.
+  */
+  const stillIds = [input.primaryAssetId, input.hoverAssetId].filter(
+    (id): id is string => Boolean(id),
+  );
+  if (stillIds.length > 0) {
+    const videos = await db.asset.count({
+      where: { id: { in: stillIds }, kind: "VIDEO" },
+    });
+    if (videos > 0) {
+      return {
+        ok: false,
+        message:
+          "The main and hover pictures have to be photographs. Video can go in the gallery below.",
+      };
+    }
+  }
+
   const price = money(input.price);
   if (price === null || price === 0) {
     return { ok: false, message: "Enter a price in whole taka." };

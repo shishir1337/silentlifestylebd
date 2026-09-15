@@ -37,19 +37,25 @@ datasource db {
 /// supply them today, and next/image needs them to reserve layout space and
 /// render the blur placeholder. Dropping them reintroduces layout shift.
 model Asset {
-  id             String   @id @default(cuid())
-  imagekitFileId String   @unique
-  url            String
+  id              String    @id @default(cuid())
+  imagekitFileId  String    @unique
+  url             String
   /// ImageKit path, kept so the file can be deleted or re-transformed later.
-  filePath       String
-  width          Int
-  height         Int
-  blurDataURL    String?
+  filePath        String
+  /// Picture or video. Decides how every surface renders this, and the two
+  /// are not interchangeable: a video cannot be a product's card image, its
+  /// social card or its structured data, all of which need a still frame.
+  kind            AssetKind @default(IMAGE)
+  width           Int
+  height          Int
+  /// Video length, whole seconds. Null for pictures.
+  durationSeconds Int?
+  blurDataURL     String?
   /// Default alt text. Per-use alt overrides live on the referencing row.
-  alt            String?
-  bytes          Int
-  mimeType       String
-  createdAt      DateTime @default(now())
+  alt             String?
+  bytes           Int
+  mimeType        String
+  createdAt       DateTime  @default(now())
 
   categories    Category[]
   productImages ProductImage[]
@@ -65,12 +71,12 @@ model Asset {
 // ===========================================================================
 
 model Category {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
   /// Short line under the name on category tiles.
-  tagline   String?
-  imageId   String?
+  tagline     String?
+  imageId     String?
   /// Which size chart this category's products are measured by.
   ///
   /// On the category rather than on the product, because that is how the
@@ -84,10 +90,10 @@ model Category {
   /// there promises information that does not exist.
   sizeChartId String?
   /// Order in the mobile category rail — merchandised, highest intent first.
-  position  Int      @default(0)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  position    Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   image       Asset?               @relation(fields: [imageId], references: [id], onDelete: SetNull)
   /// `SetNull`: deleting a chart loses the guide, never the category and every
@@ -268,6 +274,18 @@ model ProductImage {
   asset   Asset   @relation(fields: [assetId], references: [id], onDelete: Restrict)
 
   @@index([productId, position])
+}
+
+/// Picture or video.
+///
+/// A discriminator rather than sniffing `mimeType` at every call site: the
+/// question "can this be the card image?" is asked on the product form, in the
+/// gallery, in the social card and in the structured data, and each of those
+/// getting its own idea of what counts as a video is how one of them ends up
+/// rendering a .mp4 into an <img>.
+enum AssetKind {
+  IMAGE
+  VIDEO
 }
 
 enum ProductImageRole {

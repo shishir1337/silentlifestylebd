@@ -84,10 +84,37 @@ export async function recordUpload(input: RecordUploadInput): Promise<SaveResult
   await assertCatalogAccess();
 
   const file = await client().files.get(input.fileId);
-  if (!file?.fileId || !file.url || !file.width || !file.height) {
+  if (!file?.fileId || !file.url) {
     return { ok: false, message: "That upload did not complete. Please try again." };
   }
   const fileId = file.fileId;
+
+  /*
+    ImageKit calls anything that is not a still "non-image", which lumps video
+    in with PDFs and archives. The extension it stored is what separates them,
+    so that is what decides — and a file that is neither a known picture nor a
+    known video is refused here rather than written as an Asset that nothing on
+    the site knows how to render.
+  */
+  const kind = kindOf(file.filePath ?? file.name ?? "");
+  if (!kind) {
+    return {
+      ok: false,
+      message: "That file type cannot be used here. Upload a JPG, PNG, WebP or MP4.",
+    };
+  }
+
+  /*
+    Dimensions are required for a picture and optional for a video.
+
+    `next/image` needs width and height to reserve the box before a byte of
+    artwork arrives; without them the layout shift this project spent real
+    effort removing comes straight back. A `<video>` reserves its own box from
+    its poster frame, and ImageKit does not always report dimensions for one.
+  */
+  if (kind === "IMAGE" && (!file.width || !file.height)) {
+    return { ok: false, message: "That upload did not complete. Please try again." };
+  }
 
   const existing = await db.asset.findFirst({ where: { imagekitFileId: fileId } });
   if (existing) return { ok: true, id: existing.id };
@@ -100,17 +127,19 @@ export async function recordUpload(input: RecordUploadInput): Promise<SaveResult
    * layout shift it was hiding comes back.
    */
   let blurDataURL: string | null = null;
-  try {
-    const res = await fetch(`${file.url}?tr=w-16,bl-6,q-40,f-jpg`);
-    if (res.ok) {
-      const buf = Buffer.from(await res.arrayBuffer());
-      // Anything above a couple of KB is not a placeholder, it is a second image.
-      if (buf.byteLength <= 4096) {
-        blurDataURL = `data:image/jpeg;base64,${buf.toString("base64")}`;
+  if (kind === "IMAGE") {
+    try {
+      const res = await fetch(`${file.url}?tr=w-16,bl-6,q-40,f-jpg`);
+      if (res.ok) {
+        const buf = Buffer.from(await res.arrayBuffer());
+        // Anything above a couple of KB is not a placeholder, it is a second image.
+        if (buf.byteLength <= 4096) {
+          blurDataURL = `data:image/jpeg;base64,${buf.toString("base64")}`;
+        }
       }
+    } catch {
+      // A missing placeholder is a smaller problem than a failed upload.
     }
-  } catch {
-    // A missing placeholder is a smaller problem than a failed upload.
   }
 
   const asset = await db.asset.create({
@@ -118,12 +147,25 @@ export async function recordUpload(input: RecordUploadInput): Promise<SaveResult
       imagekitFileId: fileId,
       url: file.url,
       filePath: file.filePath ?? `${UPLOAD_FOLDER}/${file.name}`,
-      width: file.width,
-      height: file.height,
+      kind,
+      /*
+        Zero for a video whose dimensions ImageKit did not report. The gallery
+        reads `kind` before it reads either number, so a zero never reaches a
+        layout calculation — but a null would force every consumer of the
+        column to handle it, for a case only video has.
+      */
+      width: file.width ?? 0,
+      height: file.height ?? 0,
+      durationSeconds:
+        kind === "VIDEO" && typeof file.duration === "number"
+          ? Math.round(file.duration)
+          : null,
       blurDataURL,
       alt: input.alt?.trim() || null,
       bytes: file.size ?? 0,
-      mimeType: file.fileType === "non-image" ? "application/octet-stream" : "image/jpeg",
+      // The real type, from the name ImageKit stored. This used to be a flat
+      // "image/jpeg" for everything it did not call "non-image".
+      mimeType: mimeOf(file.filePath ?? file.name ?? ""),
     },
   });
 
@@ -183,4 +225,42 @@ export async function deleteAsset(id: string): Promise<SaveResult> {
   revalidateTag(CATALOG_TAG, "max");
   revalidateTag(CONTENT_TAG, "max");
   return { ok: true };
+}
+
+/* --- what kind of file is this ------------------------------------------- */
+
+/**
+ * One table, read by both helpers below.
+ *
+ * Keyed on the extension ImageKit stored rather than on the browser's reported
+ * MIME type: the browser's is a claim made by the client, and ImageKit's own
+ * `fileType` only distinguishes "image" from "non-image", which puts an MP4 in
+ * the same bucket as a PDF.
+ */
+const BY_EXTENSION: Record<string, { kind: "IMAGE" | "VIDEO"; mime: string }> = {
+  jpg: { kind: "IMAGE", mime: "image/jpeg" },
+  jpeg: { kind: "IMAGE", mime: "image/jpeg" },
+  png: { kind: "IMAGE", mime: "image/png" },
+  webp: { kind: "IMAGE", mime: "image/webp" },
+  avif: { kind: "IMAGE", mime: "image/avif" },
+  gif: { kind: "IMAGE", mime: "image/gif" },
+  mp4: { kind: "VIDEO", mime: "video/mp4" },
+  webm: { kind: "VIDEO", mime: "video/webm" },
+  mov: { kind: "VIDEO", mime: "video/quicktime" },
+  m4v: { kind: "VIDEO", mime: "video/mp4" },
+};
+
+function extensionOf(path: string): string {
+  const name = path.split("/").pop() ?? "";
+  const dot = name.lastIndexOf(".");
+  return dot === -1 ? "" : name.slice(dot + 1).toLowerCase();
+}
+
+/** Null for anything this shop has no way to display. */
+function kindOf(path: string): "IMAGE" | "VIDEO" | null {
+  return BY_EXTENSION[extensionOf(path)]?.kind ?? null;
+}
+
+function mimeOf(path: string): string {
+  return BY_EXTENSION[extensionOf(path)]?.mime ?? "application/octet-stream";
 }

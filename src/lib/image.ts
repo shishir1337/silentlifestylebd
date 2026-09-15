@@ -44,3 +44,27 @@ function blur(ref: ImageRef) {
     ? { placeholder: "blur" as const, blurDataURL: ref.blurDataURL }
     : {};
 }
+
+/**
+ * A still frame for a video, from ImageKit.
+ *
+ * ImageKit generates one on demand: append `/ik-thumbnail.jpg` to the video's
+ * URL and it returns a frame from the start of the clip. No second upload, no
+ * column to keep in step with the file, and it is regenerated if the video is
+ * ever replaced at the same path.
+ *
+ * It matters more than a nicety. A `<video>` with no poster paints a black
+ * rectangle until the browser has fetched enough of the file to decode a
+ * frame — so a product gallery would show a black hole where the video is,
+ * on exactly the connections least able to fill it quickly. With a poster, the
+ * video looks like the rest of the gallery until somebody presses play.
+ *
+ * A transform can be appended after it like any other ImageKit URL:
+ *
+ *   posterFor(url) + "?tr=w-828,q-75,f-auto"
+ */
+export function posterFor(videoUrl: string): string {
+  // Query strings are transforms, not part of the path; keep them off the end.
+  const [path] = videoUrl.split("?");
+  return `${path.replace(/\/$/, "")}/ik-thumbnail.jpg`;
+}

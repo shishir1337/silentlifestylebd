@@ -169,7 +169,7 @@ export function MediaManager({
                 <div className="relative aspect-square bg-muted">
                   {asset ? (
                     <Image
-                      src={asset.url}
+                      src={thumbOf(asset)}
                       alt={asset.alt ?? ""}
                       fill
                       sizes="(min-width: 1024px) 220px, (min-width: 640px) 30vw, 45vw"
@@ -181,6 +181,7 @@ export function MediaManager({
                       No longer in the library
                     </span>
                   )}
+                  {asset ? <VideoMark asset={asset} /> : null}
 
                   {featured ? (
                     <span className="absolute top-1.5 left-1.5 inline-flex items-center gap-1 rounded-full bg-ink px-2 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase">
@@ -287,8 +288,9 @@ export function MediaManager({
         uploader={
           <UploadButton
             multiple
+            accept="both"
             id="product-upload"
-            label={order.length > 0 ? "Upload more" : "Upload pictures"}
+            label={order.length > 0 ? "Upload more" : "Photos or video"}
             onUploaded={(asset) => {
               onUploaded(asset);
               add([asset.id]);
@@ -463,13 +465,14 @@ function LibraryPicker({
                     )}
                   >
                     <Image
-                      src={a.url}
+                      src={thumbOf(a)}
                       alt={a.alt ?? a.filePath}
                       fill
                       sizes="(min-width: 640px) 140px, 30vw"
                       quality={60}
                       className="object-cover"
                     />
+                    <VideoMark asset={a} />
                     {picked ? (
                       <span className="absolute top-1 right-1 inline-flex size-5 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">
                         {chosen.indexOf(a.id) + 1}
@@ -483,5 +486,61 @@ function LibraryPicker({
         )}
       </div>
     </dialog>
+  );
+}
+
+/* --- video in the library -------------------------------------------------- */
+
+/**
+ * What to show in a grid square.
+ *
+ * A video's poster, never the video itself: a media library of twelve squares
+ * that each start downloading an MP4 to paint a first frame is the kind of
+ * page that is quietly unusable on the connection this shop's client actually
+ * has. `posterUrl` is a still ImageKit renders on request.
+ */
+export function thumbOf(asset: { url: string; kind: "IMAGE" | "VIDEO"; posterUrl: string | null }): string {
+  return asset.kind === "VIDEO" ? (asset.posterUrl ?? asset.url) : asset.url;
+}
+
+/** `2:14`, or null when ImageKit did not report a duration. */
+function runtimeOf(seconds: number | null): string | null {
+  if (!seconds || seconds < 1) return null;
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/**
+ * The play triangle and runtime over a video thumbnail.
+ *
+ * Without it a video is a still frame that behaves unlike every other square
+ * in the grid — and the person arranging a product's media needs to know which
+ * one is the clip before they drag it into first place, not after.
+ */
+export function VideoMark({
+  asset,
+}: {
+  asset: { kind: "IMAGE" | "VIDEO"; durationSeconds: number | null };
+}) {
+  if (asset.kind !== "VIDEO") return null;
+  const runtime = runtimeOf(asset.durationSeconds);
+
+  return (
+    <>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-0 flex items-center justify-center bg-ink/20"
+      >
+        <span className="flex size-9 items-center justify-center rounded-full bg-ink/80 shadow-[var(--shadow-pop)]">
+          <svg viewBox="0 0 24 24" fill="currentColor" className="size-4 translate-x-px text-white">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </span>
+      </span>
+      <span className="pointer-events-none absolute bottom-1.5 left-1.5 rounded-[var(--radius-xs)] bg-ink/80 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-white uppercase">
+        {runtime ? <span className="tabular">{runtime}</span> : "Video"}
+      </span>
+    </>
   );
 }

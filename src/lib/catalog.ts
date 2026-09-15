@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
+import { posterFor } from "@/lib/image";
 import { fromPlainText, toRichText } from "@/lib/rich-text";
 import type {
   Category,
@@ -51,7 +52,13 @@ export type { NavLink, SiteNav } from "@/types/catalog";
  * data and it does not need to go up for a price edit — only when the
  * interface the cache holds is different from the one the code expects.
  */
-const SHAPE = "v2";
+/*
+  Bumped to v3 for video: an `ImageRef` cached under v2 has no `kind`, and
+  while the readers all treat a missing kind as a picture, a product whose
+  gallery gained a video would otherwise keep serving the old entry until
+  something else invalidated it.
+*/
+const SHAPE = "v3";
 
 export const CATALOG_TAG = "catalog";
 export const PRODUCTS_TAG = "products";
@@ -65,20 +72,31 @@ const CACHE = { revalidate: 31_536_000 } as const;
 
 type AssetRow = {
   url: string;
+  kind: "IMAGE" | "VIDEO";
   width: number;
   height: number;
+  durationSeconds: number | null;
   blurDataURL: string | null;
   alt: string | null;
 };
 
 function toImage(asset: AssetRow | null | undefined): ImageRef | null {
   if (!asset) return null;
+  const video = asset.kind === "VIDEO";
   return {
     url: asset.url,
     width: asset.width,
     height: asset.height,
     blurDataURL: asset.blurDataURL,
     alt: asset.alt,
+    kind: asset.kind,
+    /*
+      Derived here rather than stored. The poster is a pure function of the
+      video's URL, so a column would be a second copy of the same fact with its
+      own way of going stale — see `posterFor`.
+    */
+    poster: video ? posterFor(asset.url) : null,
+    durationSeconds: asset.durationSeconds,
   };
 }
 

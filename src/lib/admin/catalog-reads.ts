@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { posterFor } from "@/lib/image";
 import { fromPlainText, toRichText } from "@/lib/rich-text";
 
 /**
@@ -299,6 +300,11 @@ export interface AssetRow {
   id: string;
   url: string;
   filePath: string;
+  /** Picture or video — the picker and the grid render them differently. */
+  kind: "IMAGE" | "VIDEO";
+  /** A still frame for a video, so the library has something to show. Null for a picture. */
+  posterUrl: string | null;
+  durationSeconds: number | null;
   width: number;
   height: number;
   alt: string | null;
@@ -315,6 +321,8 @@ export async function listAssets(): Promise<AssetRow[]> {
       id: true,
       url: true,
       filePath: true,
+      kind: true,
+      durationSeconds: true,
       width: true,
       height: true,
       alt: true,
@@ -332,6 +340,9 @@ export async function listAssets(): Promise<AssetRow[]> {
     id: a.id,
     url: a.url,
     filePath: a.filePath,
+    kind: a.kind,
+    posterUrl: a.kind === "VIDEO" ? posterFor(a.url) : null,
+    durationSeconds: a.durationSeconds,
     width: a.width,
     height: a.height,
     alt: a.alt,
