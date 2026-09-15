@@ -1,0 +1,616 @@
+===============================================================================
+ SILENT LIFESTYLE BD — DEPLOYING TO A FRESH UBUNTU 24.04 VPS
+ Root user · PM2 · Nginx · https://silentlifestylebd.com
+===============================================================================
+
+Everything below was checked against this repository, not written from memory.
+Where a step exists because of something specific to this project, it says so.
+
+Work through it top to bottom. Roughly 30-45 minutes on a clean server.
+
+
+-------------------------------------------------------------------------------
+ 0. BEFORE YOU TOUCH THE SERVER
+-------------------------------------------------------------------------------
+
+You need three things ready, or you will get stuck halfway:
+
+  1. DNS. Point both records at your VPS IP address, and do it FIRST —
+     certificates cannot be issued until the domain resolves to this server.
+
+         A     silentlifestylebd.com       ->  YOUR.VPS.IP.ADDRESS
+         A     www.silentlifestylebd.com   ->  YOUR.VPS.IP.ADDRESS
+
+     Check from your own machine before continuing:
+
+         dig +short silentlifestylebd.com
+
+  2. ImageKit credentials, from https://imagekit.io -> Developer options:
+
+         - Public key
+         - Private key
+         - URL endpoint  (looks like https://ik.imagekit.io/your_id)
+
+     The product photographs live on ImageKit, not on the VPS. The first-time
+     seed UPLOADS the catalogue images, so it will not run without these.
+
+  3. A VPS with at least 2 GB RAM. `next build` on this project needs more
+     than 1 GB. If you only have 1 GB, add swap before step 6 — there is a
+     note at the end under TROUBLESHOOTING.
+
+
+-------------------------------------------------------------------------------
+ 1. FIRST LOGIN AND BASIC HARDENING
+-------------------------------------------------------------------------------
+
+    ssh root@YOUR.VPS.IP.ADDRESS
+
+    apt update && apt upgrade -y
+    timedatectl set-timezone Asia/Dhaka
+
+Firewall. Note that port 3000 is NOT opened — the application binds to
+localhost only and is reached through Nginx. That is deliberate and there is a
+security reason for it in section 8.
+
+    ufw allow OpenSSH
+    ufw allow 'Nginx Full'
+    ufw --force enable
+    ufw status
+
+Optional but recommended — automatic security updates:
+
+    apt install -y unattended-upgrades
+    dpkg-reconfigure -plow unattended-upgrades
+
+
+-------------------------------------------------------------------------------
+ 2. NODE.JS 22 AND PNPM
+-------------------------------------------------------------------------------
+
+Node 22 specifically. Two of this project's scripts run TypeScript directly
+with --experimental-strip-types, which needs Node 22.6 or newer, and Prisma's
+config uses process.loadEnvFile(). Node 20 will fail on both.
+
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+    apt install -y nodejs
+
+    node --version      # expect v22.x
+    corepack enable
+    corepack prepare pnpm@11.24.0 --activate
+    pnpm --version      # expect 11.24.0
+
+pnpm is pinned in package.json ("packageManager"). Using a different version
+can produce a different dependency tree from the one this was built against.
+
+
+-------------------------------------------------------------------------------
+ 3. POSTGRESQL 17
+-------------------------------------------------------------------------------
+
+Ubuntu 24.04 ships PostgreSQL 16. This project has been run against 17 (the
+Docker stack pins postgres:17-alpine), so install 17 from the official
+PostgreSQL repository to match.
+
+    apt install -y curl ca-certificates
+    install -d /usr/share/postgresql-common/pgdg
+    curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+      --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
+    sh -c 'echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] \
+      https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+      > /etc/apt/sources.list.d/pgdg.list'
+    apt update
+    apt install -y postgresql-17
+
+    systemctl enable --now postgresql
+    systemctl status postgresql --no-pager
+
+Create the database and its user. CHANGE THE PASSWORD — pick something long
+and random, and keep it; you need it in section 5.
+
+    su - postgres -c "psql -c \"CREATE USER slbd WITH PASSWORD 'PUT_A_LONG_RANDOM_PASSWORD_HERE';\""
+    su - postgres -c "psql -c \"CREATE DATABASE slbd OWNER slbd ENCODING 'UTF8';\""
+
+Confirm you can connect as that user over TCP:
+
+    PGPASSWORD='PUT_A_LONG_RANDOM_PASSWORD_HERE' psql -h 127.0.0.1 -U slbd -d slbd -c '\conninfo'
+
+PostgreSQL listens on localhost only by default on Ubuntu. Leave it that way.
+
+
+-------------------------------------------------------------------------------
+ 4. REDIS
+-------------------------------------------------------------------------------
+
+Redis holds the rate-limit counters — sign-in attempts, order placement, order
+tracking lookups and discount-code guesses. The shop runs without it, but every
+one of those limits stops counting, so treat it as required.
+
+    apt install -y redis-server
+
+    # Survive a restart, and let systemd supervise it.
+    sed -i 's/^supervised no/supervised systemd/' /etc/redis/redis.conf
+    sed -i 's/^appendonly no/appendonly yes/'      /etc/redis/redis.conf
+
+    systemctl enable --now redis-server
+    redis-cli ping        # expect: PONG
+
+Redis binds to 127.0.0.1 by default on Ubuntu. Leave it that way — an exposed
+Redis is one of the most commonly compromised services on the internet.
+
+
+-------------------------------------------------------------------------------
+ 5. GET THE CODE AND WRITE THE ENVIRONMENT FILE
+-------------------------------------------------------------------------------
+
+    mkdir -p /var/www
+    cd /var/www
+    git clone https://github.com/shishir1337/silentlifestylebd.git
+    cd silentlifestylebd
+
+Generate the two secrets. Run each and keep the output:
+
+    openssl rand -base64 32     # -> BETTER_AUTH_SECRET
+    openssl rand -base64 32     # -> NEXT_SERVER_ACTIONS_ENCRYPTION_KEY
+
+Now write /var/www/silentlifestylebd/.env — use `nano .env` and paste this,
+substituting your own values:
+
+-------------------------------- .env -----------------------------------------
+# --- Database --------------------------------------------------------------
+POSTGRES_USER=slbd
+POSTGRES_PASSWORD=PUT_A_LONG_RANDOM_PASSWORD_HERE
+POSTGRES_DB=slbd
+DATABASE_URL=postgresql://slbd:PUT_A_LONG_RANDOM_PASSWORD_HERE@127.0.0.1:5432/slbd?schema=public
+
+# --- Redis -----------------------------------------------------------------
+REDIS_URL=redis://127.0.0.1:6379
+
+# --- Auth ------------------------------------------------------------------
+BETTER_AUTH_SECRET=PASTE_THE_FIRST_openssl_OUTPUT
+BETTER_AUTH_URL=https://silentlifestylebd.com
+
+# --- Who is in front of the app --------------------------------------------
+# Leave blank. Blank means loopback and the private Docker ranges are trusted,
+# which is exactly right when Nginx runs on this same machine. Only set this
+# if the proxy lives somewhere else (a separate box, or a CDN).
+TRUSTED_PROXIES=
+
+# --- Next.js ---------------------------------------------------------------
+# BAKED INTO THE BUILD. Must be the same value on every deploy, forever.
+# If it changes, anyone mid-purchase gets "Failed to find Server Action" on
+# their next click — including at checkout. Back this value up.
+NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=PASTE_THE_SECOND_openssl_OUTPUT
+
+# BAKED INTO THE BUILD as well. Changing it requires a rebuild, not a restart.
+NEXT_PUBLIC_SITE_URL=https://silentlifestylebd.com
+
+# --- ImageKit --------------------------------------------------------------
+NEXT_PUBLIC_IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/your_imagekit_id
+NEXT_PUBLIC_IMAGEKIT_PUBLIC_KEY=public_xxxxxxxxxxxxxxxxxxxxxx
+IMAGEKIT_PRIVATE_KEY=private_xxxxxxxxxxxxxxxxxxxxxx
+
+# --- Runtime ---------------------------------------------------------------
+NODE_ENV=production
+PORT=3000
+HOSTNAME=127.0.0.1
+-------------------------------------------------------------------------------
+
+Lock it down. It contains your database password and your ImageKit private key:
+
+    chmod 600 .env
+
+Note on the two BAKED INTO THE BUILD values: NEXT_PUBLIC_* variables and the
+Server Actions key are read by `next build` and compiled into the output. Editing
+them later and restarting PM2 does nothing — you have to rebuild.
+
+
+-------------------------------------------------------------------------------
+ 6. INSTALL DEPENDENCIES AND BUILD
+-------------------------------------------------------------------------------
+
+    cd /var/www/silentlifestylebd
+    pnpm install --frozen-lockfile
+    pnpm build
+
+`pnpm build` runs `prisma generate` first, then `next build`. Expect it to take
+2-5 minutes.
+
+If the build stops with "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY is empty", the .env
+file is missing that value. That check is deliberate — a build without it works
+on the first deploy and breaks paying customers on the second.
+
+A successful build prints a route table. The storefront routes should be marked
+with a filled circle for products and collections, and a hollow circle for the
+content pages — those are prerendered pages. If they show "f" (dynamic) instead,
+something is wrong; do not deploy, and see TROUBLESHOOTING.
+
+
+-------------------------------------------------------------------------------
+ 7. DATABASE: MIGRATE, SEED, CREATE THE OWNER
+-------------------------------------------------------------------------------
+
+Create the tables:
+
+    pnpm db:deploy
+
+Seed the catalogue. This UPLOADS the product photographs to ImageKit and then
+writes the categories, products, size charts, pages and settings. It needs the
+ImageKit keys from section 5, and it is safe to run more than once — images
+already uploaded are re-used rather than duplicated.
+
+    pnpm db:seed
+
+Create the first administrator. There is no sign-up page that can make one, on
+purpose — the only way in is from the server itself:
+
+    pnpm admin:create owner@silentlifestylebd.com 'a-long-password-here' 'Owner Name'
+
+The password must be at least 10 characters. Quote it if it has spaces. Every
+other staff account is created from inside the admin panel afterwards.
+
+
+-------------------------------------------------------------------------------
+ 8. RUN IT UNDER PM2
+-------------------------------------------------------------------------------
+
+    npm install -g pm2
+
+Create /var/www/silentlifestylebd/ecosystem.config.js:
+
+------------------------- ecosystem.config.js ---------------------------------
+module.exports = {
+  apps: [
+    {
+      name: "silentlifestylebd",
+      cwd: "/var/www/silentlifestylebd",
+
+      // `next start`, not the standalone server. This project builds a
+      // standalone bundle too, but that is for the Docker image: standalone
+      // does NOT copy `public/` or `.next/static`, so running it here without
+      // copying those by hand 404s every asset and every product photograph.
+      // With the repository present on the server, `next start` serves them
+      // straight from the build.
+      script: "node_modules/next/dist/bin/next",
+      args: "start -H 127.0.0.1 -p 3000",
+
+      instances: 1,
+      exec_mode: "fork",
+      autorestart: true,
+      max_memory_restart: "800M",
+
+      // Give in-flight requests time to finish on a restart.
+      kill_timeout: 10000,
+
+      env: {
+        NODE_ENV: "production",
+      },
+
+      error_file: "/var/log/pm2/slbd-error.log",
+      out_file: "/var/log/pm2/slbd-out.log",
+      merge_logs: true,
+      time: true,
+    },
+  ],
+};
+-------------------------------------------------------------------------------
+
+Why -H 127.0.0.1 and not 0.0.0.0, in one sentence: if the application can be
+reached directly, anyone can set their own X-Forwarded-For header and every rate
+limit in the shop — sign-in, order placement, order tracking, discount-code
+guessing — stops working. Bound to loopback, only Nginx can reach it, and Nginx
+appends the real address.
+
+    mkdir -p /var/log/pm2
+    cd /var/www/silentlifestylebd
+    pm2 start ecosystem.config.js
+    pm2 save
+    pm2 startup systemd -u root --hp /root
+    # ^ run the command it prints back at you
+
+    pm2 status
+    curl -I http://127.0.0.1:3000        # expect HTTP/1.1 200 OK
+
+Log rotation, so the disk does not fill up months from now:
+
+    pm2 install pm2-logrotate
+    pm2 set pm2-logrotate:max_size 10M
+    pm2 set pm2-logrotate:retain 14
+    pm2 set pm2-logrotate:compress true
+
+PM2 does NOT read .env by itself. It does not need to here: `next start` loads
+.env from the working directory, and `cwd` is set above. If you ever move to a
+setup where it does not, add `env_file` or list the variables in `env`.
+
+
+-------------------------------------------------------------------------------
+ 9. NGINX — AND THE FOUR HEADERS THAT MATTER
+-------------------------------------------------------------------------------
+
+    apt install -y nginx
+
+Create /etc/nginx/sites-available/silentlifestylebd:
+
+----------------------- /etc/nginx/sites-available/silentlifestylebd ----------
+# Redirect www to the bare domain. One canonical host keeps the Server Actions
+# origin check happy and avoids splitting SEO between two addresses.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name www.silentlifestylebd.com;
+    return 301 https://silentlifestylebd.com$request_uri;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name silentlifestylebd.com;
+
+    # Certbot rewrites this block in section 10. Leave it as plain HTTP for now.
+
+    # Product photographs come from ImageKit, but the shop still serves its own
+    # JS, CSS and fonts. 20M is generous headroom for admin media uploads.
+    client_max_body_size 20M;
+
+    # Next.js build assets are content-hashed and immutable.
+    location /_next/static/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_cache_valid 200 365d;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+
+        # ALL FOUR OF THESE ARE LOAD-BEARING. Do not trim this list.
+        #
+        #   Host / X-Forwarded-Host
+        #     Next compares a Server Action's Origin against the host it thinks
+        #     it is serving. Without X-Forwarded-Host the app reports
+        #     "127.0.0.1:3000" while the browser sends the real domain, they do
+        #     not match, and EVERY Server Action is refused as cross-origin —
+        #     which means nobody can check out. It fails this way only in
+        #     production, never on a developer's machine.
+        #
+        #   X-Forwarded-For
+        #     Every rate limit in the shop counts by this. $proxy_add_x_forwarded_for
+        #     appends the real client address to whatever arrived, and the app
+        #     reads the chain from the right, skipping hops it trusts — so a
+        #     forged value a client prepends is ignored.
+        #
+        #   X-Forwarded-Proto
+        #     Tells the app the public connection is HTTPS, so redirects and
+        #     absolute URLs do not downgrade to http://.
+        #
+        proxy_set_header Host              $host;
+        proxy_set_header X-Forwarded-Host  $host;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP         $remote_addr;
+
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+
+        # A slow courier phone call should not time out mid-order.
+        proxy_read_timeout 60s;
+        proxy_redirect off;
+    }
+}
+-------------------------------------------------------------------------------
+
+    ln -s /etc/nginx/sites-available/silentlifestylebd /etc/nginx/sites-enabled/
+    rm -f /etc/nginx/sites-enabled/default
+    nginx -t
+    systemctl reload nginx
+
+The site should now answer on http://silentlifestylebd.com.
+
+
+-------------------------------------------------------------------------------
+ 10. HTTPS
+-------------------------------------------------------------------------------
+
+    apt install -y certbot python3-certbot-nginx
+    certbot --nginx -d silentlifestylebd.com -d www.silentlifestylebd.com
+
+Answer the prompts; choose the redirect option when offered. Certbot edits the
+Nginx file in place, keeping the proxy_set_header lines.
+
+Renewal is automatic via a systemd timer. Confirm it:
+
+    systemctl list-timers | grep certbot
+    certbot renew --dry-run
+
+
+-------------------------------------------------------------------------------
+ 11. CHECK IT ACTUALLY WORKS
+-------------------------------------------------------------------------------
+
+Run these from your own machine, not the server:
+
+    curl -I https://silentlifestylebd.com
+      -> HTTP/2 200
+
+    curl -I http://silentlifestylebd.com
+      -> 301 to https://
+
+    curl -I https://www.silentlifestylebd.com
+      -> 301 to https://silentlifestylebd.com
+
+Then in a browser, and please do all five:
+
+    [ ] Home page loads, product photographs appear (proves ImageKit).
+    [ ] Open a product, choose a size, press Order now.
+    [ ] Complete checkout with a real Bangladeshi mobile number.
+        THIS IS THE ONE THAT PROVES X-Forwarded-Host IS RIGHT. If checkout
+        fails but everything else works, that header is missing.
+    [ ] Track that order at /track using the order number and the same phone.
+    [ ] Sign in at /signin with the owner account, open /admin, change
+        something small (a delivery charge in Settings) and confirm the
+        storefront shows it.
+
+Confirm the application is NOT reachable except through Nginx:
+
+    curl -m 5 http://YOUR.VPS.IP.ADDRESS:3000
+      -> must fail to connect. If it answers, fix -H 127.0.0.1 in
+         ecosystem.config.js and restart. See the note in section 8.
+
+
+-------------------------------------------------------------------------------
+ 12. DEPLOYING AN UPDATE, LATER
+-------------------------------------------------------------------------------
+
+Save this as /var/www/silentlifestylebd/deploy.sh and `chmod +x deploy.sh`:
+
+------------------------------- deploy.sh -------------------------------------
+#!/usr/bin/env bash
+set -euo pipefail
+cd /var/www/silentlifestylebd
+
+echo "==> Backing up the database first"
+/usr/local/bin/backup-db.sh
+
+echo "==> Pulling"
+git pull origin main
+
+echo "==> Dependencies"
+pnpm install --frozen-lockfile
+
+echo "==> Migrations"
+pnpm db:deploy
+
+echo "==> Build"
+pnpm build
+
+echo "==> Restart"
+pm2 reload silentlifestylebd --update-env
+
+echo "==> Done"
+pm2 status
+-------------------------------------------------------------------------------
+
+Run it with:  /var/www/silentlifestylebd/deploy.sh
+
+Do NOT run `pnpm db:seed` on an update. It is for the first install. It will not
+destroy anything, but it has nothing to add to a shop with real data in it.
+
+Never change NEXT_SERVER_ACTIONS_ENCRYPTION_KEY between deploys.
+
+
+-------------------------------------------------------------------------------
+ 13. BACKUPS — SET THIS UP ON DAY ONE
+-------------------------------------------------------------------------------
+
+The database holds every order, customer and price. ImageKit holds the
+photographs. Only the database is your responsibility.
+
+Create /usr/local/bin/backup-db.sh:
+
+---------------------------- backup-db.sh -------------------------------------
+#!/usr/bin/env bash
+set -euo pipefail
+DIR=/var/backups/slbd
+mkdir -p "$DIR"
+STAMP=$(date +%F-%H%M)
+
+# Password comes from .env so it is in exactly one place.
+export PGPASSWORD="$(grep '^POSTGRES_PASSWORD=' /var/www/silentlifestylebd/.env | cut -d= -f2-)"
+
+pg_dump -h 127.0.0.1 -U slbd -d slbd -F c -f "$DIR/slbd-$STAMP.dump"
+
+# Keep 14 days.
+find "$DIR" -name 'slbd-*.dump' -mtime +14 -delete
+echo "backed up: $DIR/slbd-$STAMP.dump"
+-------------------------------------------------------------------------------
+
+    chmod +x /usr/local/bin/backup-db.sh
+    chmod 700 /usr/local/bin/backup-db.sh
+    /usr/local/bin/backup-db.sh          # run it once now
+
+Schedule it nightly at 3am:
+
+    crontab -e
+    # add this line:
+    0 3 * * * /usr/local/bin/backup-db.sh >> /var/log/slbd-backup.log 2>&1
+
+NOW TEST THE RESTORE. A backup that has never been restored is not a backup.
+Do this once, on a throwaway database, before you take real orders:
+
+    su - postgres -c "psql -c 'CREATE DATABASE slbd_restore_test OWNER slbd;'"
+    PGPASSWORD='...' pg_restore -h 127.0.0.1 -U slbd -d slbd_restore_test \
+      /var/backups/slbd/slbd-YYYY-MM-DD-HHMM.dump
+    PGPASSWORD='...' psql -h 127.0.0.1 -U slbd -d slbd_restore_test \
+      -c 'select count(*) from "Product";'
+    su - postgres -c "psql -c 'DROP DATABASE slbd_restore_test;'"
+
+Also copy the dumps somewhere that is not this server — if the VPS dies, so do
+the backups sitting on it. `rclone`, `scp` on a cron, or your provider's
+snapshots all work.
+
+
+-------------------------------------------------------------------------------
+ 14. TROUBLESHOOTING
+-------------------------------------------------------------------------------
+
+Everything loads but CHECKOUT FAILS
+    X-Forwarded-Host is missing from the Nginx config, or Certbot dropped it
+    when it rewrote the file. Check with:
+        grep -n "X-Forwarded" /etc/nginx/sites-available/silentlifestylebd
+    All four headers from section 9 must be present in the `location /` block.
+
+"Failed to find Server Action" after a deploy
+    NEXT_SERVER_ACTIONS_ENCRYPTION_KEY changed, or was regenerated. Restore the
+    original value and rebuild. This is why section 5 says to back it up.
+
+Build is killed, or the server freezes during `pnpm build`
+    Out of memory. Add swap:
+        fallocate -l 2G /swapfile && chmod 600 /swapfile
+        mkswap /swapfile && swapon /swapfile
+        echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+Product images do not appear
+    ImageKit keys are wrong or the seed never ran. Check:
+        grep IMAGEKIT /var/www/silentlifestylebd/.env
+        psql ... -c 'select count(*) from "Asset";'
+    Zero assets means `pnpm db:seed` has not completed successfully.
+
+Sign-in says "That email and password do not match" for a password you know
+    Check the database is actually up: `systemctl status postgresql`. A database
+    that is unreachable produces this same message — it is a known rough edge.
+        pm2 logs silentlifestylebd --lines 50
+
+Rate limits behaving oddly, or a "[rate-limit] cannot identify the caller"
+line in the logs
+    X-Forwarded-For is not reaching the app. See section 9.
+
+Build route table shows "f" where products should be prerendered
+    The storefront is rendering per-request instead of from static HTML. That is
+    a real regression, not a deployment problem. Do not deploy it; report it.
+
+Useful commands
+    pm2 logs silentlifestylebd          # live application log
+    pm2 monit                           # cpu / memory
+    pm2 reload silentlifestylebd        # zero-downtime restart
+    tail -f /var/log/nginx/error.log
+    systemctl status postgresql redis-server nginx
+
+
+-------------------------------------------------------------------------------
+ 15. AFTER LAUNCH — DO NOT SKIP THESE
+-------------------------------------------------------------------------------
+
+    [ ] Change the owner password from the one in section 7 if anybody else
+        saw it, and delete it from your shell history:
+            history -c
+    [ ] Open /admin/settings and fill in the real phone number, address,
+        delivery charges and the Facebook / Instagram links. The social links
+        are blank until you set them, and blank means no icon is shown.
+    [ ] Open /admin/categories and confirm each category points at the right
+        size chart.
+    [ ] Run a real test order end to end and CANCEL it from the admin, so you
+        have seen the whole flow once before a customer does.
+    [ ] Confirm the nightly backup ran:  ls -la /var/backups/slbd/
+    [ ] Consider error monitoring (Sentry or similar). There is none today —
+        if the site breaks at 2am, nothing tells you.
+
+===============================================================================
