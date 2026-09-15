@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { freeDeliveryOffered } from "@/lib/orders";
 import { Container } from "@/components/ui/container";
 import { PageHeader, Section, Bullets } from "@/components/ui/page-header";
 import { Taka } from "@/components/ui/price";
@@ -45,14 +46,16 @@ export default async function DeliveryPage() {
         />
       </div>
 
-      <p className="mb-2 flex items-center gap-2 rounded-[var(--radius-sm)] bg-brand-tint px-3.5 py-3 text-[13px] font-medium text-brand">
-        <TruckIcon className="size-4 shrink-0" />
-        <span>
-          Delivery is free on every order over{" "}
-          <Taka amount={delivery.freeThreshold} className="font-semibold" /> — anywhere
-          in Bangladesh.
-        </span>
-      </p>
+      {freeDeliveryOffered(delivery) ? (
+        <p className="mb-2 flex items-center gap-2 rounded-[var(--radius-sm)] bg-brand-tint px-3.5 py-3 text-[13px] font-medium text-brand">
+          <TruckIcon className="size-4 shrink-0" />
+          <span>
+            Delivery is free on every order over{" "}
+            <Taka amount={delivery.freeThreshold} className="font-semibold" /> — anywhere
+            in Bangladesh.
+          </span>
+        </p>
+      ) : null}
 
       <Section id="how-cod-works" title="How cash on delivery works">
         <p>

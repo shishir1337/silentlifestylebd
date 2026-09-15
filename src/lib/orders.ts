@@ -29,12 +29,29 @@ export type DeliveryArea = "inside-dhaka" | "outside-dhaka";
  * where they are read from the database — and there is no third copy of the
  * numbers for either to disagree with.
  */
+/**
+ * Is the shop running a free-delivery offer at all?
+ *
+ * A threshold of zero means no, and it is the only way to switch the offer
+ * off — there is no second flag that could disagree with the number beside it.
+ *
+ * It has to be asked as a question rather than compared inline, because the
+ * naive comparison gets it exactly backwards. `subtotal >= 0` is true of every
+ * order ever placed, so a threshold of zero used to mean *free delivery on
+ * everything, everywhere* — which is what a shop owner would get by typing the
+ * number they thought meant "off". Fourteen places read this figure; one of
+ * them writing `>=` by hand is a country-wide discount nobody chose.
+ */
+export function freeDeliveryOffered(rates: { freeThreshold: number }): boolean {
+  return rates.freeThreshold > 0;
+}
+
 export function deliveryChargeFor(
   area: DeliveryArea,
   subtotal: number,
   rates: { insideDhaka: number; outsideDhaka: number; freeThreshold: number },
 ): number {
-  if (subtotal >= rates.freeThreshold) return 0;
+  if (freeDeliveryOffered(rates) && subtotal >= rates.freeThreshold) return 0;
   return area === "inside-dhaka" ? rates.insideDhaka : rates.outsideDhaka;
 }
 

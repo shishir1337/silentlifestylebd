@@ -15,6 +15,7 @@ import {
   TruckIcon,
 } from "@/components/ui/icons";
 import { useDelivery } from "@/lib/site-settings";
+import { freeDeliveryOffered } from "@/lib/orders";
 import { cn } from "@/lib/cn";
 
 /**
@@ -48,6 +49,12 @@ export function CartDrawer() {
 
   if (!mounted) return null;
 
+  /*
+    Nothing to nudge towards when there is no offer. A shop that has turned
+    free delivery off would otherwise show "Add ৳3,000 more for free delivery"
+    against a threshold of zero, which is both untrue and unreachable.
+  */
+  const offering = freeDeliveryOffered(delivery);
   const remaining = delivery.freeThreshold - subtotal;
   const qualifies = remaining <= 0;
 
@@ -172,6 +179,7 @@ export function CartDrawer() {
           <footer className="shrink-0 border-t border-line px-4 pt-3 pb-4 safe-bottom">
             {/* A concrete gap to the free-delivery threshold lifts basket size
                 far more reliably than a generic "free delivery available". */}
+            {offering ? (
             <p
               className={cn(
                 "mb-3 flex items-center gap-2 rounded-[var(--radius-sm)] px-3 py-2 text-[12px] font-medium",
@@ -188,6 +196,7 @@ export function CartDrawer() {
                 </span>
               )}
             </p>
+            ) : null}
 
             <div className="mb-3 flex items-baseline justify-between">
               <span className="text-sm text-ink-soft">Subtotal</span>

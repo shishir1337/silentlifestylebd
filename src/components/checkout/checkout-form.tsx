@@ -16,6 +16,7 @@ import {
 import { placeOrder, previewCoupon } from "@/lib/order-actions";
 import { normalisePhone } from "@/lib/phone";
 import { useDelivery } from "@/lib/site-settings";
+import { freeDeliveryOffered } from "@/lib/orders";
 import { defaultAddress, useAddresses, useProfile } from "@/lib/account";
 import { Field, inputClass } from "@/components/ui/field";
 import { cn } from "@/lib/cn";
@@ -195,7 +196,8 @@ export function CheckoutForm() {
   const deliveryCharge = applied ? applied.deliveryCharge : baseCharge;
   const discount = applied?.discount ?? 0;
   const total = subtotal - discount + deliveryCharge;
-  const shortfall = delivery.freeThreshold - subtotal;
+  // Zero threshold means the offer is off, so there is no shortfall to name.
+  const shortfall = freeDeliveryOffered(delivery) ? delivery.freeThreshold - subtotal : 0;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

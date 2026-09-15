@@ -1,4 +1,5 @@
 import { Container } from "@/components/ui/container";
+import { freeDeliveryOffered } from "@/lib/orders";
 import { ButtonLink } from "@/components/ui/button";
 import { CashIcon, PhoneIcon } from "@/components/ui/icons";
 import { getSiteSettings } from "@/lib/settings";
@@ -63,11 +64,13 @@ export async function DeliveryNote() {
                 value={<Taka amount={delivery.outsideDhaka} />}
                 note={delivery.outsideDhakaDays}
               />
-              <Fact
-                label="Free delivery"
-                value={<>Over <Taka amount={delivery.freeThreshold} /></>}
-                note="Anywhere in Bangladesh"
-              />
+              {freeDeliveryOffered(delivery) ? (
+                <Fact
+                  label="Free delivery"
+                  value={<>Over <Taka amount={delivery.freeThreshold} /></>}
+                  note="Anywhere in Bangladesh"
+                />
+              ) : null}
               <Fact
                 label="Easy return"
                 value={`${delivery.returnWindowDays} days`}

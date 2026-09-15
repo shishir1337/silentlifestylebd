@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { freeDeliveryOffered } from "@/lib/orders";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -422,8 +423,14 @@ async function TrustPanel({ freeDelivery }: { freeDelivery?: boolean }) {
       ) : (
         <>
           <Taka amount={delivery.insideDhaka} /> inside Dhaka,{" "}
-          <Taka amount={delivery.outsideDhaka} /> anywhere else, and free on any
-          order over <Taka amount={delivery.freeThreshold} />.
+          <Taka amount={delivery.outsideDhaka} /> anywhere else
+          {freeDeliveryOffered(delivery) ? (
+            <>
+              , and free on any order over{" "}
+              <Taka amount={delivery.freeThreshold} />
+            </>
+          ) : null}
+          .
         </>
       ),
     },

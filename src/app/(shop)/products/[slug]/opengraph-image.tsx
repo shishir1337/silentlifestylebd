@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { freeDeliveryOffered } from "@/lib/orders";
 import { getProduct, allProductSlugs } from "@/lib/catalog";
 import { getSiteSettings } from "@/lib/settings";
 
@@ -58,7 +59,9 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const was = product.compareAtPrice ? taka(product.compareAtPrice) : null;
   const promise = product.freeDelivery
     ? "Free delivery · Cash on delivery"
-    : `Cash on delivery · Free over ${taka(site.delivery.freeThreshold)}`;
+    : freeDeliveryOffered(site.delivery)
+      ? `Cash on delivery · Free over ${taka(site.delivery.freeThreshold)}`
+      : "Cash on delivery";
 
   return new ImageResponse(
     (

@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { freeDeliveryOffered } from "@/lib/orders";
 import { getSiteSettings } from "@/lib/settings";
 
 /**
@@ -35,7 +36,11 @@ export default async function Image() {
   const site = await getSiteSettings();
   const { delivery } = site;
 
-  const promise = `Cash on delivery nationwide · Free over ${taka(delivery.freeThreshold)}`;
+  // The card is the shop's promise pasted into WhatsApp. Promising free
+  // delivery over zero taka would be the shop offering it on everything.
+  const promise = freeDeliveryOffered(delivery)
+    ? `Cash on delivery nationwide · Free over ${taka(delivery.freeThreshold)}`
+    : "Cash on delivery nationwide";
   const rates = `Dhaka ${taka(delivery.insideDhaka)} · Outside ${taka(delivery.outsideDhaka)}`;
   const returns = `${delivery.returnWindowDays}-day returns`;
 

@@ -3,6 +3,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { posterFor } from "@/lib/image";
+import { freeDeliveryOffered } from "@/lib/orders";
 import { fromPlainText, toRichText } from "@/lib/rich-text";
 import type {
   Category,
@@ -679,13 +680,25 @@ export async function getAnnouncements(): Promise<Announcement[]> {
     "{phone}": settings.phoneDisplay,
   };
 
-  return rows.map((row) => ({
-    ...row,
-    text: row.text.replace(
-      /\{(free-over|inside-dhaka|outside-dhaka|return-days|phone)\}/g,
-      (match) => tokens[match] ?? match,
-    ),
-  }));
+  return rows
+    /*
+      An announcement about an offer that is not running does not run either.
+
+      "Free delivery over {free-over}" is the client's own sentence, and with
+      the threshold at zero it would render as "Free delivery over ৳0" across
+      the top of every page — an offer the shop has just switched off, stated
+      in a way that is also nonsense. Dropping the strip is the only reading
+      that is true, and the row stays in the admin so turning the threshold
+      back on brings the message back with it.
+    */
+    .filter((row) => freeDeliveryOffered(settings.delivery) || !row.text.includes("{free-over}"))
+    .map((row) => ({
+      ...row,
+      text: row.text.replace(
+        /\{(free-over|inside-dhaka|outside-dhaka|return-days|phone)\}/g,
+        (match) => tokens[match] ?? match,
+      ),
+    }));
 }
 
 const getAnnouncementRows = unstable_cache(

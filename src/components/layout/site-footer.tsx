@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/icons";
 import { getNav } from "@/lib/catalog";
 import { getSiteSettings } from "@/lib/settings";
+import { freeDeliveryOffered } from "@/lib/orders";
 import { Logo } from "./logo";
 import { Taka } from "@/components/ui/price";
 
@@ -116,15 +117,17 @@ export async function SiteFooter() {
                   <Taka amount={delivery.outsideDhaka} className="font-medium" />
                 </dd>
               </div>
-              <div className="flex items-baseline justify-between gap-3 border-t border-line pt-2.5">
-                <dt className="text-ink-soft">Free over</dt>
-                <dd>
-                  <Taka
-                    amount={delivery.freeThreshold}
-                    className="font-medium text-brand"
-                  />
-                </dd>
-              </div>
+              {freeDeliveryOffered(delivery) ? (
+                <div className="flex items-baseline justify-between gap-3 border-t border-line pt-2.5">
+                  <dt className="text-ink-soft">Free over</dt>
+                  <dd>
+                    <Taka
+                      amount={delivery.freeThreshold}
+                      className="font-medium text-brand"
+                    />
+                  </dd>
+                </div>
+              ) : null}
             </dl>
 
             <p className="mt-4 inline-flex items-center gap-2 rounded-[var(--radius-sm)] bg-brand-tint px-3 py-2 text-[13px] font-medium text-brand">

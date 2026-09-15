@@ -3,7 +3,7 @@ import "server-only";
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { db } from "@/lib/db";
 import { canonicalPhone } from "@/lib/phone";
-import type { DeliveryArea } from "@/lib/orders";
+import { freeDeliveryOffered, type DeliveryArea } from "@/lib/orders";
 import type { DeliverySettings } from "@/types/settings";
 
 /**
@@ -81,7 +81,9 @@ export function baseDelivery(
   subtotal: number,
   rates: DeliverySettings,
 ): number {
-  if (subtotal >= rates.freeThreshold) return 0;
+  // The same question the storefront asks, from the same function: a zero
+  // threshold is the offer switched off, not an offer that everybody meets.
+  if (freeDeliveryOffered(rates) && subtotal >= rates.freeThreshold) return 0;
   return area === "inside-dhaka" ? rates.insideDhaka : rates.outsideDhaka;
 }
 
