@@ -51,11 +51,11 @@ model Asset {
   mimeType       String
   createdAt      DateTime @default(now())
 
-  categories     Category[]
-  productImages  ProductImage[]
-  heroDesktop    HeroSlide[]    @relation("HeroDesktop")
-  heroMobile     HeroSlide[]    @relation("HeroMobile")
-  promoTiles     PromoTile[]
+  categories    Category[]
+  productImages ProductImage[]
+  heroDesktop   HeroSlide[]    @relation("HeroDesktop")
+  heroMobile    HeroSlide[]    @relation("HeroMobile")
+  promoTiles    PromoTile[]
 
   @@index([createdAt])
 }
@@ -71,6 +71,18 @@ model Category {
   /// Short line under the name on category tiles.
   tagline   String?
   imageId   String?
+  /// Which size chart this category's products are measured by.
+  ///
+  /// On the category rather than on the product, because that is how the
+  /// charts are already written: "Shirts, t-shirts & polos" is one chart
+  /// covering three categories. Per-product would mean choosing one every time
+  /// a product is added, which is a step that gets forgotten — and the page it
+  /// gets forgotten on is the one that needed the chart.
+  ///
+  /// Nullable, because most of this catalogue has no sizes at all. Watches,
+  /// wallets, purses and bracelets come one size, and offering a size guide
+  /// there promises information that does not exist.
+  sizeChartId String?
   /// Order in the mobile category rail — merchandised, highest intent first.
   position  Int      @default(0)
   isActive  Boolean  @default(true)
@@ -78,6 +90,9 @@ model Category {
   updatedAt DateTime @updatedAt
 
   image       Asset?               @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  /// `SetNull`: deleting a chart loses the guide, never the category and every
+  /// product in it.
+  sizeChart   SizeChart?           @relation(fields: [sizeChartId], references: [id], onDelete: SetNull)
   products    Product[]
   collections CategoryCollection[]
 
@@ -92,17 +107,17 @@ model Category {
 /// from membership by product attribute (RULE — new/offers/bestsellers, which
 /// are derived from badge and compareAtPrice rather than stored).
 model Collection {
-  id          String         @id @default(cuid())
-  slug        String         @unique
+  id          String          @id @default(cuid())
+  slug        String          @unique
   name        String
   description String
   kind        CollectionKind
   /// For RULE collections: which rule. Null for CATEGORY collections.
   rule        CollectionRule?
-  position    Int            @default(0)
-  isActive    Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  position    Int             @default(0)
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
   categories CategoryCollection[]
 
@@ -139,37 +154,37 @@ model CategoryCollection {
 }
 
 model Product {
-  id             String       @id @default(cuid())
-  slug           String       @unique
-  name           String
-  sku            String       @unique
-  categoryId     String
+  id              String        @id @default(cuid())
+  slug            String        @unique
+  name            String
+  sku             String        @unique
+  categoryId      String
   /// Selling price, whole BDT.
-  price          Int
+  price           Int
   /// Was-price. Set only when genuinely discounted — an inflated was-price is
   /// the thing the storefront copy explicitly promises not to do.
-  compareAtPrice Int?
+  compareAtPrice  Int?
   /// Plain text, derived from `descriptionRich` on every save.
   ///
   /// Kept as its own column because three things want words without markup:
   /// search, the meta description, and the structured data a crawler reads.
   /// Deriving it means the client edits one thing, not two that drift.
-  description    String
+  description     String
   /// Formatted description: blocks and marks, never HTML. See `lib/rich-text`.
   ///
   /// Null for products written before the editor existed; the storefront falls
   /// back to `description` for those, so nothing had to be migrated.
   descriptionRich Json?
-  badge          ProductBadge?
+  badge           ProductBadge?
   /// Overrides the global free-delivery threshold for this item.
-  freeDelivery   Boolean      @default(false)
-  isActive       Boolean      @default(true)
-  position       Int          @default(0)
+  freeDelivery    Boolean       @default(false)
+  isActive        Boolean       @default(true)
+  position        Int           @default(0)
   /// Optional SEO overrides; fall back to name/description when null.
-  seoTitle       String?
-  seoDescription String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  seoTitle        String?
+  seoDescription  String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   category   Category         @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   details    ProductDetail[]
@@ -208,16 +223,16 @@ model ProductDetail {
 /// stock read goes through the same path and there is no second code branch for
 /// "sizeless" products.
 model ProductVariant {
-  id            String @id @default(cuid())
+  id            String  @id @default(cuid())
   productId     String
   /// "M", "40", or "" for products sold without a size.
   size          String
-  stock         Int    @default(0)
+  stock         Int     @default(0)
   /// Variant SKU. Falls back to the product SKU when null.
   sku           String?
   /// Rarely used; null means "same as the product price".
   priceOverride Int?
-  position      Int    @default(0)
+  position      Int     @default(0)
 
   product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   orderItems OrderItem[]
@@ -272,13 +287,13 @@ enum ProductImageRole {
 // ===========================================================================
 
 model User {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
   name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  email         String   @unique
+  emailVerified Boolean  @default(false)
   image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   /// Contact numbers, not credentials. A Bangladeshi shop reaches a customer by
   /// phone — the courier calls before delivery — so these sit on the account
@@ -398,10 +413,10 @@ enum DeliveryArea {
 /// their address book. `customerId` is null for guest checkout, which stays the
 /// default path.
 model Order {
-  id       String      @id @default(cuid())
+  id            String      @id @default(cuid())
   /// Human-readable, read aloud over the phone: SLB-YYMMDD-XXXX.
-  orderNo  String      @unique
-  status   OrderStatus @default(PENDING)
+  orderNo       String      @unique
+  status        OrderStatus @default(PENDING)
   /// Whether this order's goods are currently back on the shelf.
   ///
   /// Not derived from the status. An order can be moved anywhere from
@@ -410,7 +425,7 @@ model Order {
   /// or taken twice. The status says where the order is; this says what has
   /// actually been done to inventory, which is the only safe thing to compare
   /// the next move against.
-  stockRestored Boolean @default(false)
+  stockRestored Boolean     @default(false)
 
   customerId String?
 
@@ -433,7 +448,7 @@ model Order {
   total          Int
   paymentMethod  PaymentMethod @default(COD)
 
-  couponId String?
+  couponId   String?
   /// The code as typed, kept even if the coupon is later deleted. An order
   /// that cannot say why it was cheaper is an order nobody can explain.
   couponCode String?
@@ -585,15 +600,15 @@ model Coupon {
   value Int
 
   /// Goods subtotal required before it applies at all. 0 = no minimum.
-  minSpend Int @default(0)
+  minSpend    Int @default(0)
   /// Caps a percentage, e.g. "20% off, up to ৳500". 0 = uncapped.
   maxDiscount Int @default(0)
 
   /// Total redemptions allowed. 0 = unlimited.
-  usageLimit Int @default(0)
+  usageLimit    Int @default(0)
   /// Redemptions so far. Incremented inside the order transaction, guarded
   /// against the limit, so a race cannot spend the last one twice.
-  usageCount Int @default(0)
+  usageCount    Int @default(0)
   /// Redemptions allowed per phone number. 0 = unlimited.
   ///
   /// Phone rather than account: most of this shop's orders are guests, and a
@@ -760,7 +775,8 @@ model SizeChart {
   isActive  Boolean  @default(true)
   updatedAt DateTime @updatedAt
 
-  rows SizeChartRow[]
+  rows       SizeChartRow[]
+  categories Category[]
 
   @@index([position])
 }

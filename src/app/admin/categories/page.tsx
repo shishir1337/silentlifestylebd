@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { AdminPage } from "@/components/admin/admin-shell";
 import { CategoryManager } from "@/components/admin/category-manager";
 import { requireCatalogAccess } from "@/lib/admin/access";
-import { listAssets, listCategories } from "@/lib/admin/catalog-reads";
+import {
+  listAssets,
+  listCategories,
+  listSizeChartOptions,
+} from "@/lib/admin/catalog-reads";
 
 export const metadata: Metadata = {
   title: "Categories · Admin",
@@ -20,14 +24,22 @@ export default async function AdminCategoriesPage() {
   // Called for the guard, not the value: it redirects anyone who should not
   // be here. See `access.ts`.
   await requireCatalogAccess();
-  const [categories, assets] = await Promise.all([listCategories(), listAssets()]);
+  const [categories, assets, sizeCharts] = await Promise.all([
+    listCategories(),
+    listAssets(),
+    listSizeChartOptions(),
+  ]);
 
   return (
     <AdminPage
       title="Categories"
       lead="The order here is the order customers see on the homepage."
     >
-      <CategoryManager categories={categories} assets={assets} />
+      <CategoryManager
+        categories={categories}
+        assets={assets}
+        sizeCharts={sizeCharts}
+      />
     </AdminPage>
   );
 }

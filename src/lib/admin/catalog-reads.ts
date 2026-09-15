@@ -259,6 +259,8 @@ export interface AdminCategoryRow {
   isActive: boolean;
   imageId: string | null;
   imageUrl: string | null;
+  /** Which size chart the product pages in this category show. */
+  sizeChartId: string | null;
   productCount: number;
 }
 
@@ -274,6 +276,7 @@ export async function listCategories(): Promise<AdminCategoryRow[]> {
       isActive: true,
       imageId: true,
       image: { select: { url: true } },
+      sizeChartId: true,
       _count: { select: { products: true } },
     },
   });
@@ -287,6 +290,7 @@ export async function listCategories(): Promise<AdminCategoryRow[]> {
     isActive: c.isActive,
     imageId: c.imageId,
     imageUrl: c.image?.url ?? null,
+    sizeChartId: c.sizeChartId,
     productCount: c._count.products,
   }));
 }
@@ -417,4 +421,19 @@ export async function getDashboardFeed() {
     recent: recent.map((o) => ({ ...o, placedAt: o.placedAt.toISOString() })),
     lowStock,
   };
+}
+
+/**
+ * Every size chart, as something to pick from.
+ *
+ * Reads the table directly rather than through the storefront's cached
+ * `getSizeCharts`: a chart the client has just switched off should still be
+ * choosable here — the admin is where you go to change your mind — and the
+ * admin must never show a list that lags a cache.
+ */
+export async function listSizeChartOptions(): Promise<{ id: string; title: string }[]> {
+  return db.sizeChart.findMany({
+    orderBy: { position: "asc" },
+    select: { id: true, title: true },
+  });
 }

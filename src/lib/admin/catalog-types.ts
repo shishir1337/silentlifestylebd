@@ -41,6 +41,8 @@ export interface CategoryInput {
   slug?: string;
   tagline?: string;
   imageId: string | null;
+  /** Which size chart this category's products are measured by; null for none. */
+  sizeChartId: string | null;
   isActive: boolean;
 }
 

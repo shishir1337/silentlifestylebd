@@ -491,6 +491,55 @@ export const getSizeCharts = unstable_cache(
 );
 
 /**
+ * The one chart that applies to a category, or null when none does.
+ *
+ * The product page used to link to `/size-guide`, which is every chart the
+ * shop has, one after another. Somebody deciding between M and L on a shirt
+ * was sent away from the page they were buying on, to a page that opened on
+ * panjabi chest measurements, and had to find the right table themselves —
+ * then find their way back. Most of them did not come back.
+ *
+ * Tagged with the content tag like every other chart read, so editing a chart
+ * in the admin updates it on every product page that shows it.
+ */
+export const getSizeChartForCategory = unstable_cache(
+  async (categorySlug: string): Promise<SizeChart | null> => {
+    const category = await db.category.findUnique({
+      where: { slug: categorySlug },
+      select: {
+        sizeChart: {
+          include: { rows: { orderBy: { position: "asc" } } },
+        },
+      },
+    });
+
+    const chart = category?.sizeChart;
+    // An inactive chart is one the client has taken down on purpose.
+    if (!chart || !chart.isActive) return null;
+
+    return {
+      id: chart.slug,
+      title: chart.title,
+      note: chart.note,
+      columns: chart.columns,
+      rows: chart.rows.map((r) => r.cells),
+    };
+  },
+  ["content:size-chart-for-category", SHAPE],
+  /*
+    Two tags, because two different edits change this answer.
+
+    `content` covers editing the chart itself — a measurement corrected in the
+    size-chart editor. `categories` covers pointing a category at a different
+    chart, which is a category edit and would otherwise leave every product
+    page in that category showing the old table until something else happened
+    to invalidate it. Both product pages are prerendered, so a stale read here
+    is a stale page, not just a stale function.
+  */
+  { ...CACHE, tags: [CONTENT_TAG, CATEGORIES_TAG] },
+);
+
+/**
  * The menus.
  *
  * Shaped like the constant it replaces — three named groups of links — so the

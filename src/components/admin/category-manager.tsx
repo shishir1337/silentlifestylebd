@@ -27,9 +27,12 @@ import { cn } from "@/lib/cn";
 export function CategoryManager({
   categories,
   assets,
+  sizeCharts,
 }: {
   categories: AdminCategoryRow[];
   assets: AssetRow[];
+  /** Every chart the client has written, to choose one from. */
+  sizeCharts: { id: string; title: string }[];
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -78,6 +81,7 @@ export function CategoryManager({
       <CategoryForm
         category={editing === "new" ? null : editing}
         assets={assets}
+        sizeCharts={sizeCharts}
         onDone={() => {
           setEditing(null);
           router.refresh();
@@ -187,11 +191,13 @@ export function CategoryManager({
 function CategoryForm({
   category,
   assets,
+  sizeCharts,
   onDone,
   onCancel,
 }: {
   category: AdminCategoryRow | null;
   assets: AssetRow[];
+  sizeCharts: { id: string; title: string }[];
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -203,6 +209,7 @@ function CategoryForm({
     slug: category?.slug ?? "",
     tagline: category?.tagline ?? "",
     imageId: category?.imageId ?? null,
+    sizeChartId: category?.sizeChartId ?? "",
     isActive: category?.isActive ?? true,
   });
 
@@ -265,6 +272,36 @@ function CategoryForm({
             value={form.imageId}
             onChange={(id: string | null) => setForm({ ...form, imageId: id })}
           />
+
+          {/*
+            Set on the category, not on every product.
+
+            The charts are written that way — "Shirts, t-shirts & polos" is one
+            chart covering three categories — and picking one on every new
+            product is a step that gets forgotten. It gets forgotten on exactly
+            the page that needed it: the size guide is the cheapest thing this
+            shop has for preventing a return, and a return on cash on delivery
+            is a round trip already paid for twice.
+          */}
+          <Field
+            label="Size chart"
+            id="c-size-chart"
+            hint="Shown on every product page in this category, beside the size buttons. Leave as None for anything sold in one size."
+          >
+            <select
+              id="c-size-chart"
+              value={form.sizeChartId}
+              onChange={(e) => setForm({ ...form, sizeChartId: e.target.value })}
+              className={inputClass()}
+            >
+              <option value="">None — nothing here has sizes</option>
+              {sizeCharts.map((chart) => (
+                <option key={chart.id} value={chart.id}>
+                  {chart.title}
+                </option>
+              ))}
+            </select>
+          </Field>
 
           <label className="flex items-start gap-2.5 text-[14px]">
             <input

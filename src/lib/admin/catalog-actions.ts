@@ -329,6 +329,12 @@ export async function saveCategory(input: CategoryInput): Promise<SaveResult> {
     name,
     tagline: input.tagline?.trim() || null,
     imageId: input.imageId || null,
+    /*
+      An empty choice means "none", and none is a real answer: watches,
+      wallets and bracelets come in one size, and a size guide on those pages
+      would promise a table that does not exist.
+    */
+    sizeChartId: input.sizeChartId || null,
     isActive: input.isActive,
   };
 

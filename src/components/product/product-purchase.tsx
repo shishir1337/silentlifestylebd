@@ -6,6 +6,7 @@ import { useCart } from "@/lib/cart";
 import { Taka } from "@/components/ui/price";
 import { PriceTag } from "./price-tag";
 import { BagIcon, CheckIcon, MinusIcon, PlusIcon } from "@/components/ui/icons";
+import { useSizeGuide } from "./product-tabs";
 import { cn } from "@/lib/cn";
 import type { Product } from "@/types/catalog";
 
@@ -29,6 +30,8 @@ export function ProductPurchase({ product }: { product: Product }) {
   const [added, setAdded] = useState(false);
 
   const sizeGroupRef = useRef<HTMLDivElement>(null);
+  // Null when this page has no size-chart tab to open. See the button below.
+  const sizeGuide = useSizeGuide();
   const needsSize = Boolean(product.sizes?.length);
 
   function validate() {
@@ -99,18 +102,34 @@ export function ProductPurchase({ product }: { product: Product }) {
             <legend className="text-[13px] font-medium">
               Size{size ? <span className="text-ink-muted">: {size}</span> : null}
             </legend>
-            <a
-              href="/size-guide"
-              /*
-                A standalone control, so it gets a standalone target.
-                `min-h-6` sat it exactly on the 24px WCAG floor with nothing
-                to spare; the height comes from padding so the underline still
-                hugs the words rather than floating away from them.
-              */
-              className="-my-2 inline-flex min-h-11 items-center py-2 text-[12px] font-medium text-brand underline underline-offset-2"
-            >
-              Size guide
-            </a>
+            {/*
+              Stays on the page when there is a chart to stay for.
+
+              This was a link to `/size-guide` — every chart the shop has, in
+              one list. Somebody deciding between M and L on a shirt was sent
+              off the page they were buying on, to a page that opens on panjabi
+              chest measurements, and left to find the right table and then
+              find their way back.
+
+              Now it opens the size-chart tab below, which holds the one chart
+              this product's category is measured by. When the category has no
+              chart — watches, wallets, a belt sold by waist number — the
+              control is not rendered at all rather than promising a guide that
+              does not exist.
+
+              `min-h-11` on both: a standalone control gets a standalone target.
+              The height comes from padding so the underline still hugs the
+              words rather than floating away from them.
+            */}
+            {sizeGuide ? (
+              <button
+                type="button"
+                onClick={sizeGuide.open}
+                className="-my-2 inline-flex min-h-11 items-center py-2 text-[12px] font-medium text-brand underline underline-offset-2"
+              >
+                Size guide
+              </button>
+            ) : null}
           </div>
 
           <div

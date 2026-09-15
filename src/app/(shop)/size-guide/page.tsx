@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Container } from "@/components/ui/container";
 import { PageHeader, Section, Bullets } from "@/components/ui/page-header";
 import { ButtonLink } from "@/components/ui/button";
+import { SizeChartTable } from "@/components/product/size-chart-table";
 import { getSizeCharts } from "@/lib/catalog";
 import { getSiteSettings } from "@/lib/settings";
 
@@ -51,51 +52,12 @@ export default async function SizeGuidePage() {
 
       {sizeCharts.map((chart) => (
         <Section key={chart.id} id={chart.id} title={chart.title}>
-          <p className="text-[13px] text-ink-muted">{chart.note}</p>
-
           {/*
-            Tables are the one thing on this site allowed to scroll sideways —
-            a size chart squeezed into 360px is unreadable, and shrinking the
-            text to fit is worse than letting the table scroll in its own box.
+            The same table a product page shows in its size-chart tab. One
+            component, so the two can never disagree about which column is the
+            heading — and the heading is the size.
           */}
-          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
-            <table className="w-full min-w-[420px] border-collapse text-[13px]">
-              <caption className="sr-only">
-                {chart.title} — measurements in inches
-              </caption>
-              <thead>
-                <tr className="border-b border-line-strong text-left">
-                  {chart.columns.map((col) => (
-                    <th
-                      key={col}
-                      scope="col"
-                      className="py-2.5 pr-4 font-semibold whitespace-nowrap text-ink"
-                    >
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {chart.rows.map((row) => (
-                  <tr key={String(row[0])} className="border-b border-line last:border-0">
-                    {row.map((cell, i) => (
-                      <td
-                        key={i}
-                        className={
-                          i === 0
-                            ? "tabular py-2.5 pr-4 font-semibold whitespace-nowrap text-ink"
-                            : "tabular py-2.5 pr-4 whitespace-nowrap"
-                        }
-                      >
-                        {cell}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <SizeChartTable chart={chart} />
         </Section>
       ))}
 
