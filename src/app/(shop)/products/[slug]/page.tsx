@@ -68,7 +68,16 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
 
   const [category, related] = await Promise.all([
     getCategory(product.categorySlug),
-    getRelated(product),
+    /*
+      Four, not eight.
+
+      Every tile down here is a way to leave the page the visitor was paid to
+      land on. A shopper who is browsing gains from a long rail; a shopper who
+      arrived from an advertisement for *this* shirt gains a longer list of
+      reasons to stop thinking about it. Four is enough to rescue somebody who
+      genuinely does not want this one.
+    */
+    getRelated(product, 4),
   ]);
   const gallery = getGallery(product);
 
@@ -77,15 +86,41 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
       {/* The sticky mobile buy bar overlaps the page bottom; reserve for it. */}
       <div className="pb-20 lg:pb-0">
         <Container>
-          <Breadcrumbs
-            trail={[
-              { label: "Home", href: "/" },
-              ...(category
-                ? [{ label: category.name, href: `/collections/${category.slug}` }]
-                : []),
-              { label: product.name },
-            ]}
-          />
+          {/*
+            A trail on desktop, one step back on a phone.
+
+            Most arrivals here come straight from an advertisement, so there is
+            no trail behind them to retrace — "Home › Formal Shirt › Slim Fit
+            Formal Shirt — Sky Blue" wrapped to two lines, repeated the name
+            that is about to appear as the heading, and pushed the product
+            itself further down a screen that had none to spare. One link back
+            into the category does the only job that was left.
+          */}
+          <div className="lg:hidden">
+            {category ? (
+              <Link
+                href={`/collections/${category.slug}`}
+                className="-my-2 -ml-1 inline-flex min-h-11 items-center gap-1 py-2 text-[13px] text-ink-soft transition-colors duration-[var(--dur-base)] hover:text-ink"
+              >
+                <ChevronRightIcon aria-hidden className="size-4 rotate-180" />
+                {category.name}
+              </Link>
+            ) : (
+              <div className="h-4" />
+            )}
+          </div>
+
+          <div className="hidden lg:block">
+            <Breadcrumbs
+              trail={[
+                { label: "Home", href: "/" },
+                ...(category
+                  ? [{ label: category.name, href: `/collections/${category.slug}` }]
+                  : []),
+                { label: product.name },
+              ]}
+            />
+          </div>
 
           <div className="grid gap-8 pb-10 lg:grid-cols-2 lg:gap-12">
             <ProductGallery
@@ -106,11 +141,33 @@ export default async function ProductPage(props: PageProps<"/products/[slug]">) 
                 {product.name}
               </h1>
 
-              <p className="mt-2 text-[13px] text-ink-muted">
-                SKU <span className="tabular">{product.sku}</span>
-              </p>
+              {/*
+                The three objections, answered before the buttons rather than
+                after them.
+
+                The full panel below says all of this properly and stays where
+                it is — but it sat under both CTAs, which meant a shopper
+                deciding whether to trust a shop they reached from an
+                advertisement had to scroll *past* the decision to find the
+                reassurance. In a cash-on-delivery market "you pay when it
+                arrives" is not a detail; it is the offer.
+
+                Directly under the name. One line lower — under the SKU, where
+                it started — and it fell behind the sticky buy bar on a 390px
+                screen, which is the same as not being there at all.
+              */}
+              <ReassuranceLine freeDelivery={product.freeDelivery} />
 
               <ProductPurchase product={product} />
+
+              {/*
+                The SKU is for the telephone call that confirms the order, not
+                for the decision to place it. It was sitting between the name
+                and the price — the most valuable few pixels on the page.
+              */}
+              <p className="mt-5 text-[12.5px] text-ink-muted">
+                SKU <span className="tabular">{product.sku}</span>
+              </p>
 
               <TrustPanel freeDelivery={product.freeDelivery} />
 
@@ -191,6 +248,67 @@ function Breadcrumbs({
         ))}
       </ol>
     </nav>
+  );
+}
+
+/**
+ * The same three promises as the panel below, in one line above the buttons.
+ *
+ * Not a duplicate for emphasis — a different job. The panel explains; this
+ * one is there at the moment of the decision, for somebody who will not scroll
+ * to be reassured. So it is the shortest true version of each: what they pay
+ * with, when it arrives, and what happens if it is wrong.
+ *
+ * Delivery days come from Settings, so the client can change what this
+ * promises without a developer, and the promise on the product page cannot
+ * drift from the one at checkout.
+ */
+async function ReassuranceLine({ freeDelivery }: { freeDelivery?: boolean }) {
+  const { delivery } = await getSiteSettings();
+
+  const promises = [
+    { Icon: CashIcon, text: "Cash on delivery" },
+    {
+      Icon: TruckIcon,
+      /*
+        "Dhaka 1–2 days", not "1–2 days in Dhaka".
+
+        Three characters shorter, which is the difference between one line and
+        two on a 360px Android — and the qualifier has to stay either way.
+        Outside Dhaka is 2–4 days, so a bare "1–2 days" would be a promise this
+        shop cannot keep for most of the country.
+      */
+      text: freeDelivery ? "Free delivery" : `Dhaka ${delivery.insideDhakaDays}`,
+    },
+    { Icon: ReturnIcon, text: `${delivery.returnWindowDays}-day return` },
+  ];
+
+  return (
+    <ul className="mt-3 flex flex-wrap items-center gap-x-1 text-[12.5px] text-ink-soft">
+      {promises.map(({ Icon, text }, i) => (
+        <li key={text} className="flex items-center gap-1.5">
+          {/*
+            One icon, on the promise that carries the offer.
+
+            Three icons and three labels came to 370px of content on a 358px
+            screen, so the line wrapped and the third promise landed under the
+            sticky buy bar — clipped, which is worse than absent because it
+            looks broken. The icons were 80px of that. A middot between the
+            other two reads as one continuous sentence and costs four pixels.
+
+            The full panel lower down keeps an icon on every row; it has the
+            width for them.
+          */}
+          {i === 0 ? <Icon aria-hidden className="size-4 shrink-0 text-brand" /> : null}
+          {text}
+          {i < promises.length - 1 ? (
+            <span aria-hidden className="ml-1 text-line-strong">
+              ·
+            </span>
+          ) : null}
+        </li>
+      ))}
+    </ul>
   );
 }
 

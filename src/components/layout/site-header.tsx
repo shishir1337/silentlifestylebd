@@ -4,6 +4,7 @@ import { SearchIcon, UserIcon } from "@/components/ui/icons";
 import { CartButton } from "./cart-button";
 import { Logo } from "./logo";
 import { MobileMenu } from "./mobile-menu";
+import { MobileHeaderSearch } from "./header-search";
 import { getCategories, getCategoryCounts, getNav } from "@/lib/catalog";
 import { cn } from "@/lib/cn";
 
@@ -111,24 +112,9 @@ export async function SiteHeader() {
           </div>
         </div>
 
-        {/* Mobile search — always visible, never behind a tap */}
-        <form action="/search" role="search" className="pb-2.5 lg:hidden">
-          <label htmlFor="search-mobile" className="sr-only">
-            Search products
-          </label>
-          <div className="relative">
-            <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-[18px] -translate-y-1/2 text-ink-muted" />
-            <input
-              id="search-mobile"
-              name="q"
-              type="search"
-              enterKeyHint="search"
-              placeholder="Search for panjabi, shirts, watches…"
-              /* 16px min: anything smaller makes iOS Safari zoom on focus. */
-              className="h-11 w-full rounded-[var(--radius-sm)] border border-line bg-subtle pr-3 pl-10 text-base placeholder:text-ink-muted focus:border-brand focus:bg-canvas"
-            />
-          </div>
-        </form>
+        {/* Mobile search. Absent on product pages — see the component. */}
+        <MobileHeaderSearch />
+
       </Container>
     </header>
   );

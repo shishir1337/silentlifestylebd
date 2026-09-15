@@ -166,9 +166,18 @@ export function ProductPurchase({ product }: { product: Product }) {
       ) : null}
 
       {/* --- Quantity -------------------------------------------------------- */}
-      <div className="mt-5">
+      {/*
+        Label beside the control, not above it.
+
+        This was a titled section of its own, a full row wide, sitting between
+        the size a shopper had just chosen and the button they were reaching
+        for. Almost every order on a shop like this is a single item, so for
+        almost everybody it was a step that existed only to be scrolled past.
+        It is still here and still a 44px target — just no longer in the way.
+      */}
+      <div className="mt-5 flex items-center gap-3">
         <p className="text-[13px] font-medium">Quantity</p>
-        <div className="mt-2 inline-flex items-center rounded-[var(--radius-sm)] border border-line-strong">
+        <div className="inline-flex items-center rounded-[var(--radius-sm)] border border-line-strong">
           <button
             type="button"
             onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -247,13 +256,38 @@ export function ProductPurchase({ product }: { product: Product }) {
               <p className="text-[11px] text-ink-muted">Choose a size</p>
             ) : null}
           </div>
+          {/*
+            Ordering, not bagging.
+
+            This bar is the only control on screen for most of the page, and it
+            used to offer the weaker of the two actions. On a cash-on-delivery
+            shop there is no basket-building to protect: nothing is paid for
+            here, the order is confirmed by telephone afterwards, and most
+            arrivals came from an advertisement for this one item. Sending them
+            to the bag adds a screen between them and the thing they came to
+            do.
+
+            Add-to-bag keeps its place beside it, as an icon, for the shopper
+            who is genuinely buying more than one thing.
+          */}
           <button
             type="button"
             onClick={addToBag}
-            className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[var(--radius-sm)] bg-ink text-[14px] font-medium text-white transition-[background-color,scale] duration-[var(--dur-base)] active:scale-[0.98]"
+            aria-label={added ? "Added to bag" : "Add to bag"}
+            className={cn(
+              "inline-flex size-11 shrink-0 items-center justify-center rounded-[var(--radius-sm)] border transition-[background-color,border-color,color,scale] duration-[var(--dur-base)] active:scale-[0.95]",
+              added ? "border-brand bg-brand-tint text-brand" : "border-line-strong text-ink",
+            )}
           >
-            <BagIcon className="size-[17px]" />
-            Add to bag
+            {added ? <CheckIcon className="size-[18px]" /> : <BagIcon className="size-[18px]" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={buyNow}
+            className="inline-flex h-11 flex-1 items-center justify-center rounded-[var(--radius-sm)] bg-ink text-[14px] font-medium text-white transition-[background-color,scale] duration-[var(--dur-base)] active:scale-[0.98]"
+          >
+            Order now
           </button>
         </div>
       ) : null}

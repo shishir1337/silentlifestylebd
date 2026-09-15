@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { fillProps } from "@/lib/image";
@@ -30,6 +30,29 @@ export function ProductGallery({
 }) {
   const [active, setActive] = useState(0);
   const single = images.length < 2;
+
+  /**
+   * Which photo the filmstrip has been swiped to.
+   *
+   * Separate from `active`, which is the thumbnail selection on pointer
+   * devices. The two never apply at the same breakpoint, and conflating them
+   * would make a tap on a desktop thumbnail try to scroll a strip that is not
+   * on screen.
+   *
+   * Read from scroll position rather than from an observer: the strip is
+   * snap-mandatory, so its offset divided by its width *is* the index, and
+   * rounding is enough. No listener library, no `IntersectionObserver`, and it
+   * stays correct if the frame is resized mid-swipe.
+   */
+  const strip = useRef<HTMLDivElement>(null);
+  const [swiped, setSwiped] = useState(0);
+
+  function onStripScroll() {
+    const el = strip.current;
+    if (!el || el.clientWidth === 0) return;
+    const i = Math.round(el.scrollLeft / el.clientWidth);
+    setSwiped((prev) => (prev === i ? prev : Math.min(Math.max(i, 0), images.length - 1)));
+  }
 
   return (
     <div className="sm:flex sm:gap-3">
@@ -61,9 +84,16 @@ export function ProductGallery({
         </ul>
       ) : null}
 
-      <div className="min-w-0 flex-1">
+      {/*
+        `relative` so the counter below can sit on the frame without sitting
+        *inside* the scroller — a child of the strip would scroll away with the
+        photos, which is exactly what a position indicator must not do.
+      */}
+      <div className="relative min-w-0 flex-1">
         {/* Phone: swipeable filmstrip. Desktop: just the active image. */}
         <div
+          ref={strip}
+          onScroll={onStripScroll}
           className={cn(
             "relative overflow-hidden rounded-[var(--radius-md)] bg-subtle",
             "flex snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
@@ -110,11 +140,27 @@ export function ProductGallery({
           ) : null}
         </div>
 
-        {/* Phone: dots mirror the filmstrip position without needing JS to scroll. */}
+        {/*
+          The count, on the picture.
+
+          This was the sentence "Swipe for more photos" on its own line under
+          the frame — forty-eight pixels of instruction on the page with the
+          least room to spare, telling people to do the thing their thumb
+          already does. A count sits inside the frame, costs no height at all,
+          and answers the question the sentence was really asked to answer:
+          how many more are there.
+
+          Not interactive, deliberately: there is nothing to tap that swiping
+          does not already do, and a dot small enough to fit here would be
+          under the minimum target size anyway.
+        */}
         {!single ? (
-          <p className="mt-2 text-center text-[11px] text-ink-muted sm:hidden">
-            Swipe for more photos
-          </p>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute right-3 bottom-3 z-10 rounded-full bg-ink/70 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm sm:hidden"
+          >
+            <span className="tabular">{swiped + 1}</span> / {images.length}
+          </span>
         ) : null}
       </div>
     </div>
