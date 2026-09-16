@@ -275,7 +275,7 @@ async function seedSettings() {
   const settings: {
     key: string;
     value: string;
-    type: "STRING" | "INT" | "TEXT";
+    type: "STRING" | "INT" | "TEXT" | "SECRET";
     group: string;
     label: string;
     helpText?: string;
@@ -304,6 +304,14 @@ async function seedSettings() {
     { key: "tracking.gtmId", value: "", type: "STRING", group: "tracking", label: "Google Tag Manager container ID", helpText: "Looks like GTM-XXXXXXX. It is at the top of your container in Tag Manager. Clear this box to stop loading Tag Manager." },
     { key: "tracking.metaPixelId", value: "", type: "STRING", group: "tracking", label: "Meta (Facebook) Pixel ID", helpText: "The 15 or 16 digit number from Events Manager, under Data sources. Clear this box to stop loading the Pixel." },
     { key: "tracking.metaEventsVia", value: "direct", type: "STRING", group: "tracking", label: "Who sends the events to Meta", helpText: "Pick one, not both. If the shop and a Tag Manager tag both send, Meta counts every sale twice and optimises your ads against numbers that are not real." },
+
+    /*
+      SECRET is not decoration. The admin panel never sends a SECRET value back
+      to the browser and the audit trail never records it, so this token cannot
+      be read out of the form it was typed into.
+    */
+    { key: "tracking.metaCapiToken", value: "", type: "SECRET", group: "tracking", label: "Meta Conversions API token", helpText: "Events Manager -> your dataset -> Settings -> Conversions API -> Generate access token. It is a long string starting with EAA. Keep it secret: anyone who has it can post conversions into your ad account. Leave blank to send nothing from the server." },
+    { key: "tracking.metaTestEventCode", value: "", type: "STRING", group: "tracking", label: "Meta test event code", helpText: "Only while you are testing. Events Manager -> Test events shows a code like TEST12345; paste it here and your orders appear there within a minute. CLEAR IT AGAIN when you are done, or Meta keeps treating real sales as test traffic." },
   ];
 
   for (const [position, s] of settings.entries()) {

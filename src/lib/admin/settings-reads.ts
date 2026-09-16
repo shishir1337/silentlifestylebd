@@ -26,6 +26,15 @@ export interface AdminSetting {
   helpText: string | null;
   /** When present, the form offers these rather than a free-text box. */
   choices: SettingChoice[] | null;
+  /**
+   * True when a SECRET row has something in it.
+   *
+   * The value itself is never in this object — see `listSettings`. This is the
+   * only thing the form is told, and it is enough to draw the difference
+   * between "no token yet" and "a token is saved, leave the box alone to keep
+   * it".
+   */
+  hasValue: boolean;
 }
 
 export interface SettingGroup {
@@ -91,13 +100,27 @@ export async function listSettings(): Promise<SettingGroup[]> {
       byGroup.set(r.group, []);
       order.push(r.group);
     }
+    /*
+      A SECRET never leaves the server.
+
+      This object is rendered into a Client Component, which means whatever is
+      in it is in the page source of the admin panel. An access token that can
+      post conversions into the shop's ad account does not go there — not even
+      to be shown back as dots, because dots drawn from the real string are
+      still the real string in the payload behind them.
+
+      Enforced on the type rather than on a list of key names, so the next
+      secret setting is safe by virtue of being declared one.
+    */
+    const secret = r.type === "SECRET";
     byGroup.get(r.group)!.push({
       key: r.key,
-      value: r.value,
+      value: secret ? "" : r.value,
       type: r.type,
       label: r.label,
       helpText: r.helpText,
       choices: CHOICES[r.key] ?? null,
+      hasValue: r.value.trim().length > 0,
     });
   }
 

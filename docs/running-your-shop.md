@@ -276,6 +276,43 @@ is reported once and only once, however many times the confirmation page is
 refreshed or reopened. Amounts are in taka, and the order amount is the total
 the customer pays, delivery included.
 
+**Meta Conversions API token.** This is the one worth setting up properly.
+
+Everything above happens in the customer's browser, and a good share of
+customers never let it happen: an ad blocker, a privacy setting, a phone that
+lost signal as the page loaded, or a tab closed the moment the order went
+through. Each of those is a real sale that Meta never hears about, and an ad
+set that looks less profitable than it is.
+
+With a token here, the shop also reports every order **from the server**, where
+none of that can interfere. Meta is given the order number with both copies and
+keeps whichever arrives first, so nothing is counted twice.
+
+To get one: Events Manager → open your dataset → **Settings** → **Conversions
+API** → **Generate access token**. Paste it in and save. Then press **Check the
+saved token** — it asks Meta whether that token really works for that Pixel, and
+tells you straight away instead of leaving you to find out in three weeks.
+
+Treat the token like a password. Anyone who has it can post conversions into
+your ad account. The panel never shows it back to you once saved — that is why
+the box looks empty and says a token is saved; leave it alone to keep it, or
+tick **Remove the saved token** and save to take it away.
+
+Only the order is sent this way. Viewed products, bag additions and checkouts
+stay in the browser, because the server did not witness them and a page that
+reported them would be a page anyone could lie to.
+
+**Meta test event code.** For checking your setup before it matters. Events
+Manager → **Test events** shows a code like `TEST12345`; paste it here, place a
+test order, and it appears there within a minute. **Clear the box when you are
+done** — while it is filled in, Meta treats your real sales as test traffic.
+
+**What the customer's details do.** The order's name and phone number go to Meta
+scrambled beyond recovery (a one-way hash — it cannot be turned back into a name
+or a number), and never in any other form. That is what lets Meta recognise a
+customer it has seen before and credit the right advertisement. Nothing
+readable about a customer leaves the server.
+
 **Staff are not counted.** None of this loads inside the admin panel, so a day
 spent editing products does not show up as a day of shopping.
 

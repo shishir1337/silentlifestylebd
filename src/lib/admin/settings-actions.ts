@@ -6,6 +6,7 @@ import { assertSettingsAccess } from "@/lib/admin/access";
 import { recordAudit } from "@/lib/admin/audit";
 import { SETTINGS_TAG } from "@/lib/settings";
 import { isBDMobile, normalisePhone } from "@/lib/phone";
+import { checkMetaCapiToken } from "@/lib/meta-capi";
 import type { SaveResult } from "@/lib/admin/catalog-types";
 
 /**
@@ -35,14 +36,19 @@ function validate(key: string, type: string, value: string): string | null {
     Some settings may be blank, and blank is meaningful.
 
     For the social links it means "we are not on that one", and the footer then
-    renders no icon rather than a dead one. For the two tag ids it is the off
-    switch — clearing the box is how the shop stops loading that tag, and is
-    the answer to "can we turn this off again". Every other setting is
-    load-bearing and an empty value would be a silent hole in the shop.
+    renders no icon rather than a dead one. For everything under `tracking.` it
+    is the off switch — clearing the box is how the shop stops loading that
+    tag, or stops sending to Meta from the server, and is the answer to "can we
+    turn this off again". The exception is who sends the Meta events, which is
+    a choice between two things rather than a thing that can be absent.
+
+    Every other setting is load-bearing and an empty value would be a silent
+    hole in the shop.
   */
   if (!trimmed) {
     const blankable =
-      key.startsWith("social.") || key === "tracking.gtmId" || key === "tracking.metaPixelId";
+      key.startsWith("social.") ||
+      (key.startsWith("tracking.") && key !== "tracking.metaEventsVia");
     return blankable ? null : "This cannot be left blank.";
   }
 
@@ -63,6 +69,28 @@ function validate(key: string, type: string, value: string): string | null {
 
   if (key === "tracking.metaPixelId" && !/^\d{15,16}$/.test(trimmed)) {
     return "A pixel ID is 15 or 16 digits with nothing else in it. Copy it from Events Manager → Data sources.";
+  }
+
+  /*
+    Not a shape Meta publishes, so this is the loosest check that still catches
+    the mistake people actually make: pasting the Pixel ID, an App ID, or the
+    whole curl command Events Manager shows next to the token. A real System
+    User token is a long opaque string and has always begun `EAA` in practice —
+    but that prefix is not documented, so it is not required here. Refusing a
+    token that works would be worse than accepting one that does not: the
+    "Check the saved token" button answers the second case in one click.
+  */
+  if (key === "tracking.metaCapiToken") {
+    if (/\s/.test(trimmed)) {
+      return "That has a space in it, so something else came along with the token. Copy just the token.";
+    }
+    if (trimmed.length < 40) {
+      return "That is too short to be an access token. In Events Manager open your dataset, then Settings, then Conversions API, and generate one.";
+    }
+  }
+
+  if (key === "tracking.metaTestEventCode" && !/^TEST\w+$/.test(trimmed)) {
+    return "A test event code looks like TEST12345, from the Test events tab. Clear the box when you have finished testing.";
   }
 
   if (key === "tracking.metaEventsVia" && trimmed !== "direct" && trimmed !== "gtm") {
@@ -172,11 +200,28 @@ export async function saveSettings(
     ),
   );
 
+  /*
+    The audit trail says what changed, and for a secret that is all it says.
+
+    Writing the before and after of an access token into an append-only table
+    that the panel displays would undo the entire point of not sending it to
+    the browser in the first place — and an audit row, by design, is never
+    edited or deleted afterwards.
+  */
+  const secretKeys = new Set(
+    rows.filter((r) => r.type === "SECRET").map((r) => r.key),
+  );
   await recordAudit(
     actor,
     "settings.updated",
     changes.map((c) => c.key).join(", "),
-    changes.map((c) => `${c.label}: “${c.from}” → “${c.to}”`).join("; "),
+    changes
+      .map((c) =>
+        secretKeys.has(c.key)
+          ? `${c.label}: ${c.to ? "replaced" : "removed"}`
+          : `${c.label}: “${c.from}” → “${c.to}”`,
+      )
+      .join("; "),
   );
 
   refreshSettings();
@@ -196,4 +241,28 @@ export async function saveSettings(
 function refreshSettings() {
   revalidateTag(SETTINGS_TAG, "max");
   revalidatePath("/", "layout");
+}
+
+/**
+ * "Does this token work?", answered without waiting for a sale.
+ *
+ * An access token is the one setting on this panel whose correctness cannot be
+ * seen. A wrong phone number is obvious on the contact page; a wrong delivery
+ * charge shows up in the next order. A dead or mismatched Conversions API
+ * token looks exactly like a working one until someone notices, weeks later,
+ * that Meta has been recording fewer sales than the shop has.
+ *
+ * So this asks Meta for the dataset's own name. It sends no event and records
+ * nothing — it only proves that this token can see this pixel.
+ *
+ * Owner-only, like the form it sits in, and it reads the saved token rather
+ * than one typed into the box: checking a token that has not been saved would
+ * report on something the shop is not actually using.
+ */
+export async function verifyMetaCapiToken(): Promise<{ ok: boolean; message: string }> {
+  await assertSettingsAccess();
+  const result = await checkMetaCapiToken();
+  return result.ok
+    ? { ok: true, message: `Meta accepted the token. It is connected to "${result.datasetName}".` }
+    : { ok: false, message: result.reason };
 }

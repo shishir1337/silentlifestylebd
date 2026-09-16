@@ -15,7 +15,10 @@ import type { PlaceOrderInput, PlaceOrderLine, PlaceOrderResult } from "@/lib/or
 import { getViewerOrders, lookupOrder, type OrderView } from "@/lib/order-reads";
 import { consume } from "@/lib/redis";
 import { clientIp } from "@/lib/client-ip";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
+import { after } from "next/server";
+import { sendPurchaseToMeta } from "@/lib/meta-capi";
+import { siteUrl } from "@/data/site";
 
 /**
  * Who is asking, for rate limiting — or null when that cannot be established.
@@ -323,7 +326,9 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     const orderNo = mintOrderNo();
 
     try {
-      await db.$transaction(async (tx) => {
+      // What was actually written, for anything that has to happen once the
+      // transaction has committed and the numbers are final.
+      const written = await db.$transaction(async (tx) => {
         for (const line of priced) {
           /**
            * Decrement conditionally, in one statement.
@@ -437,7 +442,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
           select: { id: true },
         });
 
-        return order;
+        return { id: order.id, total };
       });
 
       // Only after the transaction commits: a cookie granting access to an
@@ -459,6 +464,51 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
        */
       revalidateTag(PRODUCTS_TAG, "max");
       revalidateTag(CATALOG_TAG, "max");
+
+      /*
+        Tell Meta, after the customer has their confirmation.
+
+        `after` runs this once the response is on its way, so the one thing
+        standing between a shopper and "Order placed" is never a request to
+        somebody else's servers. Meta being slow, rate-limited or down cannot
+        delay an order and cannot fail one — `sendPurchaseToMeta` does not
+        throw, and this is past the point where throwing would matter anyway.
+
+        The same order also reports itself from the browser, with `orderNo` as
+        the event ID on both sides. Meta keeps whichever arrives first and
+        discards the other for 48 hours, so the two are one sale, not two.
+
+        Request headers and cookies are read in here rather than captured
+        above because `after` inside a Server Function can still reach them,
+        and they are only needed on the path where a token is configured.
+      */
+      after(async () => {
+        const [h, c] = await Promise.all([headers(), cookies()]);
+        await sendPurchaseToMeta({
+          orderNo,
+          value: written.total,
+          currency: "BDT",
+          items: priced.map((l) => ({
+            sku: l.sku,
+            quantity: l.qty,
+            price: l.unitPrice,
+          })),
+          customerName: name,
+          customerPhone: phone,
+          eventSourceUrl: `${siteUrl}/order/${orderNo}`,
+          userAgent: h.get("user-agent"),
+          clientIp: clientIp(h),
+          /*
+            The two cookies Meta's own pixel wrote into this browser. They are
+            what ties this server event to the advertisement that produced the
+            visit — without them Meta has a sale but not the ad that caused it.
+            Absent when the pixel never ran, or when the shopper did not come
+            from an advertisement, and absent is a valid answer.
+          */
+          fbp: c.get("_fbp")?.value ?? null,
+          fbc: c.get("_fbc")?.value ?? null,
+        });
+      });
 
       return { ok: true, orderNo };
     } catch (error) {

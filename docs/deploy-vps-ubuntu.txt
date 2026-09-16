@@ -578,6 +578,24 @@ Everything loads but CHECKOUT FAILS
     NEXT_SERVER_ACTIONS_ENCRYPTION_KEY changed, or was regenerated. Restore the
     original value and rebuild. This is why section 5 says to back it up.
 
+Meta is not receiving orders from the server
+-------------------------------------------------------------------------------
+Check the token first: /admin/settings, Advertising and analytics, "Check the
+saved token". That answers most of it in one click.
+
+If the token is good and events still are not arriving, the server said why.
+It logs every refusal, without the token in it:
+
+    pm2 logs silentlifestylebd --lines 200 | grep meta-capi
+
+Nothing there at all means nothing was attempted — the token or the Pixel ID is
+blank, or the Pixel ID is not 15 or 16 digits.
+
+Events sent but not visible in Events Manager: check whether a test event code
+is still filled in. While one is, Meta files every real sale under Test events.
+
+
+-------------------------------------------------------------------------------
 Build is killed, or the server freezes during `pnpm build`
     Out of memory. Add swap:
         fallocate -l 2G /swapfile && chmod 600 /swapfile
@@ -623,6 +641,16 @@ Useful commands
         the site is live on the real domain over HTTPS — neither platform
         reports reliably from anywhere else. Then check them in Meta's Test
         events and Tag Manager's Preview before spending on advertising.
+    [ ] While you are there, paste the Meta Conversions API token and press
+        "Check the saved token". It reports every order from this server as
+        well as from the browser, which is the half of the measurement an ad
+        blocker cannot delete. If the check fails, tracking is not working and
+        no amount of waiting will fix it.
+    [ ] Confirm the reverse proxy is passing the real client address through.
+        Section 9's nginx block does this with X-Forwarded-For. Without it the
+        rate limiters count every visitor as one person and the Conversions
+        API reports every order from the same IP address, which costs match
+        quality on every sale.
     [ ] Open /admin/settings and fill in the real phone number, address,
         delivery charges and the Facebook / Instagram links. The social links
         are blank until you set them, and blank means no icon is shown.

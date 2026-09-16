@@ -1,0 +1,16 @@
+-- A settings row whose value the panel must never show back.
+--
+-- Everything in `Setting` so far has been safe to print: a phone number, a
+-- delivery charge, a container ID that appears in the page source anyway. A
+-- Meta Conversions API token is not. It can post conversions into the shop's
+-- ad account, and anyone who can read it can do that from anywhere.
+--
+-- The type is what enforces the difference rather than a list of key names
+-- somewhere: `listSettings` returns an empty value for a SECRET row and only
+-- says whether one is set, and the audit trail records that it changed without
+-- recording what it changed to.
+--
+-- Its own migration, alone, because Postgres will not let a new enum value be
+-- used by the same transaction that added it. The rows that need it are in the
+-- migration after this one.
+ALTER TYPE "SettingType" ADD VALUE IF NOT EXISTS 'SECRET';

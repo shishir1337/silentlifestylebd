@@ -706,11 +706,17 @@ model Setting {
   @@index([group, position])
 }
 
+/// How the admin form should treat a setting's value.
+///
+/// SECRET is the only one that is more than presentation: the panel never
+/// sends such a value back to the browser and the audit trail never records
+/// it, so a token cannot be read out of the form it was typed into.
 enum SettingType {
   STRING
   INT
   BOOLEAN
   TEXT
+  SECRET
 }
 
 /// Homepage carousel banner.

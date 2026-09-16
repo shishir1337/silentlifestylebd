@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, inputClass } from "@/components/ui/field";
 import { Card } from "./admin-ui";
 import { useToast } from "./toast";
-import { saveSettings } from "@/lib/admin/settings-actions";
+import { saveSettings, verifyMetaCapiToken } from "@/lib/admin/settings-actions";
 import type { SettingGroup } from "@/lib/admin/settings-reads";
 import { cn } from "@/lib/cn";
 
@@ -44,17 +44,38 @@ export function SettingsForm({ groups }: { groups: SettingGroup[] }) {
   const [values, setValues] = useState<Record<string, string>>(fromServer);
   const [tab, setTab] = useState(groups[0]?.id ?? "");
 
-  const dirty = Object.keys(saved).filter((k) => values[k] !== saved[k]);
-  const dirtyIn = (g: SettingGroup) =>
-    g.settings.filter((s) => values[s.key] !== saved[s.key]).length;
-  const elsewhere = dirty.length - (groups.find((g) => g.id === tab)?.settings
-    .filter((s) => values[s.key] !== saved[s.key]).length ?? 0);
+  /*
+    A saved secret arrives as an empty string — the server never sends the real
+    one. So an empty box means "leave it alone", and there has to be some other
+    way to say "take it away". This is it, and it is a checkbox rather than a
+    button because it belongs to the same save as everything else: tick it,
+    look at what you are about to do, and save once.
+  */
+  const [clearing, setClearing] = useState<Record<string, boolean>>({});
+  const secretKeys = new Set(
+    groups.flatMap((g) => g.settings.filter((s) => s.type === "SECRET").map((s) => s.key)),
+  );
+  const isDirty = (key: string) => values[key] !== saved[key] || clearing[key] === true;
+
+  const dirty = Object.keys(saved).filter(isDirty);
+  const dirtyIn = (g: SettingGroup) => g.settings.filter((s) => isDirty(s.key)).length;
+  const elsewhere =
+    dirty.length - (groups.find((g) => g.id === tab)?.settings.filter((s) => isDirty(s.key)).length ?? 0);
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setFailure(null);
     startTransition(async () => {
-      const result = await saveSettings(values);
+      /*
+        An untouched secret is left out of the payload entirely, so the action
+        keeps what it has. Sending the empty string the form is holding would
+        wipe a working token the moment anybody saved a delivery charge.
+      */
+      const payload = { ...values };
+      for (const key of secretKeys) {
+        if (!values[key] && !clearing[key]) delete payload[key];
+      }
+      const result = await saveSettings(payload);
       if (!result.ok) {
         setFailure(result.message);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -66,6 +87,19 @@ export function SettingsForm({ groups }: { groups: SettingGroup[] }) {
           : `${dirty.length} settings saved. The shop is showing them.`,
       );
       setSaved(values);
+      // Back to "a token is saved, leave the box alone". `router.refresh()`
+      // re-reads `hasValue`, which is the only thing that changed on screen.
+      setClearing({});
+      setValues((v) => {
+        const next = { ...v };
+        for (const key of secretKeys) next[key] = "";
+        return next;
+      });
+      setSaved((v) => {
+        const next = { ...v };
+        for (const key of secretKeys) next[key] = "";
+        return next;
+      });
       router.refresh();
     });
   }
@@ -146,7 +180,70 @@ export function SettingsForm({ groups }: { groups: SettingGroup[] }) {
 
           <div className="mt-4 space-y-4">
             {group.settings.map((s) => {
-              const changed = values[s.key] !== saved[s.key];
+              const changed = isDirty(s.key);
+
+              /*
+                A secret. The box is always empty, because the server never
+                sent the value — so "empty" has to mean "unchanged" and the
+                checkbox underneath is the only way to say "remove it".
+
+                `type="password"` and `autoComplete="off"` keep the browser
+                from offering to remember a shop's access token as if it were
+                somebody's login.
+              */
+              if (s.type === "SECRET") {
+                return (
+                  <div key={s.key}>
+                    <Field
+                      label={s.label}
+                      id={`set-${s.key}`}
+                      hint={s.helpText ?? undefined}
+                    >
+                      <input
+                        id={`set-${s.key}`}
+                        type="password"
+                        autoComplete="off"
+                        spellCheck={false}
+                        value={values[s.key]}
+                        disabled={clearing[s.key] === true}
+                        placeholder={
+                          s.hasValue
+                            ? "A token is saved. Leave this blank to keep it."
+                            : "Paste the token"
+                        }
+                        onChange={(e) =>
+                          setValues((v) => ({ ...v, [s.key]: e.target.value }))
+                        }
+                        className={cn(
+                          inputClass(),
+                          changed && "border-brand",
+                          clearing[s.key] && "opacity-50",
+                        )}
+                      />
+                    </Field>
+
+                    {s.hasValue ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+                        <label className="inline-flex cursor-pointer items-center gap-2 text-[12.5px] text-ink-soft">
+                          <input
+                            type="checkbox"
+                            checked={clearing[s.key] === true}
+                            onChange={(e) =>
+                              setClearing((c) => ({ ...c, [s.key]: e.target.checked }))
+                            }
+                            className="size-4 accent-[var(--color-ink)]"
+                          />
+                          Remove the saved token when I save
+                        </label>
+
+                        {s.key === "tracking.metaCapiToken" ? (
+                          <CheckTokenButton />
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }
 
               /*
                 A fixed set of answers gets a fixed set of buttons.
@@ -276,5 +373,54 @@ export function SettingsForm({ groups }: { groups: SettingGroup[] }) {
         </p>
       </div>
     </form>
+  );
+}
+
+/**
+ * "Does this token work?", asked of Meta rather than of the shop owner.
+ *
+ * The only setting on this panel whose correctness is invisible. A wrong
+ * delivery charge shows up in the next order; a dead Conversions API token
+ * looks exactly like a working one until somebody notices that Meta has been
+ * recording fewer sales than the shop has.
+ *
+ * It checks the token that is *saved*, not the one in the box above — there is
+ * no point reporting on something the shop is not using yet. Nothing is sent
+ * to Meta but a question about the dataset's name.
+ */
+function CheckTokenButton() {
+  const [checking, start] = useTransition();
+  const [result, setResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={checking}
+        onClick={() =>
+          start(async () => {
+            setResult(null);
+            setResult(await verifyMetaCapiToken());
+          })
+        }
+        className="inline-flex h-8 items-center rounded-[var(--radius-sm)] border border-line-strong px-3 text-[12.5px] font-medium transition-colors duration-[var(--dur-base)] hover:border-ink disabled:opacity-50"
+      >
+        {checking ? "Asking Meta…" : "Check the saved token"}
+      </button>
+
+      {result ? (
+        <p
+          // `polite`, not `alert`: this is an answer to something the person
+          // just clicked, not an interruption.
+          aria-live="polite"
+          className={cn(
+            "basis-full text-[12.5px] leading-relaxed",
+            result.ok ? "text-brand" : "text-sale",
+          )}
+        >
+          {result.message}
+        </p>
+      ) : null}
+    </>
   );
 }

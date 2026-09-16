@@ -133,6 +133,49 @@ export const getSiteSettings = unstable_cache(
 );
 
 /**
+ * What the server needs to report a sale to Meta directly.
+ *
+ * Read on its own, and deliberately not part of `SiteSettings`. That object is
+ * handed to `SettingsProvider` and travels to the browser in the RSC payload —
+ * putting an access token in it would publish the token on every page of the
+ * shop. Nothing here may ever be added to the type above.
+ *
+ * Not cached either, for the same care rather than for speed: `unstable_cache`
+ * writes its entries to disk under `.next/cache`, and a token that can post
+ * conversions into somebody's ad account should not be sitting in a build
+ * artefact. This runs once per order placed, on three indexed keys.
+ */
+export interface MetaCapiConfig {
+  pixelId: string;
+  token: string;
+  /** Meta's Test events code. Blank in normal operation. */
+  testEventCode: string;
+}
+
+export async function getMetaCapiConfig(): Promise<MetaCapiConfig | null> {
+  const rows = await db.setting.findMany({
+    where: {
+      key: { in: ["tracking.metaPixelId", "tracking.metaCapiToken", "tracking.metaTestEventCode"] },
+    },
+    select: { key: true, value: true },
+  });
+  const byKey = new Map(rows.map((r) => [r.key, r.value.trim()]));
+
+  const pixelId = byKey.get("tracking.metaPixelId") ?? "";
+  const token = byKey.get("tracking.metaCapiToken") ?? "";
+
+  // Both, or nothing. A token without a pixel has nowhere to send, and a pixel
+  // without a token is the browser-only setup this shop started with.
+  if (!/^\d{15,16}$/.test(pixelId) || !token) return null;
+
+  return {
+    pixelId,
+    token,
+    testEventCode: byKey.get("tracking.metaTestEventCode") ?? "",
+  };
+}
+
+/**
  * The three numbers that decide what an order costs.
  *
  * A narrow view of the same cached read, kept separate because the checkout
