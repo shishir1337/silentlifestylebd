@@ -1,31 +1,34 @@
 import "server-only";
 
-import type { StaffRole } from "@prisma/client";
 import { assertStaff, requireStaff, type StaffUser } from "@/lib/dal";
 
 /**
- * Who is allowed to do what in the admin panel.
+ * The guards themselves. Who may do what lives in `roles.ts`.
  *
- * Named sets rather than role checks scattered through the code, so the
- * question "can a Staff user edit a price?" has one answer in one place. Add a
- * role and every call site picks it up; write `role === "OWNER"` inline and one
- * of them will be missed.
- *
- * The three roles come from the schema and mean:
- *
- *   OWNER    everything, including staff and settings
- *   MANAGER  catalogue, orders and site content — but not staff or settings
- *   STAFF    orders only
- *
- * Staff deliberately cannot touch the catalogue. Someone confirming orders on
- * a phone all day should not be one mistap away from changing a price.
+ * Split because the panel needs the same answer on both sides of the wire —
+ * this module is `server-only` and a client component importing it would pull
+ * that into the browser graph. Re-exported here so nothing that already asks
+ * `access.ts` has to know, and so there is still exactly one definition of
+ * each rule.
  */
+export {
+  CAN_MANAGE_CATALOG,
+  CAN_MANAGE_ORDERS,
+  CAN_MANAGE_CONTENT,
+  CAN_MANAGE_STAFF,
+  CAN_MANAGE_SETTINGS,
+  CAN_DELETE_ORDERS,
+  can,
+} from "@/lib/admin/roles";
 
-export const CAN_MANAGE_CATALOG: StaffRole[] = ["OWNER", "MANAGER"];
-export const CAN_MANAGE_ORDERS: StaffRole[] = ["OWNER", "MANAGER", "STAFF"];
-export const CAN_MANAGE_CONTENT: StaffRole[] = ["OWNER", "MANAGER"];
-export const CAN_MANAGE_STAFF: StaffRole[] = ["OWNER"];
-export const CAN_MANAGE_SETTINGS: StaffRole[] = ["OWNER"];
+// Imported as well as re-exported: the guards below are what actually hold the
+// line, and they read the same arrays every caller does.
+import {
+  CAN_MANAGE_CATALOG,
+  CAN_MANAGE_CONTENT,
+  CAN_MANAGE_STAFF,
+  CAN_MANAGE_SETTINGS,
+} from "@/lib/admin/roles";
 
 /** For pages: redirects anyone not allowed. */
 export function requireCatalogAccess(): Promise<StaffUser> {
@@ -67,8 +70,4 @@ export function requireStaffAccess(): Promise<StaffUser> {
 
 export function assertStaffAccess(): Promise<StaffUser> {
   return assertStaff(CAN_MANAGE_STAFF);
-}
-
-export function can(role: StaffRole, allowed: StaffRole[]): boolean {
-  return allowed.includes(role);
 }

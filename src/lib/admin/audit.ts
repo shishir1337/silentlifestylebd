@@ -20,6 +20,13 @@ import type { StaffUser } from "@/lib/dal";
  */
 
 export type AuditAction =
+  /*
+    The only entry here that records something which no longer exists. Every
+    other action can be inspected afterwards by opening the thing it names; a
+    deleted order cannot, so the summary has to carry enough of it to answer
+    "what was that" months later.
+  */
+  | "order.deleted"
   | "coupon.created"
   | "coupon.changed"
   | "coupon.deleted"

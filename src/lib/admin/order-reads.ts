@@ -187,6 +187,8 @@ export interface AdminOrderDetail {
   couponCode: string | null;
   deliveryCharge: number;
   total: number;
+  /** True once the goods on this order have been put back on the shelf. */
+  stockRestored: boolean;
   account: { name: string; email: string } | null;
   items: {
     name: string;
@@ -226,6 +228,7 @@ export async function getOrder(orderNo: string): Promise<AdminOrderDetail | null
       couponCode: true,
       deliveryCharge: true,
       total: true,
+      stockRestored: true,
       customer: { select: { name: true, email: true } },
       items: {
         orderBy: { id: "asc" },
@@ -270,6 +273,7 @@ export async function getOrder(orderNo: string): Promise<AdminOrderDetail | null
     couponCode: o.couponCode,
     deliveryCharge: o.deliveryCharge,
     total: o.total,
+    stockRestored: o.stockRestored,
     account: o.customer,
     items: o.items,
     events: o.events.map((e) => ({

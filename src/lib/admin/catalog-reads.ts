@@ -190,6 +190,14 @@ export interface AdminProductDetail {
   primaryAssetId: string | null;
   hoverAssetId: string | null;
   galleryAssetIds: string[];
+  /**
+   * How many order lines name this product.
+   *
+   * Only the delete confirmation uses it, and only to say what is at stake. A
+   * shop owner deciding whether to remove a product should be told it has been
+   * sold eleven times before they are asked, not after.
+   */
+  orderedCount: number;
 }
 
 export async function getProduct(id: string): Promise<AdminProductDetail | null> {
@@ -220,6 +228,7 @@ export async function getProduct(id: string): Promise<AdminProductDetail | null>
         select: { role: true, assetId: true },
         orderBy: { position: "asc" },
       },
+      _count: { select: { orderItems: true } },
     },
   });
   if (!p) return null;
@@ -248,6 +257,7 @@ export async function getProduct(id: string): Promise<AdminProductDetail | null>
     primaryAssetId: p.images.find((i) => i.role === "PRIMARY")?.assetId ?? null,
     hoverAssetId: p.images.find((i) => i.role === "HOVER")?.assetId ?? null,
     galleryAssetIds: p.images.filter((i) => i.role === "GALLERY").map((i) => i.assetId),
+    orderedCount: p._count.orderItems,
   };
 }
 

@@ -68,6 +68,26 @@ can be bookmarked or sent to someone else.
 Every status change is recorded with who made it and when. You can see it on the
 order itself.
 
+**Deleting an order** *(owner only)*. At the bottom of an order, below the
+packing slip, there is a **Delete order** button. It removes the order
+completely — the items, the address and the whole timeline — and there is no
+undo. Anything still on the shelf goes back into stock, and a discount code the
+order used becomes usable again.
+
+It exists for two things: the test orders placed while your shop was being set
+up, and an order that got placed twice by a double tap. For anything else —
+a customer who changed their mind, a parcel refused at the door — **cancel it
+instead**. Cancelling loses the sale but keeps the record, and the record is
+what answers questions three months later.
+
+**Several at once.** Tick the boxes and use *Delete* on the bar at the top. It
+asks again and says how many, because selecting three and selecting all forty
+look identical until it is done.
+
+A line stays in **Activity** for every deleted order: the number, the customer,
+the total and who deleted it. That is the only trace left, so it is worth
+knowing it is there.
+
 ---
 
 ## Products
@@ -101,7 +121,20 @@ product.
 
 **Taking something off sale.** Untick *Show on the shop*. It disappears from the
 shop but keeps its orders and its history, and you can put it back any time.
-Deleting is permanent and is only offered for products nobody has ordered.
+This is what you want nearly every time — a product you are out of, one you are
+not selling this season, one you might bring back.
+
+**Deleting.** Permanent, and offered even for products that have been sold. The
+form tells you how many order lines are affected before it asks. Those orders
+keep everything they recorded — the name, price, size and colour as sold, so
+your history and your takings are unchanged — but they will no longer link back
+to a product page, and the top-sellers report loses that product's category.
+Use it for something entered by mistake; switch it off for everything else.
+
+**Videos.** A product can have a video as well as photographs. It plays by
+itself, without sound, as soon as the customer reaches it in the gallery, and
+stops again when they move on — so it costs them nothing until they look at it.
+Keep clips short; they are watched on a phone, on mobile data.
 
 ---
 
@@ -390,3 +423,7 @@ Look the order up for them in the panel — it is not blocked for you.
 
 **You cannot see Settings, Staff or Activity.** Those are owner-only. Ask an
 owner.
+
+**There is no Delete on an order.** Also owner-only, and deliberately: deleting
+one destroys the record of it. Cancel it instead — that is the right answer
+almost every time anyway — or ask an owner.

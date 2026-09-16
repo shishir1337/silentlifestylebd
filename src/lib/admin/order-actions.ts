@@ -4,7 +4,8 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import type { OrderStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { assertStaff } from "@/lib/dal";
-import { CAN_MANAGE_ORDERS } from "@/lib/admin/access";
+import { CAN_DELETE_ORDERS, CAN_MANAGE_ORDERS } from "@/lib/admin/access";
+import { recordAudit } from "@/lib/admin/audit";
 import { canTransition, stockEffect } from "@/lib/admin/order-flow";
 import { CATALOG_TAG, PRODUCTS_TAG } from "@/lib/catalog";
 import { getOrder, type AdminOrderDetail } from "@/lib/admin/order-reads";
@@ -219,6 +220,147 @@ export async function addOrderNote(orderNo: string, note: string): Promise<SaveR
 export async function fetchOrder(orderNo: string): Promise<AdminOrderDetail | null> {
   await assertStaff(CAN_MANAGE_ORDERS);
   return getOrder(orderNo);
+}
+
+/**
+ * Destroying an order, as opposed to cancelling one.
+ *
+ * Cancelling is the daily decision and leaves the record standing. This is for
+ * the two cases where the record itself should not exist: test orders placed
+ * while the shop was being built, and an order created twice by a double tap.
+ * Everything else — a customer who changed their mind, a parcel refused at the
+ * door — is a cancellation, and deleting it destroys the only evidence of a
+ * sale the shop nearly made.
+ *
+ * Three things have to happen with the delete, or the shop is left believing
+ * something untrue:
+ *
+ *  - **The goods come back**, if this order was still holding them. An order
+ *    that reached cancelled or returned already gave them up, and `stockRestored`
+ *    is what knows the difference. Deleting without this quietly loses the shop
+ *    however many units the order held, and nothing ever says so.
+ *
+ *  - **The coupon is un-spent.** `usageCount` is what a limited code is
+ *    measured against. Leaving it counted spends a redemption on an order that
+ *    no longer exists, and the last customer entitled to the code is refused.
+ *
+ *  - **Activity keeps a line about it.** The order's own timeline goes with it,
+ *    so the summary here has to carry enough — number, customer, total — to
+ *    answer "what was that" long afterwards. It is the closest thing to undo
+ *    that a delete can offer.
+ *
+ * Items and timeline are removed by the database: both cascade from `Order`.
+ */
+export async function deleteOrder(orderNo: string): Promise<SaveResult> {
+  const staff = await assertStaff(CAN_DELETE_ORDERS);
+
+  const order = await db.order.findUnique({
+    where: { orderNo },
+    select: {
+      id: true,
+      status: true,
+      stockRestored: true,
+      couponId: true,
+      couponCode: true,
+      customerName: true,
+      customerPhone: true,
+      total: true,
+      placedAt: true,
+    },
+  });
+  if (!order) return { ok: false, message: "That order no longer exists." };
+
+  try {
+    await db.$transaction(async (tx) => {
+      /*
+        Read before the delete, because the cascade is about to take them.
+        `variantId` is null where the product itself has since been removed —
+        there is no shelf left to put those back on.
+      */
+      if (!order.stockRestored) {
+        const items = await tx.orderItem.findMany({
+          where: { orderId: order.id, variantId: { not: null } },
+          select: { variantId: true, qty: true },
+        });
+        for (const item of items) {
+          await tx.productVariant.update({
+            where: { id: item.variantId! },
+            data: { stock: { increment: item.qty } },
+          });
+        }
+      }
+
+      if (order.couponId) {
+        // Guarded rather than a bare decrement: a counter that has already been
+        // corrected by hand must not be driven below zero by this.
+        await tx.coupon.updateMany({
+          where: { id: order.couponId, usageCount: { gt: 0 } },
+          data: { usageCount: { decrement: 1 } },
+        });
+      }
+
+      // Guarded on the status we read, like every other write in this file: if
+      // somebody moved the order between the read and here, the stock we just
+      // restored would be wrong, so nothing is committed.
+      const { count } = await tx.order.deleteMany({
+        where: { id: order.id, status: order.status, stockRestored: order.stockRestored },
+      });
+      if (count !== 1) throw new Stale();
+    });
+  } catch (error) {
+    if (error instanceof Stale) {
+      return {
+        ok: false,
+        message: "Somebody else changed this order just now. Reload and try again.",
+      };
+    }
+    console.error("[admin] deleteOrder failed:", error);
+    return { ok: false, message: "Could not delete the order. Please try again." };
+  }
+
+  await recordAudit(
+    staff,
+    "order.deleted",
+    orderNo,
+    /*
+      The order number goes in the summary, not only in the subject.
+
+      Activity renders the summary; the subject is what the entry is *about*.
+      For every other action those are the same thing and the subject is
+      recoverable by opening it. This one cannot be opened ever again, so the
+      line on the page has to carry the number or it identifies nothing.
+    */
+    `${orderNo} — ${order.customerName} (${order.customerPhone}), ${LABEL[order.status]}, placed ${order.placedAt.toISOString().slice(0, 10)}, total ৳${order.total}` +
+      (order.couponCode ? `, coupon ${order.couponCode} returned` : "") +
+      (order.stockRestored ? "" : ", stock put back"),
+  );
+
+  await refresh(orderNo);
+  return { ok: true, id: order.id };
+}
+
+/**
+ * The same, applied to a selection.
+ *
+ * One action rather than a loop of actions from the browser, for the reason
+ * `bulkChangeOrderStatus` gives: Server Actions are dispatched one at a time.
+ * Each order is still its own transaction, so one failure does not take the
+ * rest of the selection with it — and each still writes its own line to
+ * Activity, because a single line saying "40 orders deleted" answers nothing
+ * about any of them.
+ */
+export async function bulkDeleteOrders(
+  orderNos: string[],
+): Promise<SaveResult & { deleted?: number; skipped?: number }> {
+  await assertStaff(CAN_DELETE_ORDERS);
+
+  let deleted = 0;
+  for (const orderNo of orderNos) {
+    const result = await deleteOrder(orderNo);
+    if (result.ok) deleted += 1;
+  }
+
+  return { ok: true, deleted, skipped: orderNos.length - deleted };
 }
 
 class Stale extends Error {}

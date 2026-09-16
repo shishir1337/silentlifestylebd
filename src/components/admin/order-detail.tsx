@@ -10,7 +10,8 @@ import { Card, Pill, SectionTitle } from "./admin-ui";
 import { useToast } from "./toast";
 import { PhoneIcon } from "@/components/ui/icons";
 import { inputClass } from "@/components/ui/field";
-import { addOrderNote, changeOrderStatus } from "@/lib/admin/order-actions";
+import { addOrderNote, changeOrderStatus, deleteOrder } from "@/lib/admin/order-actions";
+import { CAN_DELETE_ORDERS, can } from "@/lib/admin/roles";
 import { primaryNext, transitionsFrom, TRANSITION_LABEL } from "@/lib/admin/order-flow";
 import { OrderStatusMenu } from "./order-status-menu";
 import { ORDER_FLOW, ORDER_STATUS, STATUS_CHIP, flowIndex } from "@/lib/order-status";
@@ -37,6 +38,7 @@ export function OrderDetail({
   const toast = useToast();
   const [pending, startTransition] = useTransition();
   const [note, setNote] = useState("");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const status = ORDER_STATUS[order.status];
   const reached = flowIndex(order.status);
@@ -70,6 +72,20 @@ export function OrderDetail({
       }
       setNote("");
       toast.success("Note added.");
+      router.refresh();
+    });
+  }
+
+  function removeOrder() {
+    startTransition(async () => {
+      const result = await deleteOrder(order.orderNo);
+      if (!result.ok) {
+        toast.error(result.message);
+        setConfirmingDelete(false);
+        return;
+      }
+      toast.success(`Order ${order.orderNo} deleted.`);
+      router.push("/admin/orders");
       router.refresh();
     });
   }
@@ -360,6 +376,59 @@ export function OrderDetail({
             Print
           </button>
         </Card>
+
+        {/*
+          Last on the page, below printing, and owner-only.
+
+          Cancelling is the daily decision and it is at the top where the work
+          is. This is the other kind: it destroys the record rather than
+          changing it, and it exists for test orders and for an order placed
+          twice by a double tap. Putting it here means nobody reaches it while
+          looking for something else.
+        */}
+        {can(role, CAN_DELETE_ORDERS) ? (
+          <Card className="border-sale/30 p-4 print:hidden">
+            <h2 className="text-[14px] font-semibold">Delete this order</h2>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-ink-muted">
+              Removes it completely — the items, the address and the whole
+              timeline. {order.stockRestored
+                ? "The goods were already put back when it was cancelled."
+                : "The goods on it go back into stock."}{" "}
+              Activity keeps a line saying what was deleted. There is no undo.
+            </p>
+            <p className="mt-2 text-[12.5px] leading-relaxed text-ink-muted">
+              To keep the record and lose the sale, cancel it instead.
+            </p>
+
+            {confirmingDelete ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={removeOrder}
+                  disabled={pending}
+                  className="inline-flex h-10 flex-1 items-center justify-center rounded-[var(--radius-sm)] bg-sale px-4 text-[13px] font-medium text-white disabled:opacity-50"
+                >
+                  {pending ? "Deleting…" : `Yes, delete ${order.orderNo}`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  className="inline-flex h-10 items-center rounded-[var(--radius-sm)] border border-line-strong px-4 text-[13px] font-medium"
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                className="mt-3 inline-flex h-10 w-full items-center justify-center rounded-[var(--radius-sm)] border border-sale/40 text-[13px] font-medium text-sale transition-colors duration-[var(--dur-base)] hover:bg-sale hover:text-white"
+              >
+                Delete order
+              </button>
+            )}
+          </Card>
+        ) : null}
       </div>
     </div>
   );

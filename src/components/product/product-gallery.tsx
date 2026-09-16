@@ -5,6 +5,7 @@ import Image from "next/image";
 import { cn } from "@/lib/cn";
 import { fillProps } from "@/lib/image";
 import { isVideo, type ImageRef } from "@/types/catalog";
+import { GalleryVideo } from "./gallery-video";
 
 /**
  * Product gallery.
@@ -141,35 +142,15 @@ export function ProductGallery({
             >
               {isVideo(img) ? (
                 /*
-                  Controls, a poster, and no autoplay.
-
-                  Most of this shop's customers are on mobile data they pay for
-                  by the megabyte. A product video that starts itself spends
-                  their money before they have decided they want the garment,
-                  and `preload="metadata"` means nothing but the header is
-                  fetched until they press play.
-
-                  The poster is a still ImageKit generates from the clip, so
-                  the frame looks like the rest of the gallery instead of the
-                  black rectangle a posterless <video> paints while it buffers.
+                  Plays itself once it is the item on screen. See
+                  `GalleryVideo` — the rule is visibility, which is the one
+                  fact both the phone filmstrip and the desktop thumbnails
+                  already express, so neither needs to know about the other.
                 */
-                // biome-ignore lint/a11y/useMediaCaption: no caption track exists to offer — see below.
-                <video
+                <GalleryVideo
                   src={img.url}
-                  poster={img.poster ?? undefined}
-                  controls
-                  playsInline
-                  preload="metadata"
-                  /*
-                    No `<track>`, and that is a real gap rather than an
-                    oversight worth hiding. These are short silent clips of a
-                    garment — a shop uploads one from a phone and has no
-                    caption file to go with it, and an empty track element
-                    would claim captions exist when they do not. If narrated
-                    video is ever added, this needs a caption upload beside it
-                    and the suppression above should come off.
-                  */
-                  aria-label={`${alt} — video`}
+                  poster={img.poster}
+                  label={`${alt} — video`}
                   className="absolute inset-0 size-full bg-ink object-cover"
                 />
               ) : (

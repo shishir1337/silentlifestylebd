@@ -10,7 +10,8 @@ import { useToast } from "./toast";
 import { PhoneIcon } from "@/components/ui/icons";
 import { AlertIcon } from "./admin-icons";
 import { RelativeTime } from "./relative-time";
-import { bulkChangeOrderStatus, changeOrderStatus } from "@/lib/admin/order-actions";
+import { bulkChangeOrderStatus, bulkDeleteOrders, changeOrderStatus } from "@/lib/admin/order-actions";
+import { CAN_DELETE_ORDERS, can } from "@/lib/admin/roles";
 import { primaryNext, TRANSITION_LABEL } from "@/lib/admin/order-flow";
 import { OrderStatusMenu } from "./order-status-menu";
 import { OrderQuickView } from "./order-quick-view";
@@ -133,6 +134,38 @@ export function OrderTable({
     });
   }
 
+  /*
+    Two taps, and the second one says the number out loud.
+
+    Everything else on this bar is reversible by another button on the same
+    bar. This is not, so it arms first and the confirming button repeats how
+    many orders are about to stop existing — the difference between selecting
+    three and selecting all forty is the whole question, and a plain "Delete"
+    hides it.
+  */
+  const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false);
+
+  function runBulkDelete() {
+    const orderNos = [...selected];
+    setBusy("bulk");
+    startTransition(async () => {
+      const result = await bulkDeleteOrders(orderNos);
+      setBusy(null);
+      setConfirmingBulkDelete(false);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      setSelected(new Set());
+      toast.success(
+        result.skipped === 0
+          ? `${result.deleted} ${result.deleted === 1 ? "order" : "orders"} deleted.`
+          : `${result.deleted} deleted, ${result.skipped} could not be.`,
+      );
+      router.refresh();
+    });
+  }
+
   const toggle = (orderNo: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -230,9 +263,50 @@ export function OrderTable({
               </button>
             ),
           )}
+          {/*
+            Owner-only, and last. Clearing out the orders a shop placed while it
+            was being built is the reason this exists; the server checks the
+            role again, because a hidden button is a courtesy and not a lock.
+          */}
+          {can(role, CAN_DELETE_ORDERS) ? (
+            confirmingBulkDelete ? (
+              <>
+                <button
+                  type="button"
+                  onClick={runBulkDelete}
+                  disabled={pending}
+                  className="inline-flex h-8 items-center rounded-[var(--radius-sm)] bg-sale px-2.5 text-[12.5px] font-medium disabled:opacity-50"
+                >
+                  {pending
+                    ? "Deleting…"
+                    : `Yes, delete ${selected.size} permanently`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingBulkDelete(false)}
+                  className="inline-flex h-8 items-center rounded-[var(--radius-sm)] bg-white/12 px-2.5 text-[12.5px] font-medium hover:bg-white/20"
+                >
+                  No
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingBulkDelete(true)}
+                disabled={pending}
+                className="inline-flex h-8 items-center rounded-[var(--radius-sm)] px-2.5 text-[12.5px] font-medium text-white/70 transition-colors duration-[var(--dur-base)] hover:bg-sale hover:text-white disabled:opacity-50"
+              >
+                Delete
+              </button>
+            )
+          ) : null}
+
           <button
             type="button"
-            onClick={() => setSelected(new Set())}
+            onClick={() => {
+              setSelected(new Set());
+              setConfirmingBulkDelete(false);
+            }}
             className="ml-auto inline-flex h-8 items-center rounded-[var(--radius-sm)] px-2.5 text-[12.5px] font-medium text-white/70 hover:text-white"
           >
             Clear

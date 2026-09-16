@@ -615,10 +615,36 @@ export function ProductForm({
         </Link>
 
         {product ? (
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex max-w-md flex-wrap items-center justify-end gap-2">
             {confirmingDelete ? (
               <>
-                <span className="text-[13px] text-ink-soft">
+                {/*
+                  What is actually at stake, before the question rather than
+                  after it. A product that has been sold can be deleted — the
+                  orders keep their own copy of the name, price and size — but
+                  the link back to a live product page goes, and so does its
+                  category in the top-sellers report. That is worth a sentence,
+                  and hiding is still the better answer nearly every time.
+                */}
+                <span className="basis-full text-[13px] leading-relaxed text-ink-soft">
+                  {product && product.orderedCount > 0 ? (
+                    <>
+                      This product is on{" "}
+                      <strong className="font-semibold">
+                        {product.orderedCount}{" "}
+                        {product.orderedCount === 1 ? "order line" : "order lines"}
+                      </strong>
+                      . Those orders keep what they recorded — the name, price
+                      and size as sold — but they will no longer link back here,
+                      and the top-sellers report loses this product&apos;s
+                      category. Switching it off instead removes it from the
+                      shop and keeps all of that.
+                    </>
+                  ) : (
+                    "This product has never been ordered. Deleting it removes it completely."
+                  )}
+                </span>
+                <span className="text-[13px] font-medium">
                   Delete permanently?
                 </span>
                 <button

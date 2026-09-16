@@ -306,24 +306,27 @@ export async function setProductActive(id: string, isActive: boolean): Promise<S
 }
 
 /**
- * Deleting a product is refused once it has been ordered.
+ * Deleting a product, including one that has been sold.
  *
- * `OrderItem` keeps its own snapshot of the name and price, so an order would
- * survive — but the product would vanish from the shop's own history, and
- * "which of these did we sell in March" stops being answerable. Hiding it does
- * everything the client actually wants.
+ * This used to refuse outright the moment a product appeared on any order, on
+ * the grounds that deleting it would destroy the shop's history. It does not,
+ * and the refusal was simply wrong: `OrderItem` snapshots the name, SKU,
+ * price, size, colour and image as they were on the day of the sale, and its
+ * link to the product is `onDelete: SetNull`. Every order keeps saying exactly
+ * what was bought and what was charged for it.
+ *
+ * What is genuinely lost is the *link*: a deleted product's lines can no
+ * longer be followed back to a live product page, and the top-sellers report
+ * loses their category. That is a real cost, and it is the client's to weigh —
+ * the form says how many orders are affected before it asks. Refusing on their
+ * behalf left a shop unable to remove a product it had entered by mistake,
+ * which is the case this is most often needed for.
+ *
+ * Hiding remains the better answer nearly every time, and the form still says
+ * so. It is no longer the only answer.
  */
 export async function deleteProduct(id: string): Promise<SaveResult> {
   await assertCatalogAccess();
-
-  const ordered = await db.orderItem.count({ where: { productId: id } });
-  if (ordered > 0) {
-    return {
-      ok: false,
-      message:
-        "This product has been ordered before, so it cannot be deleted. Hide it instead — it disappears from the shop and stays in your order history.",
-    };
-  }
 
   const product = await db.product.delete({ where: { id }, select: { slug: true } });
   refreshCatalog();
