@@ -200,6 +200,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     select: {
       id: true,
       slug: true,
+      sku: true,
       name: true,
       price: true,
       variants: { select: { id: true, size: true, stock: true } },
@@ -219,6 +220,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     variantId: string;
     name: string;
     slug: string;
+    sku: string;
     size: string;
     color: string | null;
     unitPrice: number;
@@ -250,6 +252,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
       variantId: variant.id,
       name: product.name,
       slug: product.slug,
+      sku: product.sku,
       size: line.size,
       /*
         Checked against the catalogue, like everything else here. A colour is
@@ -414,6 +417,7 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
                 variantId: l.variantId,
                 name: l.name,
                 slug: l.slug,
+                sku: l.sku,
                 // Null, not "", for a product sold without a size — the column
                 // is nullable and an empty string would render as a blank size.
                 size: l.size || null,

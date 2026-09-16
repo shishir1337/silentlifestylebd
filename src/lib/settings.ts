@@ -2,7 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
-import type { DeliverySettings, SiteSettings } from "@/types/settings";
+import type { DeliverySettings, MetaEventsVia, SiteSettings } from "@/types/settings";
 
 /**
  * Editable settings, read from the database.
@@ -22,7 +22,12 @@ export const SETTINGS_TAG = "settings";
 /** One year. Invalidation is by tag, not by clock. */
 const CACHE = { revalidate: 31_536_000 } as const;
 
-export type { DeliverySettings, SiteSettings } from "@/types/settings";
+export type {
+  DeliverySettings,
+  MetaEventsVia,
+  SiteSettings,
+  TrackingSettings,
+} from "@/types/settings";
 
 /**
  * Defaults matching the seed, used only when a row is missing.
@@ -55,6 +60,9 @@ const FALLBACK: SiteSettings = {
     outsideDhakaDays: "2–4 days",
     returnWindowDays: 7,
   },
+  // Blank, and blank means nothing is loaded. There is no sensible default
+  // container id, and guessing one would send a shop's traffic to a stranger.
+  tracking: { gtmId: "", metaPixelId: "", metaEventsVia: "direct" },
 };
 
 export const getSiteSettings = unstable_cache(
@@ -66,6 +74,18 @@ export const getSiteSettings = unstable_cache(
       const raw = byKey.get(key)?.trim();
       return raw ? raw : fallback;
     };
+
+    /*
+      Blank is a real answer here, so `text()` is wrong for these: it treats an
+      empty string as "missing" and substitutes the fallback. For a tag id,
+      empty is the whole off switch.
+
+      Sieved to the characters these ids can contain, because they are written
+      into an inline <script> in the page. The settings form already refuses
+      anything else; this is the second lock, on the side that would actually
+      be executed.
+    */
+    const tag = (key: string) => (byKey.get(key) ?? "").trim().replace(/[^\w-]/g, "");
 
     const int = (key: string, fallback: number) => {
       const n = Number.parseInt(byKey.get(key) ?? "", 10);
@@ -94,6 +114,17 @@ export const getSiteSettings = unstable_cache(
         insideDhakaDays: text("delivery.insideDhakaDays", f.delivery.insideDhakaDays),
         outsideDhakaDays: text("delivery.outsideDhakaDays", f.delivery.outsideDhakaDays),
         returnWindowDays: int("delivery.returnWindowDays", f.delivery.returnWindowDays),
+      },
+      tracking: {
+        gtmId: tag("tracking.gtmId"),
+        metaPixelId: tag("tracking.metaPixelId"),
+        // Anything unrecognised means "we send it ourselves". Falling the
+        // other way would silently stop sending events when a value is mistyped,
+        // and an advertiser cannot see events that were never sent.
+        metaEventsVia:
+          byKey.get("tracking.metaEventsVia")?.trim() === "gtm"
+            ? "gtm"
+            : ("direct" satisfies MetaEventsVia),
       },
     };
   },

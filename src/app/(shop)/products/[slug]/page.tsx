@@ -12,6 +12,7 @@ import {
   SIZE_CHART_TAB,
 } from "@/components/product/product-tabs";
 import { SizeChartTable } from "@/components/product/size-chart-table";
+import { TrackProductView } from "@/components/product/track-product-view";
 import { ProductRail } from "@/components/home/product-rail";
 import {
   CashIcon,
@@ -295,6 +296,15 @@ export default async function ProductPage(
         price={product.price}
         inStock={product.inStock}
         slug={product.slug}
+      />
+
+      {/* The one event nearly all of this shop's ad spend is optimised
+          against — the advertisement lands here, not on the homepage. */}
+      <TrackProductView
+        sku={product.sku}
+        name={product.name}
+        category={product.categorySlug}
+        price={product.price}
       />
     </>
   );

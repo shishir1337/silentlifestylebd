@@ -5,6 +5,7 @@ import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { CartProvider } from "@/lib/cart";
 import { CartDrawer } from "@/components/layout/cart-drawer";
 import { SettingsProvider } from "@/lib/site-settings";
+import { SiteTracking } from "@/components/layout/site-tracking";
 import { getSiteSettings } from "@/lib/settings";
 
 /**
@@ -18,6 +19,10 @@ import { getSiteSettings } from "@/lib/settings";
  * wrapped in "Free delivery over ৳3,000" and a shopping-bag tab bar is not a
  * back office — and the cart provider was mounting on every admin screen for a
  * person who is not shopping.
+ *
+ * The advertising tags belong to this group for the same reason, and one more:
+ * staff working in the panel all day would otherwise be measured as the shop's
+ * most engaged shoppers.
  */
 export default async function ShopLayout({ children }: LayoutProps<"/">) {
   const settings = await getSiteSettings();
@@ -29,6 +34,8 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
       sitting underneath the bar.
     */
     <div className="flex min-h-full flex-col pb-[calc(56px+env(safe-area-inset-bottom,0px))] lg:pb-0">
+      <SiteTracking tracking={settings.tracking} />
+
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[var(--z-drawer)] focus:rounded-[var(--radius-sm)] focus:bg-ink focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white"

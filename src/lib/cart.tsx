@@ -11,6 +11,7 @@ import {
 } from "react";
 import type { Product } from "@/types/catalog";
 import { STORAGE_KEYS } from "@/lib/storage-keys";
+import { trackAddToCart } from "@/lib/tracking";
 
 const STORAGE_KEY = STORAGE_KEYS.cart;
 
@@ -22,6 +23,18 @@ export interface CartLine {
   name: string;
   price: number;
   image: string;
+  /**
+   * Carried for the ad platforms, not for the shop.
+   *
+   * Meta and Google match an event to a catalogue entry by this string, and
+   * the catalogue is exported with the same SKU the product page prints and
+   * puts in its structured data. Optional because a bag saved before this
+   * field existed has no SKU in it; those lines report the product id instead,
+   * which is honest and stops being true of anything added from here on.
+   */
+  sku?: string;
+  /** The category slug, for the same reason. Optional for the same reason. */
+  categorySlug?: string;
   size?: string;
   /**
    * The colour they chose, carried all the way to the order.
@@ -113,6 +126,27 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [lines, ready]);
 
   const add = useCallback((product: Product, size?: string, qty = 1, color?: string) => {
+    /*
+      Reported here rather than at each button.
+
+      There are three ways into the bag — the buy box, the sticky bar on a
+      phone, and the size sheet on a product card — and a fourth will be added
+      the week after this comment is read. Adding the call to each of them is
+      how a shop ends up with a conversion funnel that under-reports from
+      whichever entry point someone forgot.
+
+      Outside the state updater on purpose: React may run an updater more than
+      once for a single call, and an analytics event is not something to send
+      twice for one tap.
+    */
+    trackAddToCart({
+      sku: product.sku,
+      name: product.name,
+      category: product.categorySlug,
+      price: product.price,
+      quantity: qty,
+    });
+
     setLines((prev) => {
       const key = lineKey(product.id, size, color);
       const existing = prev.find((l) => l.key === key);
@@ -128,6 +162,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           name: product.name,
           price: product.price,
           image: product.image.url,
+          sku: product.sku,
+          categorySlug: product.categorySlug,
           size,
           color,
           qty,

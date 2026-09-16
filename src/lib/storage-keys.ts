@@ -15,6 +15,8 @@ export const STORAGE_KEYS = {
   cart: "slbd.cart.v1",
   profile: "slbd.profile.v1",
   addresses: "slbd.addresses.v1",
+  /** Order numbers already reported to the ad platforms. See `tracking.ts`. */
+  tracked: "slbd.tracked.v1",
 } as const;
 
 /**

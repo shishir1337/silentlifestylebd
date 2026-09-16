@@ -147,6 +147,68 @@ export function SettingsForm({ groups }: { groups: SettingGroup[] }) {
           <div className="mt-4 space-y-4">
             {group.settings.map((s) => {
               const changed = values[s.key] !== saved[s.key];
+
+              /*
+                A fixed set of answers gets a fixed set of buttons.
+
+                `Field` labels a single control, and a radio group is several,
+                so this branch draws its own <fieldset>/<legend> rather than
+                borrowing a <label> that would point at only the first option.
+                Each choice carries the sentence explaining what it does: the
+                one place this matters is the double-counting switch, and the
+                consequence of getting it wrong is invisible until an ad budget
+                has been spent against it.
+              */
+              if (s.choices) {
+                return (
+                  <fieldset key={s.key}>
+                    <legend className="text-[13px] font-medium">{s.label}</legend>
+                    {s.helpText ? (
+                      <p className="mt-1 max-w-prose text-[12px] leading-relaxed text-ink-muted">
+                        {s.helpText}
+                      </p>
+                    ) : null}
+                    <div className="mt-2 space-y-2">
+                      {s.choices.map((c) => {
+                        const on = values[s.key] === c.value;
+                        return (
+                          <label
+                            key={c.value}
+                            className={cn(
+                              "flex cursor-pointer gap-3 rounded-[var(--radius-sm)] border p-3",
+                              "transition-colors duration-[var(--dur-base)]",
+                              on
+                                ? "border-ink bg-subtle"
+                                : "border-line hover:border-line-strong",
+                              changed && on && "border-brand",
+                            )}
+                          >
+                            <input
+                              type="radio"
+                              name={`set-${s.key}`}
+                              value={c.value}
+                              checked={on}
+                              onChange={() =>
+                                setValues((v) => ({ ...v, [s.key]: c.value }))
+                              }
+                              className="mt-0.5 size-4 shrink-0 accent-[var(--color-ink)]"
+                            />
+                            <span className="min-w-0">
+                              <span className="block text-[13.5px] font-medium">
+                                {c.label}
+                              </span>
+                              <span className="mt-0.5 block text-[12px] leading-relaxed text-ink-muted">
+                                {c.hint}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </fieldset>
+                );
+              }
+
               return (
                 <Field
                   key={s.key}

@@ -534,6 +534,12 @@ model OrderItem {
   imageUrl  String
   /// Kept so the confirmation page can still link to the product.
   slug      String
+  /// The stock code as it was on the day of the sale. Null on orders placed
+  /// before the column existed — not backfilled, because stamping today's SKU
+  /// onto an older sale is exactly the rewriting these snapshot columns exist
+  /// to prevent. Also what the ad platforms match a Purchase to a catalogue
+  /// entry by.
+  sku       String?
 
   order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)

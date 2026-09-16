@@ -11,12 +11,21 @@ import { db } from "@/lib/db";
  * code change, which is the point of a key-value table.
  */
 
+export interface SettingChoice {
+  value: string;
+  label: string;
+  /** What choosing this actually does, in the client's terms. */
+  hint: string;
+}
+
 export interface AdminSetting {
   key: string;
   value: string;
   type: SettingType;
   label: string;
   helpText: string | null;
+  /** When present, the form offers these rather than a free-text box. */
+  choices: SettingChoice[] | null;
 }
 
 export interface SettingGroup {
@@ -40,6 +49,33 @@ const GROUPS: Record<string, { title: string; lead: string }> = {
     title: "Delivery and returns",
     lead: "These are the numbers customers are charged. Changing one changes every price quote on the shop and every order placed afterwards.",
   },
+  tracking: {
+    title: "Advertising and analytics",
+    lead: "Paste the IDs your marketing people give you, or clear a box to switch that tag off. Leave both blank and the shop loads no tracking at all. Tracking does not report reliably from a developer machine — check it on the live site.",
+  },
+};
+
+/**
+ * Settings whose value is one of a fixed few.
+ *
+ * The rows carry the value; the words belong here. A key-value table has
+ * nowhere to put a list of options, and the alternative was a text box
+ * inviting a non-technical client to type `direct` or `gtm` exactly — a
+ * setting that breaks on a capital letter is not a setting anyone can use.
+ */
+const CHOICES: Record<string, SettingChoice[]> = {
+  "tracking.metaEventsVia": [
+    {
+      value: "direct",
+      label: "This website",
+      hint: "The shop loads the Meta Pixel itself and reports viewed products, bag additions, checkouts and orders straight to Meta. Choose this unless someone has built Meta tags inside Tag Manager for you.",
+    },
+    {
+      value: "gtm",
+      label: "Google Tag Manager",
+      hint: "The shop only announces each event; your Tag Manager container decides what to do with it. Choose this only if your agency has built Meta tags in GTM — otherwise Meta receives nothing at all.",
+    },
+  ],
 };
 
 export async function listSettings(): Promise<SettingGroup[]> {
@@ -61,6 +97,7 @@ export async function listSettings(): Promise<SettingGroup[]> {
       type: r.type,
       label: r.label,
       helpText: r.helpText,
+      choices: CHOICES[r.key] ?? null,
     });
   }
 

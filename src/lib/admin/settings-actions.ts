@@ -32,13 +32,41 @@ function validate(key: string, type: string, value: string): string | null {
   const trimmed = value.trim();
 
   /*
-    The social links may be blank, and blank is meaningful: it means "we are
-    not on that one", and the footer then renders no icon rather than a dead
-    one. Every other setting is load-bearing and an empty value would be a
-    silent hole in the shop.
+    Some settings may be blank, and blank is meaningful.
+
+    For the social links it means "we are not on that one", and the footer then
+    renders no icon rather than a dead one. For the two tag ids it is the off
+    switch — clearing the box is how the shop stops loading that tag, and is
+    the answer to "can we turn this off again". Every other setting is
+    load-bearing and an empty value would be a silent hole in the shop.
   */
   if (!trimmed) {
-    return key.startsWith("social.") ? null : "This cannot be left blank.";
+    const blankable =
+      key.startsWith("social.") || key === "tracking.gtmId" || key === "tracking.metaPixelId";
+    return blankable ? null : "This cannot be left blank.";
+  }
+
+  /*
+    Shape checks, not existence checks — nothing here can tell whether the
+    container actually exists. They catch the mistakes that are actually made:
+    pasting the whole snippet instead of the id, pasting an ad-account number
+    instead of a pixel id, or a stray space that makes the script request a
+    container that is not theirs.
+
+    They are also what keeps these safe to write into an inline <script>. The
+    patterns admit only word characters and hyphens, so there is no way to
+    close the tag from inside a settings field.
+  */
+  if (key === "tracking.gtmId" && !/^GTM-[A-Z0-9]{4,}$/.test(trimmed)) {
+    return "That is not a container ID. Paste just the GTM-XXXXXXX part from Tag Manager, not the whole snippet.";
+  }
+
+  if (key === "tracking.metaPixelId" && !/^\d{15,16}$/.test(trimmed)) {
+    return "A pixel ID is 15 or 16 digits with nothing else in it. Copy it from Events Manager → Data sources.";
+  }
+
+  if (key === "tracking.metaEventsVia" && trimmed !== "direct" && trimmed !== "gtm") {
+    return "Type either “direct” (this site sends the events) or “gtm” (a Tag Manager tag sends them). Choosing both counts every sale twice.";
   }
 
   if (key === "social.facebook" || key === "social.instagram") {
@@ -112,6 +140,28 @@ export async function saveSettings(
     if (to !== row.value) {
       changes.push({ key: row.key, label: row.label, from: row.value, to });
     }
+  }
+
+  /*
+    One check that no single field can make.
+
+    "Tag Manager sends the events" plus no Tag Manager container is a shop that
+    has a pixel ID filled in, believes it is measuring, and is measuring
+    nothing — the worst of the three possible states, because it looks like the
+    working one from this form. Caught here rather than left to be discovered
+    in Events Manager a fortnight into a campaign.
+  */
+  const after = (key: string) =>
+    changes.find((c) => c.key === key)?.to ??
+    rows.find((r) => r.key === key)?.value ??
+    "";
+
+  if (after("tracking.metaPixelId") && after("tracking.metaEventsVia") === "gtm" && !after("tracking.gtmId")) {
+    return {
+      ok: false,
+      message:
+        "You have a Pixel ID but nothing would send to it: the events are set to go through Google Tag Manager, and there is no container ID. Either add the container ID, or set the shop to send the events itself.",
+    };
   }
 
   if (changes.length === 0) return { ok: true };

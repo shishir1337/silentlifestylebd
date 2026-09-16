@@ -18,6 +18,8 @@ import type { DeliveryArea } from "@/lib/orders";
 export interface OrderItemView {
   name: string;
   slug: string;
+  /** Null on orders placed before the column existed. See the schema. */
+  sku: string | null;
   size: string | null;
   color: string | null;
   unitPrice: number;
@@ -75,6 +77,7 @@ const SELECT = {
     select: {
       name: true,
       slug: true,
+      sku: true,
       size: true,
       color: true,
       unitPrice: true,

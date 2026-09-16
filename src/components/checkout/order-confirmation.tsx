@@ -6,6 +6,7 @@ import { CashIcon, CheckIcon, PhoneIcon, TruckIcon } from "@/components/ui/icons
 import { formatOrderDate } from "@/lib/orders";
 import { ORDER_STATUS, STATUS_CHIP } from "@/lib/order-status";
 import type { OrderView } from "@/lib/order-reads";
+import { TrackPurchase } from "./track-purchase";
 import { getSiteSettings } from "@/lib/settings";
 import { cn } from "@/lib/cn";
 
@@ -223,6 +224,29 @@ export async function OrderConfirmation({ order }: { order: OrderView }) {
           </div>
         </aside>
       </div>
+
+      {/*
+        The sale, reported to whatever the shop has configured.
+
+        `order.total` rather than the subtotal: it is the number on the
+        customer’s invoice and the one the shop can reconcile against its own
+        books later. Delivery is in it because the customer pays it.
+
+        Older orders have no SKU — the column did not exist when they were
+        placed — so those fall back to the slug. It will not match a catalogue
+        feed, which is the honest outcome: there is no way to know now what
+        stock code that line was sold under.
+      */}
+      <TrackPurchase
+        orderNo={order.orderNo}
+        value={order.total}
+        items={order.items.map((i) => ({
+          sku: i.sku ?? i.slug,
+          name: i.name,
+          price: i.unitPrice,
+          quantity: i.qty,
+        }))}
+      />
     </div>
   );
 }

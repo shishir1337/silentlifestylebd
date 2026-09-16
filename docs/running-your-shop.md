@@ -229,15 +229,62 @@ it is used. Take it off that product first.
 
 ## Settings *(owner only)*
 
-Three tabs. **Your shop** is your name and description. **How customers reach
+Four tabs. **Your shop** is your name and description. **How customers reach
 you** is your phone, email and address — the phone number is also the WhatsApp
-button. **Delivery and returns** is what customers are charged.
+button. **Delivery and returns** is what customers are charged. **Advertising
+and analytics** is the last one, and it has its own section below.
 
 Changing a delivery charge changes the price of every order placed afterwards.
 Orders already placed keep the charge they were given.
 
-One save button covers all three tabs; it tells you how many changes are waiting
+One save button covers all four tabs; it tells you how many changes are waiting
 and whether any are on a tab you cannot see.
+
+### Advertising and analytics
+
+This is where you connect the shop to Google Tag Manager and to Meta, so you can
+see which advertisements actually produce orders. Both boxes start empty, and
+empty means off — nothing at all is loaded until you fill one in.
+
+**Google Tag Manager container ID.** Paste the `GTM-XXXXXXX` code from the top
+of your container. Just that code, not the whole block of script Tag Manager
+offers you. Once it is saved, your container is live on every page of the shop
+and you add and remove tags from inside Tag Manager without touching this panel
+again.
+
+**Meta (Facebook) Pixel ID.** The 15 or 16 digit number from Events Manager,
+under **Data sources**. Nothing else — no letters, no spaces.
+
+**Who sends the events to Meta.** Pick one:
+
+| | |
+|---|---|
+| **This website** | The shop loads the Pixel itself and reports each viewed product, bag addition, checkout and order straight to Meta. Choose this one unless somebody has specifically built Meta tags for you inside Tag Manager. |
+| **Google Tag Manager** | The shop announces each event and your container decides what to do with it. Only choose this if your agency has built those tags — otherwise Meta receives nothing. |
+
+Choosing both is the one mistake that matters: every sale is counted twice,
+your reported return on ad spend doubles, and Meta spends your budget chasing
+customers who do not exist. The panel refuses the combination that would leave
+you measuring nothing, but it cannot see inside your Tag Manager container — if
+you switch to **Google Tag Manager**, make sure someone has actually built the
+tags.
+
+**What gets reported.** Four things, with the product's SKU attached to each so
+they line up with a product catalogue: a product page being viewed, an item
+going into the bag, checkout being reached, and an order being placed. The order
+is reported once and only once, however many times the confirmation page is
+refreshed or reopened. Amounts are in taka, and the order amount is the total
+the customer pays, delivery included.
+
+**Staff are not counted.** None of this loads inside the admin panel, so a day
+spent editing products does not show up as a day of shopping.
+
+**It will not work properly on a test address.** Meta and Google both need the
+real domain over HTTPS. Set these up after the shop is live, and check them in
+Meta's **Test events** and Tag Manager's **Preview**, not on a laptop.
+
+**Turning one off.** Clear the box and save. The script stops loading on the
+next page view.
 
 ---
 

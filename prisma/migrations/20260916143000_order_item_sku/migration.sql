@@ -1,0 +1,17 @@
+-- The SKU, snapshotted onto the order line.
+--
+-- `OrderItem` already records the name, price, size, colour and image as they
+-- were on the day of the sale, because a product edited six months later must
+-- not rewrite history. The SKU belongs in that list and was simply missed: an
+-- order line that cannot say which stock code was sold is an incomplete record
+-- of the sale, whatever else it holds.
+--
+-- It is also what the ad platforms match a Purchase against. Meta and Google
+-- join an event to a catalogue entry by this string, and the confirmation page
+-- has no other way to name the product in the terms a catalogue feed uses.
+--
+-- Nullable, and left null for every order placed before today. Backfilling
+-- from `Product` would be a lie: it would stamp today's stock code onto a sale
+-- made under a different one, which is precisely what snapshot columns exist
+-- to prevent.
+ALTER TABLE "OrderItem" ADD COLUMN "sku" TEXT;

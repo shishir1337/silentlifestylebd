@@ -15,6 +15,7 @@ import {
 } from "@/lib/orders";
 import { placeOrder, previewCoupon } from "@/lib/order-actions";
 import { normalisePhone } from "@/lib/phone";
+import { trackInitiateCheckout } from "@/lib/tracking";
 import { useDelivery } from "@/lib/site-settings";
 import { freeDeliveryOffered } from "@/lib/orders";
 import { defaultAddress, useAddresses, useProfile } from "@/lib/account";
@@ -103,6 +104,33 @@ export function CheckoutForm() {
     if (saved) setArea(saved.area);
     setPrefilled(true);
   }, [prefilled, profileReady, addressReady, profile, addresses]);
+
+  /**
+   * Checkout was reached with something in the bag.
+   *
+   * Waits for `ready`, because the bag is read from storage after mount: firing
+   * on the first render would report an empty checkout for every customer and
+   * an InitiateCheckout worth nothing is worse than none — Meta would optimise
+   * towards whoever opens this page and leaves.
+   *
+   * Once per visit, not once per keystroke. This component re-renders on every
+   * character typed into five fields, and the latch is what stops that being
+   * five hundred events.
+   */
+  const checkoutReported = useRef(false);
+  useEffect(() => {
+    if (checkoutReported.current || !ready || lines.length === 0) return;
+    checkoutReported.current = true;
+    trackInitiateCheckout(
+      lines.map((l) => ({
+        sku: l.sku ?? l.productId,
+        name: l.name,
+        category: l.categorySlug,
+        price: l.price,
+        quantity: l.qty,
+      })),
+    );
+  }, [ready, lines]);
 
   const nameRef = useRef<HTMLInputElement>(null);
   const phoneRef = useRef<HTMLInputElement>(null);
