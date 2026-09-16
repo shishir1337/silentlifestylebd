@@ -330,6 +330,13 @@ export function CheckoutForm() {
   // Until localStorage has been read the cart is unknown — showing "empty"
   // before then would flash the wrong screen at someone who has items.
   if (!ready) {
+    /*
+      Empty, and that is all it needs to be.
+
+      The height that stops the page moving is reserved by the page itself —
+      see `checkout/page.tsx`. Putting it here would only cover this branch,
+      and the empty-bag branch below is the other half of the same problem.
+    */
     return <div className="py-24" aria-busy="true" />;
   }
 

@@ -30,9 +30,31 @@ export default function CheckoutPage() {
         </p>
       </header>
 
-      <AccountProvider>
-        <CheckoutForm />
-      </AccountProvider>
+      {/*
+        A screen's worth of height, whatever is inside it.
+
+        The bag is in `localStorage` and is read after mount, so the first
+        paint cannot know whether this is a full order or an empty basket —
+        and the three things that can render here are 192px, 371px and about
+        1500px tall. Whichever one arrives, the footer used to move: measured
+        on a 4x-throttled phone, 0.0839 of layout shift on the one page where
+        somebody is deciding whether to go through with it.
+
+        Reserving the height here rather than in any one branch is what fixes
+        it, because the branches cannot agree on a height and do not need to.
+        The footer starts below the fold and stays there; a taller form pushes
+        it further off-screen, and a shift nobody can see is not a shift —
+        which is what Core Web Vitals actually measures, not a way around it.
+
+        `svh` rather than `vh`: on a phone, `vh` is the height with the browser
+        chrome hidden, so a `100vh` box is taller than the screen until the
+        address bar collapses.
+      */}
+      <div className="min-h-[80svh]">
+        <AccountProvider>
+          <CheckoutForm />
+        </AccountProvider>
+      </div>
     </Container>
   );
 }
