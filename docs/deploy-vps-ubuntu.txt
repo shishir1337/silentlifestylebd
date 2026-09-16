@@ -205,29 +205,22 @@ them later and restarting PM2 does nothing — you have to rebuild.
 
 
 -------------------------------------------------------------------------------
- 6. INSTALL DEPENDENCIES AND BUILD
+ 6. DATABASE: MIGRATE, SEED, CREATE THE OWNER
 -------------------------------------------------------------------------------
+
+    !!  THIS SECTION COMES BEFORE THE BUILD. DO NOT SWAP THEM.            !!
+    !!                                                                    !!
+    !!  `next build` prerenders every product and collection page, and to !!
+    !!  do that it READS THE DATABASE. On an empty database the build     !!
+    !!  stops with:                                                       !!
+    !!                                                                    !!
+    !!      The table `public.Product` does not exist in the current      !!
+    !!      database.                                                     !!
+    !!                                                                    !!
+    !!  The tables and the catalogue have to be there first.              !!
 
     cd /var/www/silentlifestylebd
     pnpm install --frozen-lockfile
-    pnpm build
-
-`pnpm build` runs `prisma generate` first, then `next build`. Expect it to take
-2-5 minutes.
-
-If the build stops with "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY is empty", the .env
-file is missing that value. That check is deliberate — a build without it works
-on the first deploy and breaks paying customers on the second.
-
-A successful build prints a route table. The storefront routes should be marked
-with a filled circle for products and collections, and a hollow circle for the
-content pages — those are prerendered pages. If they show "f" (dynamic) instead,
-something is wrong; do not deploy, and see TROUBLESHOOTING.
-
-
--------------------------------------------------------------------------------
- 7. DATABASE: MIGRATE, SEED, CREATE THE OWNER
--------------------------------------------------------------------------------
 
 Create the tables:
 
@@ -247,6 +240,29 @@ purpose — the only way in is from the server itself:
 
 The password must be at least 10 characters. Quote it if it has spaces. Every
 other staff account is created from inside the admin panel afterwards.
+
+
+-------------------------------------------------------------------------------
+ 7. BUILD
+-------------------------------------------------------------------------------
+
+    cd /var/www/silentlifestylebd
+    pnpm build
+
+`pnpm build` runs `prisma generate` first, then `next build`. Expect it to take
+2-5 minutes.
+
+If the build stops with "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY is empty", the .env
+file is missing that value. That check is deliberate — a build without it works
+on the first deploy and breaks paying customers on the second.
+
+If it stops with "The table `public.Product` does not exist", you have run this
+section before section 6. Go back and do section 6, then build again.
+
+A successful build prints a route table. The storefront routes should be marked
+with a filled circle for products and collections, and a hollow circle for the
+content pages — those are prerendered pages. If they show "f" (dynamic) instead,
+something is wrong; do not deploy, and see TROUBLESHOOTING.
 
 
 -------------------------------------------------------------------------------
@@ -599,9 +615,14 @@ Useful commands
  15. AFTER LAUNCH — DO NOT SKIP THESE
 -------------------------------------------------------------------------------
 
-    [ ] Change the owner password from the one in section 7 if anybody else
+    [ ] Change the owner password from the one in section 6 if anybody else
         saw it, and delete it from your shell history:
             history -c
+    [ ] Open /admin/settings, Advertising and analytics, and paste the Google
+        Tag Manager container ID and the Meta Pixel ID. Leave them blank until
+        the site is live on the real domain over HTTPS — neither platform
+        reports reliably from anywhere else. Then check them in Meta's Test
+        events and Tag Manager's Preview before spending on advertising.
     [ ] Open /admin/settings and fill in the real phone number, address,
         delivery charges and the Facebook / Instagram links. The social links
         are blank until you set them, and blank means no icon is shown.
