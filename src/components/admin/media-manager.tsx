@@ -389,6 +389,7 @@ function LibraryPicker({
   const [chosen, setChosen] = useState<string[]>([]);
   const closing = useRef(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the ref is null until the dialog mounts, so `mounted` is what makes this run at the moment there is a node to listen to.
   useEffect(() => {
     const el = node.current;
     if (!el) return;

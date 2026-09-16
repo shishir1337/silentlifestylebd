@@ -110,14 +110,13 @@ export function RichTextEditor({
     component is reused for the next product, and without this it would keep
     the previous one's words.
   */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs on a genuine swap of the incoming value, not on every keystroke — `value` in the deps would fight the editor for the caret.
   useEffect(() => {
     if (!editor) return;
     const current = fromEditor(editor.getJSON());
     if (JSON.stringify(current) !== JSON.stringify(value)) {
       editor.commands.setContent(toEditor(value), { emitUpdate: false });
     }
-    // Only on a genuine swap of the incoming value, not on every keystroke.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor]);
 
   if (!editor) {

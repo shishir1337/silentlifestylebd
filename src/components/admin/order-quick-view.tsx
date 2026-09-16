@@ -67,6 +67,7 @@ export function OrderQuickView({
   }, [orderNo]);
 
   // The browser closes a <dialog> by itself on Escape; React has to be told.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the ref is null until the dialog mounts, so `mounted` is what makes this run at the moment there is a node to listen to.
   useEffect(() => {
     const el = node.current;
     if (!el) return;

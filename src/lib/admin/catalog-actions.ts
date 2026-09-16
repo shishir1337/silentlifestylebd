@@ -261,8 +261,19 @@ export async function saveProduct(input: ProductInput): Promise<SaveResult> {
       const images = [
         input.primaryAssetId ? { assetId: input.primaryAssetId, role: "PRIMARY" as const } : null,
         input.hoverAssetId ? { assetId: input.hoverAssetId, role: "HOVER" as const } : null,
+        /*
+          De-duplicated as it goes: the same asset must not be the featured
+          picture and a gallery entry as well. `filter` used to do the
+          remembering inside its own predicate with a comma operator, which
+          made a mutation look like a test — and a predicate that changes
+          something is a predicate nobody can read twice the same way.
+        */
         ...input.galleryAssetIds
-          .filter((id) => id && !taken.has(id) && (taken.add(id), true))
+          .filter((id) => {
+            if (!id || taken.has(id)) return false;
+            taken.add(id);
+            return true;
+          })
           .map((id) => ({ assetId: id, role: "GALLERY" as const })),
       ].filter(
         (i): i is { assetId: string; role: "PRIMARY" | "HOVER" | "GALLERY" } => i !== null,

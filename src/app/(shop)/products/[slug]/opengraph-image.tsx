@@ -67,7 +67,16 @@ export default async function Image({ params }: { params: Promise<{ slug: string
     (
       <div style={{ width: "100%", height: "100%", display: "flex", backgroundColor: "#faf9f7" }}>
         <div style={{ display: "flex", width: 520, height: "100%" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {/*
+            A raw <img>, and it has to be. This renders inside `ImageResponse`,
+            which is Satori rather than a browser — it understands a small
+            subset of HTML and knows nothing about `next/image`.
+
+            The suppression is a `biome-ignore` because this project lints with
+            Biome; the `eslint-disable` that used to sit here matched no linter
+            that runs and had been quietly doing nothing.
+          */}
+          {/* biome-ignore lint/performance/noImgElement: ImageResponse renders through Satori, which has no next/image. */}
           <img
             src={`${product.image.url}?tr=w-520,h-630,fo-auto,q-70`}
             alt=""

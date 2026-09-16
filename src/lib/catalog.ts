@@ -534,7 +534,7 @@ export const getSizeChartForCategory = unstable_cache(
 
     const chart = category?.sizeChart;
     // An inactive chart is one the client has taken down on purpose.
-    if (!chart || !chart.isActive) return null;
+    if (!chart?.isActive) return null;
 
     return {
       id: chart.slug,

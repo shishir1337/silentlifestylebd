@@ -45,9 +45,13 @@ const ROLE_LABEL: Record<StaffRole, string> = {
  *
  * Counted from the database rather than from the list the page rendered. That
  * list may be minutes old, and in those minutes the other owner may have gone.
+ *
+ * It does not need to know who is being changed, which looks like an oversight
+ * and is not: the first line means this only runs when the person in question
+ * is an owner right now and is about to stop being one. If the count is one,
+ * that one is them.
  */
 async function wouldStrandTheShop(
-  targetId: string,
   currentRole: StaffRole | null,
   nextRole: StaffRole | null,
 ): Promise<string | null> {
@@ -89,7 +93,7 @@ export async function setStaffRole(input: {
     };
   }
 
-  const stranded = await wouldStrandTheShop(user.id, user.staffRole, input.role);
+  const stranded = await wouldStrandTheShop(user.staffRole, input.role);
   if (stranded) return { ok: false, message: stranded };
 
   if (user.staffRole === input.role) return { ok: true, id: user.id };
@@ -118,7 +122,7 @@ export async function revokeStaff(userId: string): Promise<SaveResult> {
     select: { id: true, name: true, email: true, staffRole: true },
   });
 
-  if (!user || !user.staffRole) {
+  if (!user?.staffRole) {
     return { ok: false, message: "That account no longer has admin access." };
   }
 
@@ -129,7 +133,7 @@ export async function revokeStaff(userId: string): Promise<SaveResult> {
     };
   }
 
-  const stranded = await wouldStrandTheShop(user.id, user.staffRole, null);
+  const stranded = await wouldStrandTheShop(user.staffRole, null);
   if (stranded) return { ok: false, message: stranded };
 
   /*

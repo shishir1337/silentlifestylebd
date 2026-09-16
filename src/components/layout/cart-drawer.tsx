@@ -39,6 +39,7 @@ export function CartDrawer() {
 
   // Escape and backdrop dismissal close the dialog natively; mirror that back
   // into React state so the two cannot disagree.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the ref is null until the dialog mounts, so `mounted` is what makes this run at the moment there is a node to listen to.
   useEffect(() => {
     const el = node.current;
     if (!el) return;

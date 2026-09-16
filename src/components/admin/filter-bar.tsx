@@ -82,6 +82,7 @@ export function FilterBar({
    * 350ms: long enough that typing "panjabi" is one query rather than seven,
    * short enough that it still feels like the list is answering as you type.
    */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `apply` and `params` are read fresh inside the timer; adding them would restart the debounce every time the URL it just set comes back.
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
@@ -91,9 +92,6 @@ export function FilterBar({
       if ((params.get("q") ?? "") !== term) apply({ q: term.trim() || null });
     }, 350);
     return () => window.clearTimeout(id);
-    // `apply` and `params` are read fresh on each run; re-subscribing on every
-    // params change would restart the timer as the URL updates.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [term]);
 
   const active = chipName ? (params.get(chipName) ?? "all") : null;

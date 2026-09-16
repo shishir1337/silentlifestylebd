@@ -44,6 +44,7 @@ export function MobileMenu({
 
   // Keep React state honest when the browser closes the dialog itself
   // (Escape key, backdrop dismissal on some platforms).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the ref is null until the dialog mounts, so `mounted` is what makes this run at the moment there is a node to listen to.
   useEffect(() => {
     const el = node.current;
     if (!el) return;

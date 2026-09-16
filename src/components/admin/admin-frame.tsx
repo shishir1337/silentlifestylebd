@@ -41,6 +41,7 @@ export function AdminFrame({
 
   // Keep React honest when the browser closes the dialog itself (Escape, or a
   // backdrop dismissal on some platforms).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the ref is null until the dialog mounts, so `mounted` is what makes this run at the moment there is a node to listen to.
   useEffect(() => {
     const el = node.current;
     if (!el) return;
@@ -50,6 +51,7 @@ export function AdminFrame({
   }, [mounted, node]);
 
   // A drawer left open across a navigation covers the page just arrived at.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `pathname` is the trigger, not a value read in the body — a navigation is the event.
   useEffect(() => setOpen(false), [pathname]);
 
   return (

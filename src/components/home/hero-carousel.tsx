@@ -48,6 +48,7 @@ export function HeroCarousel({
    * rather than a scroll listener — it fires only on change instead of on
    * every frame of a momentum scroll.
    */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the ref is null until the dialog mounts, so `mounted` is what makes this run at the moment there is a node to listen to.
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;

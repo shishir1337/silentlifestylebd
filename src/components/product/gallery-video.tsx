@@ -87,7 +87,6 @@ export function GalleryVideo({
   }, []);
 
   return (
-    // biome-ignore lint/a11y/useMediaCaption: no caption track exists to offer — see below.
     <video
       ref={ref}
       src={src}
@@ -108,8 +107,7 @@ export function GalleryVideo({
         hiding. These are short silent clips of a garment — a shop uploads one
         from a phone and has no caption file to go with it, and an empty track
         element would claim captions exist when they do not. If narrated video
-        is ever added, this needs a caption upload beside it and the
-        suppression above should come off.
+        is ever added, this needs a caption upload beside it.
       */
       aria-label={label}
       className={className}
