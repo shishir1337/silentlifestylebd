@@ -283,7 +283,7 @@ async function seedSettings() {
     { key: "site.name", value: site.name, type: "STRING", group: "store", label: "Store name" },
     { key: "site.legalName", value: site.legalName, type: "STRING", group: "store", label: "Registered business name", helpText: "Used in search-engine structured data. Usually the same as the store name." },
     { key: "site.tagline", value: site.tagline, type: "STRING", group: "store", label: "Tagline" },
-    { key: "site.description", value: site.description, type: "TEXT", group: "store", label: "Store description", helpText: "Used for search engines and social sharing." },
+    { key: "site.description", value: site.description, type: "TEXT", group: "store", label: "Store description", helpText: "The sentence Google shows under your shop in search results, and the preview when somebody shares a link. Keep it under about 150 characters — anything past that is cut off." },
     { key: "site.phone", value: site.phone, type: "STRING", group: "contact", label: "Phone number", helpText: "International format, e.g. +8801711000000." },
     { key: "site.phoneDisplay", value: site.phoneDisplay, type: "STRING", group: "contact", label: "Phone (as displayed)" },
     { key: "site.email", value: site.email, type: "STRING", group: "contact", label: "Email address" },

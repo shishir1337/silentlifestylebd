@@ -44,7 +44,7 @@ const FALLBACK: SiteSettings = {
   legalName: "Silent Lifestyle BD",
   tagline: "Everyday essentials, quietly well made.",
   description:
-    "Shop men's and women's fashion in Bangladesh — panjabi, formal shirts, pants, shoes, watches, belts, wallets and Pakistani ladies collections. Cash on delivery nationwide.",
+    "Men's and women's fashion in Bangladesh — panjabi, formal shirts, pants, shoes, watches, belts and wallets. Cash on delivery nationwide.",
   phone: "+8801711000000",
   phoneDisplay: "+880 1711-000000",
   email: "hello@silentlifestylebd.com",
