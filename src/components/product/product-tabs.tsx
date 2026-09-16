@@ -116,6 +116,21 @@ export function ProductTabs({ tabs }: { tabs: ProductTab[] }) {
         two rows — three tabs fit at 360px today, but a fourth would silently
         become a second row of chrome above the content.
       */}
+      {/*
+        A heading for the region, for the outline rather than for the eye.
+
+        The tabs name themselves on screen, so nothing here needs drawing — but
+        a heading outline is a separate thing from a visual one, and without
+        this the page went straight from the product's h1 to the "Details" h3
+        inside this panel. A skipped level is the one structural error both a
+        screen reader's heading list and a search crawler's outline actually
+        notice, on every product page at once.
+
+        It says the same words the tablist is labelled with, so the two cannot
+        drift.
+      */}
+      <h2 className="sr-only">Product information</h2>
+
       <div
         role="tablist"
         aria-label="Product information"

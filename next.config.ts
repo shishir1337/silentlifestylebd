@@ -30,6 +30,9 @@ if (process.env.NODE_ENV === "production" && !process.env.NEXT_SERVER_ACTIONS_EN
 const nextConfig: NextConfig = {
   reactCompiler: true,
 
+  /** "Next.js", announced on every response. Free reconnaissance, no benefit. */
+  poweredByHeader: false,
+
   /**
    * Which origins may POST a Server Action.
    *
@@ -81,6 +84,98 @@ const nextConfig: NextConfig = {
     // Next 16 defaults to [75]; 60 lets us serve lighter thumbnails on rails.
     qualities: [60, 75],
   },
+
+  /**
+   * The headers a browser needs in order to defend this shop.
+   *
+   * Set here rather than in nginx on purpose: they travel with the code, they
+   * are reviewed with the code, and they survive the day somebody rebuilds the
+   * proxy config from memory. The deployment guide's nginx block passes them
+   * through untouched.
+   *
+   * Measured before writing: the site was serving none of these.
+   */
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          /*
+            Stop the browser guessing a content type.
+
+            Every upload on this site goes to ImageKit rather than to this
+            server, so the classic "image that is really a script" is already
+            out of reach — but this costs a header and removes the whole class.
+          */
+          { key: "X-Content-Type-Options", value: "nosniff" },
+
+          /*
+            Clickjacking, said twice for the two generations of browser that
+            listen for it. Both matter here rather than in the abstract: the
+            admin panel has one-click destructive controls now — delete an
+            order, delete a product — and an invisible frame over a page the
+            owner is logged into is exactly how those get pressed by somebody
+            else. `frame-ancestors` is also why this is a CSP header at all;
+            see below for why it stops there.
+          */
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+
+          /*
+            Full paths stay inside the origin, and nothing but the origin goes
+            out. An order confirmation URL contains an order number, and that
+            number is half of what the tracker accepts as proof.
+          */
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+
+          /*
+            The shop asks for none of these and never will, so no embedded
+            third party gets to ask on its behalf.
+          */
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+          },
+
+          /*
+            One year, and no `preload`.
+
+            A browser that has seen this once will not be talked down to HTTP
+            again, which is what protects the session cookie on a café network.
+            `preload` is left off deliberately: it is a submission to a list
+            baked into browsers and is slow and awkward to reverse, which is
+            the wrong property for a shop that has not launched yet.
+
+            Ignored over plain HTTP, so it is inert in development.
+          */
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=31536000; includeSubDomains",
+          },
+        ],
+      },
+    ];
+  },
 };
+
+/*
+  What is deliberately NOT here: a `script-src` policy.
+
+  A real one needs a nonce on every inline script, minted per request in the
+  proxy. This site has three inline scripts that matter — the dataLayer
+  bootstrap, Google Tag Manager and the Meta Pixel — and Tag Manager then
+  injects more at runtime, which is the case a nonce policy handles worst.
+
+  A CSP that is almost right is worse than none here. It would fail silently,
+  in the browser, on the client's live site, and what it would break is the
+  advertising measurement the shop is being launched to run. The honest state
+  is: clickjacking is closed above, XSS is closed at the source — every value
+  that reaches the page goes through React's escaping, and the four
+  `dangerouslySetInnerHTML` calls are all `JSON.stringify` into JSON-LD, where
+  React escapes `<` to `<` (verified by saving a product named
+  `</script>` and loading the page).
+
+  Revisit with nonces when there is time to test it against a live container.
+*/
 
 export default nextConfig;

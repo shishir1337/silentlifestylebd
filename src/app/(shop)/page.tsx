@@ -9,7 +9,8 @@ import { DeliveryNote } from "@/components/home/delivery-note";
 import { Newsletter } from "@/components/home/newsletter";
 import { getBestSellers, getNewArrivals, getOnOffer } from "@/lib/catalog";
 import { siteUrl } from "@/data/site";
-import { getSiteSettings } from "@/lib/settings";
+import { getSiteSettings } from "@/lib/settings";
+import { jsonLd } from "@/lib/json-ld";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -141,21 +142,9 @@ async function StoreJsonLd() {
   return (
     <script
       type="application/ld+json"
-      /*
-        Not "author-controlled", which is what this comment used to claim:
-        the product name, description, SKU and the shop's own legal name all
-        come from the database and are editable by anyone with a Manager
-        login. The claim was wrong the day the admin panel shipped.
-
-        It is still safe, for a reason worth writing down rather than
-        rediscovering: React escapes `<` to `\u003c` when it serialises this,
-        so a name containing `</script>` cannot close the tag. Verified by
-        saving exactly that through the product form and loading the page —
-        the payload was escaped and did not run. Do not replace this with a
-        hand-rolled `JSON.stringify` into raw HTML somewhere else; that path
-        does not have the same protection.
-      */
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }}
+      // Escaped so an editable name cannot end the script element. See
+      // `json-ld.ts` — this was a real stored XSS, not a theoretical one.
+      dangerouslySetInnerHTML={jsonLd(json)}
     />
   );
 }

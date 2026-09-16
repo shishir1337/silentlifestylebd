@@ -33,7 +33,8 @@ import {
 } from "@/lib/catalog";
 import { siteUrl } from "@/data/site";
 import { getSiteSettings } from "@/lib/settings";
-import { formatBDT } from "@/lib/currency";
+import { formatBDT } from "@/lib/currency";
+import { jsonLd } from "@/lib/json-ld";
 
 /**
  * Product detail.
@@ -157,7 +158,12 @@ export default async function ProductPage(
             children pass straight through it.
           */}
           <SizeGuideProvider>
-            <div className="grid gap-8 pb-10 lg:grid-cols-2 lg:gap-12">
+            {/* A zero minimum, not the implicit `auto` track. `auto` is
+                `minmax(min-content, max-content)`, so the 379px tab scroller
+                below held this column at 347px and the page scrolled sideways
+                on a 320px phone. `lg:grid-cols-2` already resolves to
+                `minmax(0,1fr)`, which is why only the phone layout was hit. */}
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-8 pb-10 lg:grid-cols-2 lg:gap-12">
               <ProductGallery
                 images={gallery}
                 alt={product.name}
@@ -531,21 +537,9 @@ async function ProductJsonLd({
   return (
     <script
       type="application/ld+json"
-      /*
-        Not "author-controlled", which is what this comment used to claim:
-        the product name, description, SKU and the shop's own legal name all
-        come from the database and are editable by anyone with a Manager
-        login. The claim was wrong the day the admin panel shipped.
-
-        It is still safe, for a reason worth writing down rather than
-        rediscovering: React escapes `<` to `\u003c` when it serialises this,
-        so a name containing `</script>` cannot close the tag. Verified by
-        saving exactly that through the product form and loading the page —
-        the payload was escaped and did not run. Do not replace this with a
-        hand-rolled `JSON.stringify` into raw HTML somewhere else; that path
-        does not have the same protection.
-      */
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }}
+      // Escaped so an editable name cannot end the script element. See
+      // `json-ld.ts` — this was a real stored XSS, not a theoretical one.
+      dangerouslySetInnerHTML={jsonLd(json)}
     />
   );
 }
