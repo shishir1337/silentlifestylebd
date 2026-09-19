@@ -6,10 +6,11 @@ import { ProductRail } from "@/components/home/product-rail";
 import { ProductGrid } from "@/components/home/product-grid";
 import { PromoTiles } from "@/components/home/promo-tiles";
 import { DeliveryNote } from "@/components/home/delivery-note";
-import { Newsletter } from "@/components/home/newsletter";
+// import { Newsletter } from "@/components/home/newsletter";
 import { getBestSellers, getNewArrivals, getOnOffer } from "@/lib/catalog";
 import { siteUrl } from "@/data/site";
-import { getSiteSettings } from "@/lib/settings";
+import { getSiteSettings } from "@/lib/settings";
+
 import { jsonLd } from "@/lib/json-ld";
 
 export const metadata: Metadata = {
@@ -88,7 +89,7 @@ export default async function HomePage() {
       />
 
       <DeliveryNote />
-      <Newsletter />
+      {/* <Newsletter /> */}
 
       <StoreJsonLd />
     </>

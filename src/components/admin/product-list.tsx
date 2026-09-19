@@ -9,7 +9,12 @@ import { Card, Pill, EmptyState, TableScroll } from "./admin-ui";
 import { StockEditor } from "./stock-editor";
 import { useToast } from "./toast";
 import { ButtonLink } from "@/components/ui/button";
-import { bulkSetProductActive, setProductActive } from "@/lib/admin/catalog-actions";
+import {
+  bulkDeleteProducts,
+  bulkSetProductActive,
+  deleteProduct,
+  setProductActive,
+} from "@/lib/admin/catalog-actions";
 import type { AdminProductRow } from "@/lib/admin/catalog-reads";
 import { cn } from "@/lib/cn";
 
@@ -79,6 +84,52 @@ export function ProductList({
     });
   }
 
+  /*
+    Deleting from the list, which is where somebody tidying a catalogue
+    actually is — the editor is for one product they already decided about.
+
+    Both paths arm first. A row's delete turns into "Delete?" beside it, and
+    the bulk one says the number out loud, because the difference between
+    three selected and all forty is the whole question and a plain "Delete"
+    hides it. Nothing here is undoable.
+  */
+  const [confirmingRow, setConfirmingRow] = useState<string | null>(null);
+  const [confirmingBulk, setConfirmingBulk] = useState(false);
+
+  function removeOne(row: AdminProductRow) {
+    setBusyId(row.id);
+    startTransition(async () => {
+      const result = await deleteProduct(row.id);
+      setBusyId(null);
+      setConfirmingRow(null);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success(`${row.name} deleted.`);
+      router.refresh();
+    });
+  }
+
+  function removeSelected() {
+    const ids = [...selected];
+    startTransition(async () => {
+      const result = await bulkDeleteProducts(ids);
+      setConfirmingBulk(false);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      setSelected(new Set());
+      toast.success(
+        result.sold
+          ? `${result.deleted} deleted. ${result.sold} had been ordered — those orders keep what they recorded.`
+          : `${result.deleted} ${result.deleted === 1 ? "product" : "products"} deleted.`,
+      );
+      router.refresh();
+    });
+  }
+
   const toggleSelect = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -134,9 +185,41 @@ export function ProductList({
           >
             Hide
           </button>
+          {confirmingBulk ? (
+            <>
+              <button
+                type="button"
+                onClick={removeSelected}
+                disabled={pending}
+                className="inline-flex h-8 items-center rounded-[var(--radius-sm)] bg-sale px-2.5 text-[12.5px] font-medium disabled:opacity-50"
+              >
+                {pending ? "Deleting…" : `Yes, delete ${selected.size} permanently`}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingBulk(false)}
+                className="inline-flex h-8 items-center rounded-[var(--radius-sm)] bg-white/12 px-2.5 text-[12.5px] font-medium hover:bg-white/20"
+              >
+                No
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmingBulk(true)}
+              disabled={pending}
+              className="inline-flex h-8 items-center rounded-[var(--radius-sm)] px-2.5 text-[12.5px] font-medium text-white/70 transition-colors duration-[var(--dur-base)] hover:bg-sale hover:text-white disabled:opacity-50"
+            >
+              Delete
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={() => setSelected(new Set())}
+            onClick={() => {
+              setSelected(new Set());
+              setConfirmingBulk(false);
+            }}
             className="ml-auto inline-flex h-8 items-center rounded-[var(--radius-sm)] px-2.5 text-[12.5px] font-medium text-white/70 hover:text-white"
           >
             Clear
@@ -276,6 +359,41 @@ export function ProductList({
                         >
                           {pending && busyId === p.id ? "…" : p.isActive ? "Hide" : "Publish"}
                         </button>
+
+                        {/*
+                          Arms first, and the armed state replaces the row's
+                          other buttons rather than sitting beside them — a
+                          delete one tap from an Edit that looks the same is a
+                          mistap, and this list is scanned quickly.
+                        */}
+                        {confirmingRow === p.id ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => removeOne(p)}
+                              disabled={pending}
+                              className="inline-flex h-8 items-center rounded-[var(--radius-sm)] bg-sale px-2.5 text-[12.5px] font-medium text-white disabled:opacity-50"
+                            >
+                              {pending && busyId === p.id ? "…" : "Delete?"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmingRow(null)}
+                              className="inline-flex h-8 items-center rounded-[var(--radius-sm)] border border-line-strong px-2.5 text-[12.5px] font-medium"
+                            >
+                              No
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingRow(p.id)}
+                            aria-label={`Delete ${p.name}`}
+                            className="inline-flex h-8 items-center rounded-[var(--radius-sm)] border border-transparent px-2.5 text-[12.5px] font-medium text-ink-muted transition-colors duration-[var(--dur-base)] hover:border-sale/40 hover:text-sale"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -385,6 +503,41 @@ export function ProductList({
                 </button>
               </div>
             )}
+
+            {/*
+              Its own row on a phone, below the three that get used daily.
+              Full-width targets, and it arms first — a thumb reaching for
+              "Hide" on a scrolling list must not be able to land on this.
+            */}
+            {editingStock !== p.id ? (
+              confirmingRow === p.id ? (
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => removeOne(p)}
+                    disabled={pending}
+                    className="inline-flex h-10 flex-1 items-center justify-center rounded-[var(--radius-sm)] bg-sale text-[13px] font-medium text-white disabled:opacity-50"
+                  >
+                    {pending && busyId === p.id ? "Deleting…" : `Yes, delete ${p.name}`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingRow(null)}
+                    className="inline-flex h-10 items-center justify-center rounded-[var(--radius-sm)] border border-line-strong px-4 text-[13px] font-medium"
+                  >
+                    No
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingRow(p.id)}
+                  className="mt-2 inline-flex h-10 w-full items-center justify-center rounded-[var(--radius-sm)] text-[13px] font-medium text-ink-muted transition-colors duration-[var(--dur-base)] hover:bg-sale hover:text-white"
+                >
+                  Delete
+                </button>
+              )
+            ) : null}
           </li>
         ))}
       </ul>

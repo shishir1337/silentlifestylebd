@@ -10,7 +10,12 @@ import { useToast } from "./toast";
 import { PhoneIcon } from "@/components/ui/icons";
 import { AlertIcon } from "./admin-icons";
 import { RelativeTime } from "./relative-time";
-import { bulkChangeOrderStatus, bulkDeleteOrders, changeOrderStatus } from "@/lib/admin/order-actions";
+import {
+  bulkChangeOrderStatus,
+  bulkDeleteOrders,
+  changeOrderStatus,
+  deleteOrder,
+} from "@/lib/admin/order-actions";
 import { CAN_DELETE_ORDERS, can } from "@/lib/admin/roles";
 import { primaryNext, TRANSITION_LABEL } from "@/lib/admin/order-flow";
 import { OrderStatusMenu } from "./order-status-menu";
@@ -162,6 +167,31 @@ export function OrderTable({
           ? `${result.deleted} ${result.deleted === 1 ? "order" : "orders"} deleted.`
           : `${result.deleted} deleted, ${result.skipped} could not be.`,
       );
+      router.refresh();
+    });
+  }
+
+  /*
+    Deleting a single order from the list, for the same reason the bulk one is
+    here: somebody clearing out test orders is looking at the list, not at one
+    order they already opened. Owner-only, like every other route to this.
+
+    Arms in place, and the armed state names the order — a row in a list of
+    twenty-five is easy to lose track of between the tap and the confirmation.
+  */
+  const [confirmingRow, setConfirmingRow] = useState<string | null>(null);
+
+  function removeOne(orderNo: string) {
+    setBusy(orderNo);
+    startTransition(async () => {
+      const result = await deleteOrder(orderNo);
+      setBusy(null);
+      setConfirmingRow(null);
+      if (!result.ok) {
+        toast.error(result.message);
+        return;
+      }
+      toast.success(`Order ${orderNo} deleted.`);
       router.refresh();
     });
   }
@@ -460,6 +490,37 @@ export function OrderTable({
                       ) : (
                         <span className="text-[12px] text-ink-muted">—</span>
                       )}
+
+                      {can(role, CAN_DELETE_ORDERS) ? (
+                        confirmingRow === row.orderNo ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => removeOne(row.orderNo)}
+                              disabled={working}
+                              className="ml-1.5 inline-flex h-8 items-center rounded-[var(--radius-sm)] bg-sale px-2.5 text-[12.5px] font-medium whitespace-nowrap text-white disabled:opacity-50"
+                            >
+                              {working ? "…" : "Delete?"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmingRow(null)}
+                              className="ml-1 inline-flex h-8 items-center rounded-[var(--radius-sm)] border border-line-strong px-2.5 text-[12.5px] font-medium"
+                            >
+                              No
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingRow(row.orderNo)}
+                            aria-label={`Delete order ${row.orderNo}`}
+                            className="ml-1.5 inline-flex h-8 items-center rounded-[var(--radius-sm)] border border-transparent px-2 text-[12.5px] font-medium text-ink-muted transition-colors duration-[var(--dur-base)] hover:border-sale/40 hover:text-sale"
+                          >
+                            Delete
+                          </button>
+                        )
+                      ) : null}
                     </div>
                   </td>
                 </tr>
@@ -546,6 +607,36 @@ export function OrderTable({
                   onPick={(to, why) => move(row.orderNo, row.status, to, why)}
                 />
               </div>
+
+              {can(role, CAN_DELETE_ORDERS) ? (
+                confirmingRow === row.orderNo ? (
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => removeOne(row.orderNo)}
+                      disabled={working}
+                      className="inline-flex h-10 flex-1 items-center justify-center rounded-[var(--radius-sm)] bg-sale text-[13px] font-medium text-white disabled:opacity-50"
+                    >
+                      {working ? "Deleting…" : `Yes, delete ${row.orderNo}`}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingRow(null)}
+                      className="inline-flex h-10 items-center justify-center rounded-[var(--radius-sm)] border border-line-strong px-4 text-[13px] font-medium"
+                    >
+                      No
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingRow(row.orderNo)}
+                    className="mt-2 inline-flex h-10 w-full items-center justify-center rounded-[var(--radius-sm)] text-[13px] font-medium text-ink-muted transition-colors duration-[var(--dur-base)] hover:bg-sale hover:text-white"
+                  >
+                    Delete
+                  </button>
+                )
+              ) : null}
             </li>
           );
         })}

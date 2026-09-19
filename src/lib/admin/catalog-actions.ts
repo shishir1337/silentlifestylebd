@@ -456,6 +456,43 @@ export async function updateAssetAlt(id: string, alt: string): Promise<SaveResul
  * are dispatched one at a time, so ten calls from a client is ten sequential
  * round trips. One `updateMany` is one statement.
  */
+/**
+ * Deleting a selection.
+ *
+ * One action rather than a loop of them from the browser: Server Actions are
+ * dispatched one at a time, so forty from a list is forty round trips taken in
+ * sequence while the operator watches a spinner.
+ *
+ * Reports how many had been sold, because that is the part worth knowing
+ * afterwards. Those orders keep everything they recorded — name, price, size
+ * and colour as sold — but they no longer link back to a product page, and the
+ * top-sellers report loses those products' categories. The list says so before
+ * it asks; this is the same sentence, after.
+ */
+export async function bulkDeleteProducts(
+  ids: string[],
+): Promise<SaveResult & { deleted?: number; sold?: number }> {
+  await assertCatalogAccess();
+  if (ids.length === 0) return { ok: false, message: "Nothing selected." };
+  if (ids.length > 200) return { ok: false, message: "Select fewer than 200 at a time." };
+
+  // Counted before the delete, because afterwards there is nothing to count.
+  const sold = await db.orderItem
+    .findMany({ where: { productId: { in: ids } }, select: { productId: true }, distinct: ["productId"] })
+    .then((rows) => rows.length);
+
+  const products = await db.product.findMany({
+    where: { id: { in: ids } },
+    select: { slug: true },
+  });
+
+  const { count } = await db.product.deleteMany({ where: { id: { in: ids } } });
+
+  refreshCatalog();
+  for (const p of products) revalidatePath(`/products/${p.slug}`);
+  return { ok: true, deleted: count, sold };
+}
+
 export async function bulkSetProductActive(
   ids: string[],
   isActive: boolean,
