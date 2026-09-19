@@ -676,7 +676,6 @@ export async function getAnnouncements(): Promise<Announcement[]> {
     "{free-over}": money(settings.delivery.freeThreshold),
     "{inside-dhaka}": money(settings.delivery.insideDhaka),
     "{outside-dhaka}": money(settings.delivery.outsideDhaka),
-    "{return-days}": String(settings.delivery.returnWindowDays),
     "{phone}": settings.phoneDisplay,
   };
 
@@ -695,7 +694,7 @@ export async function getAnnouncements(): Promise<Announcement[]> {
     .map((row) => ({
       ...row,
       text: row.text.replace(
-        /\{(free-over|inside-dhaka|outside-dhaka|return-days|phone)\}/g,
+        /\{(free-over|inside-dhaka|outside-dhaka|phone)\}/g,
         (match) => tokens[match] ?? match,
       ),
     }));

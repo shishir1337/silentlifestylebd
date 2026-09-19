@@ -134,10 +134,6 @@ function validate(key: string, type: string, value: string): string | null {
     return "That does not look like an email address.";
   }
 
-  if (key === "delivery.returnWindowDays" && Number.parseInt(trimmed, 10) === 0) {
-    return "A return window of zero days means no returns. Set at least 1, or say so on the returns page instead.";
-  }
-
   return null;
 }
 

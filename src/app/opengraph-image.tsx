@@ -42,7 +42,10 @@ export default async function Image() {
     ? `Cash on delivery nationwide · Free over ${taka(delivery.freeThreshold)}`
     : "Cash on delivery nationwide";
   const rates = `Dhaka ${taka(delivery.insideDhaka)} · Outside ${taka(delivery.outsideDhaka)}`;
-  const returns = `${delivery.returnWindowDays}-day returns`;
+  // The pill used to read "7-day returns". There is no return policy; what
+  // goes in a share card has to be something the shop will honour when
+  // somebody arrives holding it.
+  const pill = "Pay at your door";
 
   return new ImageResponse(
     (
@@ -109,7 +112,7 @@ export default async function Image() {
               fontWeight: 600,
             }}
           >
-            {returns}
+            {pill}
           </div>
           <div style={{ display: "flex", color: "#6b6862" }}>{rates}</div>
         </div>

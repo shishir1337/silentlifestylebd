@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Silent Lifestyle BD">
+  <!--
+    The shop's mark, at the size a browser tab actually gives it.
+
+    The wordmark in the header is "Silent Lifestyle BD" and none of that
+    survives 16 pixels, so this is the initial on the brand colour instead —
+    the same green the header's "BD" is set in (#0b6e4f).
+
+    Drawn as a stroked path rather than as text. An SVG favicon with a <text>
+    element renders in whatever font the browser resolves, which is a different
+    letter on Windows, macOS and Android; a path is the same shape everywhere
+    and needs nothing loaded.
+
+    Round caps and a stroke weight of 3.4 on a 32 unit box: heavy enough to
+    hold together when the whole thing is scaled to a 16px tab, light enough
+    not to read as a blob at 180px on an iOS home screen.
+  -->
+  <rect width="32" height="32" rx="7" fill="#0b6e4f"/>
+  <path
+    d="M21.2 10.6c-1.1-2.1-9.6-2.4-9.6 2.2 0 4.1 9.6 2.2 9.6 6.6 0 4.6-8.5 4.1-9.6 2"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="3.4"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

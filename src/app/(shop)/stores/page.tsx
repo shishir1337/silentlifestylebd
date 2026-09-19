@@ -81,7 +81,7 @@ export default async function StoresPage() {
         <Bullets
           items={[
             "Call ahead if you want a specific size or colour held — we will keep it at the counter for the day.",
-            "Anything bought in store follows the same 7-day exchange policy.",
+            "Try things on at the counter before you buy — that is what the shop floor is for.",
             "You can also collect an online order here instead of paying delivery.",
             "Parking is on the main road; the shop is on the retail floor.",
           ]}

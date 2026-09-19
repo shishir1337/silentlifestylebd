@@ -63,9 +63,9 @@ export default async function SizeGuidePage() {
 
       <Section id="still-unsure" title="Still not sure?">
         <p>
-          Call us before you order and we will check the exact measurements of the
-          piece for you. If it still arrives wrong, the{" "}
-          {delivery.returnWindowDays}-day exchange covers it.
+          Call us before you order and we will check the exact measurements of
+          the piece for you. It is worth the call — measuring first is how you
+          get the right size, and it costs nothing.
         </p>
       </Section>
 

@@ -58,7 +58,6 @@ const FALLBACK: SiteSettings = {
     freeThreshold: 3000,
     insideDhakaDays: "1–2 days",
     outsideDhakaDays: "2–4 days",
-    returnWindowDays: 7,
   },
   // Blank, and blank means nothing is loaded. There is no sensible default
   // container id, and guessing one would send a shop's traffic to a stranger.
@@ -113,7 +112,6 @@ export const getSiteSettings = unstable_cache(
         freeThreshold: int("delivery.freeThreshold", f.delivery.freeThreshold),
         insideDhakaDays: text("delivery.insideDhakaDays", f.delivery.insideDhakaDays),
         outsideDhakaDays: text("delivery.outsideDhakaDays", f.delivery.outsideDhakaDays),
-        returnWindowDays: int("delivery.returnWindowDays", f.delivery.returnWindowDays),
       },
       tracking: {
         gtmId: tag("tracking.gtmId"),

@@ -26,7 +26,6 @@ export default async function AdminAnnouncementsPage() {
     "{free-over}": money(settings.delivery.freeThreshold),
     "{inside-dhaka}": money(settings.delivery.insideDhaka),
     "{outside-dhaka}": money(settings.delivery.outsideDhaka),
-    "{return-days}": String(settings.delivery.returnWindowDays),
     "{phone}": settings.phoneDisplay,
   };
 

@@ -99,7 +99,6 @@ export const ANNOUNCEMENT_TOKENS = [
   { token: "{free-over}", means: "Free delivery threshold" },
   { token: "{inside-dhaka}", means: "Delivery charge inside Dhaka" },
   { token: "{outside-dhaka}", means: "Delivery charge outside Dhaka" },
-  { token: "{return-days}", means: "Return window in days" },
   { token: "{phone}", means: "Your phone number" },
 ] as const;
 

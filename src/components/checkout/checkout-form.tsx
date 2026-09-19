@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { Taka } from "@/components/ui/price";
 import { ButtonLink } from "@/components/ui/button";
-import { BagIcon, CashIcon, CheckIcon, ReturnIcon, TruckIcon } from "@/components/ui/icons";
+import { BagIcon, CashIcon, CheckIcon, TruckIcon } from "@/components/ui/icons";
 import {
   deliveryChargeFor,
   validateCheckout,
@@ -690,9 +690,17 @@ export function CheckoutForm() {
               {placing ? "Placing order…" : "Place order"}
             </button>
 
+            {/*
+              The last line before the button, so it had better be true. It
+              used to promise a seven-day return this shop does not offer.
+              What it says now is the actual protection a cash-on-delivery
+              customer has, and it is worth more at this moment than a returns
+              policy would be: nothing is at risk until the parcel is in their
+              hand and they have looked at it.
+            */}
             <p className="mt-3 flex items-start gap-1.5 text-[12px] leading-snug text-ink-muted">
-              <ReturnIcon className="mt-0.5 size-3.5 shrink-0" />
-              {delivery.returnWindowDays}-day easy return. Unused, with tags on.
+              <CashIcon className="mt-0.5 size-3.5 shrink-0" />
+              Open the parcel and check it at your door, before you pay.
             </p>
           </div>
         </aside>

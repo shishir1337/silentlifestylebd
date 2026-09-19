@@ -128,15 +128,18 @@ async function StoreJsonLd() {
       },
       "query-input": "required name=search_term_string",
     },
-    hasMerchantReturnPolicy: {
-      "@type": "MerchantReturnPolicy",
-      applicableCountry: "BD",
-      returnPolicyCategory:
-        "https://schema.org/MerchantReturnFiniteReturnWindow",
-      merchantReturnDays: delivery.returnWindowDays,
-      returnMethod: "https://schema.org/ReturnByMail",
-      returnFees: "https://schema.org/FreeReturn",
-    },
+    /*
+      No `hasMerchantReturnPolicy`, deliberately.
+
+      There used to be one here declaring a seven-day, free, return-by-mail
+      policy. The shop has none of those things. Unlike the wording on a page,
+      this was a machine-readable claim to Google — the sort that is shown in
+      Shopping results and that a merchant is held to. Absent is correct, and
+      is what an omitted property means: nothing is claimed.
+
+      If a real policy is ever introduced, it goes back here *and* on the
+      returns page, and the two have to say the same thing.
+    */
   };
 
   return (

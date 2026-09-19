@@ -878,7 +878,6 @@
     "insideDhaka": 60,
     "outsideDhaka": 120,
     "freeThreshold": 3000,
-    "returnWindowDays": 7,
     "insideDhakaDays": "1–2 days",
     "outsideDhakaDays": "2–4 days"
   },

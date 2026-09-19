@@ -193,7 +193,7 @@
         "blocks": [
           {
             "kind": "text",
-            "text": "Our returns policy forms part of these terms. In short: 7 days, unused, with tags attached, subject to the exclusions listed there."
+            "text": "Everything here is sold cash on delivery. Open the parcel and check it at your door before you pay — that is when a problem costs you nothing to refuse. There is no fixed returns window after payment; if something is wrong, call us and we will look at it."
           }
         ]
       },
@@ -258,86 +258,50 @@
   },
   {
     "slug": "returns",
-    "title": "7-day returns & exchange",
-    "lead": "Wrong size or changed your mind? Send it back within seven days of delivery.",
+    "title": "Checking your order",
+    "lead": "Open the parcel at your door and look at it before you pay. That is your protection, and it costs you nothing.",
     "seoTitle": null,
     "seoDescription": null,
     "body": [
       {
-        "id": "how-to-arrange-it",
-        "title": "How to arrange it",
+        "id": "at-your-door",
+        "title": "At your door",
         "blocks": [
           {
             "kind": "text",
-            "text": "Call or WhatsApp us on +880 1711-000000 with your order number. We will arrange a courier pickup, or you can drop the parcel at our store."
+            "text": "Everything is cash on delivery, so nothing leaves your pocket until the parcel is in your hand. Open it in front of the delivery man and check it before you pay."
           },
           {
             "kind": "bullets",
             "items": [
-              "Tell us whether you want an exchange or a refund.",
-              "For exchanges, tell us the size or colour you want instead.",
-              "Keep the item, its tags and the original packaging together."
+              "Check it is the right item, the right size and the right colour.",
+              "Look over the stitching, the fabric and any hardware.",
+              "If something is wrong, do not pay — hand it straight back."
             ]
           }
         ]
       },
       {
-        "id": "what-we-take-back",
-        "title": "What we take back",
-        "blocks": [
-          {
-            "kind": "bullets",
-            "items": [
-              "Unused items with the tags still attached.",
-              "Wrong item, wrong size or wrong colour sent by us.",
-              "Manufacturing defects — a fault in stitching, fabric or hardware.",
-              "Items damaged in transit, reported within 48 hours of delivery."
-            ]
-          }
-        ]
-      },
-      {
-        "id": "what-we-cannot-take-back",
-        "title": "What we cannot take back",
-        "blocks": [
-          {
-            "kind": "bullets",
-            "items": [
-              "Items that have been worn, washed or altered.",
-              "Items returned without tags or original packaging.",
-              "Innerwear and socks, for hygiene reasons.",
-              "Unstitched fabric that has already been cut or tailored.",
-              "Anything reported after 7 days of delivery."
-            ]
-          }
-        ]
-      },
-      {
-        "id": "refunds",
-        "title": "Refunds",
+        "id": "getting-the-size-right",
+        "title": "Getting the size right",
         "blocks": [
           {
             "kind": "text",
-            "text": "Because orders are paid in cash on delivery, refunds are sent by bKash or Nagad to the number on the order — or in cash if you return the item to our store in person."
+            "text": "This is the one worth spending a minute on before you order. Every product page carries the size chart for that category — measure a garment you already own and compare."
           },
           {
-            "kind": "bullets",
-            "items": [
-              "Refunds are issued within 3–5 working days of us receiving the item back.",
-              "We refund the item price in full.",
-              "The original delivery charge is refunded only when the return is our mistake.",
-              "Return courier cost is on us for our mistakes, and on you for a change of mind."
-            ]
+            "kind": "text",
+            "text": "If you are between sizes or unsure, call us before you order and we will measure the exact piece for you."
           }
         ]
       },
       {
-        "id": "exchanges",
-        "title": "Exchanges",
+        "id": "if-something-is-wrong",
+        "title": "If something is wrong after you have paid",
         "blocks": [
           {
             "kind": "text",
-            "text": "Exchanges are the faster route for a size change and are free within Dhaka. If the replacement costs more, you pay the difference on delivery; if it costs less, we refund the difference."
+            "text": "Call us with your order number and tell us what happened. We will look at it. There is no fixed returns window and no automatic refund — but a shop that sent the wrong thing wants to know."
           }
         ]
       }
@@ -374,7 +338,7 @@
               "Cash on delivery, everywhere. You pay when the parcel reaches your hand — never before.",
               "Honest pricing. When we show a discount, the higher price is one we actually charged. No inflated was-prices.",
               "One delivery charge. Flat inside Dhaka, flat outside, free over the threshold. No surprises at checkout.",
-              "7-day returns. Wrong size or changed your mind — send it back."
+              "Nothing to lose at the door. You open the parcel and look at it before any money changes hands."
             ]
           }
         ]

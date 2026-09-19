@@ -1,5 +1,5 @@
 import { Container } from "@/components/ui/container";
-import { CashIcon, ReturnIcon, ShieldIcon, TruckIcon } from "@/components/ui/icons";
+import { CashIcon, PhoneIcon, ShieldIcon, TruckIcon } from "@/components/ui/icons";
 import { getSiteSettings } from "@/lib/settings";
 import { Taka } from "@/components/ui/price";
 
@@ -35,9 +35,18 @@ export async function TrustBar() {
       ),
     },
     {
-      Icon: ReturnIcon,
-      title: `${delivery.returnWindowDays}-day return`,
-      body: "Wrong size or changed your mind? Send it back.",
+      /*
+        This slot used to promise a seven-day return. The shop does not offer
+        one — it never did — and a promise a customer only discovers is untrue
+        when they try to use it costs more than the sale it won.
+
+        What is here instead is the thing a cash-on-delivery shopper actually
+        wants to know, and it is already true: somebody rings before the parcel
+        moves. See the order confirmation, which says the same.
+      */
+      Icon: PhoneIcon,
+      title: "We call first",
+      body: "Every order is confirmed by phone before it is sent.",
     },
     {
       Icon: ShieldIcon,

@@ -14,13 +14,7 @@ import {
 import { SizeChartTable } from "@/components/product/size-chart-table";
 import { TrackProductView } from "@/components/product/track-product-view";
 import { ProductRail } from "@/components/home/product-rail";
-import {
-  CashIcon,
-  ChevronRightIcon,
-  ReturnIcon,
-
-  TruckIcon,
-} from "@/components/ui/icons";
+import { CashIcon, ChevronRightIcon, TruckIcon } from "@/components/ui/icons";
 import { Taka } from "@/components/ui/price";
 import { RichTextBody } from "@/components/content/rich-text";
 import {
@@ -382,7 +376,6 @@ async function ReassuranceLine({ freeDelivery }: { freeDelivery?: boolean }) {
         ? "Free delivery"
         : `Dhaka ${delivery.insideDhakaDays}`,
     },
-    { Icon: ReturnIcon, text: `${delivery.returnWindowDays}-day return` },
   ];
 
   return (
@@ -469,11 +462,18 @@ async function TrustPanel({ freeDelivery }: { freeDelivery?: boolean }) {
       ),
     },
     {
-      q: "What if it does not fit?",
+      /*
+        Answered honestly rather than reassuringly. This used to offer a
+        seven-day return the shop does not have; the answer below is what it
+        can actually do, and it points at the two things that prevent the
+        problem instead of pretending to fix it afterwards.
+      */
+      q: "How do I get the size right?",
       a: (
         <>
-          Send it back within {delivery.returnWindowDays} days, unused and with
-          the tags on, and we will exchange it or refund it.
+          Check the size chart below against a garment you already own. If you
+          are between sizes or unsure, call us before you order and we will
+          measure the piece for you.
         </>
       ),
     },

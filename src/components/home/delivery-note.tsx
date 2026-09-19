@@ -71,11 +71,6 @@ export async function DeliveryNote() {
                   note="Anywhere in Bangladesh"
                 />
               ) : null}
-              <Fact
-                label="Easy return"
-                value={`${delivery.returnWindowDays} days`}
-                note="Unused, with tags on"
-              />
             </dl>
           </div>
         </div>

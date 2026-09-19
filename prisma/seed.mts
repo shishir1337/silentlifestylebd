@@ -293,7 +293,6 @@ async function seedSettings() {
     { key: "delivery.freeThreshold", value: String(delivery.freeThreshold), type: "INT", group: "delivery", label: "Free delivery above (৳)", helpText: "Compared against the goods subtotal, not the total. Set it to 0 to switch free delivery off completely." },
     { key: "delivery.insideDhakaDays", value: delivery.insideDhakaDays, type: "STRING", group: "delivery", label: "Delivery time inside Dhaka" },
     { key: "delivery.outsideDhakaDays", value: delivery.outsideDhakaDays, type: "STRING", group: "delivery", label: "Delivery time outside Dhaka" },
-    { key: "delivery.returnWindowDays", value: String(delivery.returnWindowDays), type: "INT", group: "delivery", label: "Return window (days)" },
 
     /*
       Advertising tags. Blank on purpose and blank means off — a seeded shop

@@ -16,7 +16,6 @@ export interface DeliverySettings {
   freeThreshold: number;
   insideDhakaDays: string;
   outsideDhakaDays: string;
-  returnWindowDays: number;
 }
 
 /** Who fires the standard Meta events: this site's own pixel, or a GTM tag. */
