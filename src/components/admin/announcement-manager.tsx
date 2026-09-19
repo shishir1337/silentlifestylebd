@@ -12,6 +12,7 @@ import {
   reorderAnnouncements,
 } from "@/lib/admin/content-actions";
 import {
+  MAX_ANNOUNCEMENTS,
   ANNOUNCEMENT_TOKENS,
   resolveTokens,
   type AnnouncementInput,
@@ -223,12 +224,12 @@ export function AnnouncementManager({
           <button
             type="button"
             onClick={() => setEditing({ ...BLANK })}
-            disabled={items.length >= 3}
+            disabled={items.length >= MAX_ANNOUNCEMENTS}
             className="inline-flex h-10 items-center rounded-[var(--radius-sm)] border border-dashed border-line-strong px-4 text-[13.5px] font-medium text-ink-soft hover:border-ink hover:text-ink disabled:opacity-40"
           >
             Add a message
           </button>
-          {items.length >= 3 ? (
+          {items.length >= MAX_ANNOUNCEMENTS ? (
             <p className="text-[12.5px] text-ink-muted">
               Three is the most a one-line strip can hold. Remove one first.
             </p>

@@ -101,4 +101,17 @@ export const ANNOUNCEMENT_TOKENS = [
   { token: "{outside-dhaka}", means: "Delivery charge outside Dhaka" },
   { token: "{return-days}", means: "Return window in days" },
   { token: "{phone}", means: "Your phone number" },
-] as const;
+] as const;
+
+/**
+ * How many messages the announcement strip can carry.
+ *
+ * Here rather than beside the action that enforces it, because a `"use server"`
+ * module may only export async functions — a number exported from one is a
+ * build error. Both sides import it from here so the button the panel greys
+ * out and the rule the server refuses on cannot drift apart.
+ *
+ * Three because the strip is one line across the top of every page. A fourth
+ * wraps it to two rows everywhere at once.
+ */
+export const MAX_ANNOUNCEMENTS = 3;

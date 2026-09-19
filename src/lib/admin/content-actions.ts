@@ -7,6 +7,7 @@ import { CONTENT_TAG } from "@/lib/catalog";
 import { slugifySection, type PageBlock } from "@/lib/page-blocks";
 import type { SaveResult } from "@/lib/admin/catalog-types";
 import {
+  MAX_ANNOUNCEMENTS,
   type AnnouncementInput,
   HERO_DESKTOP,
   HERO_MOBILE,
@@ -379,6 +380,8 @@ export async function savePage(input: {
 
 /* --- the announcement strip ---------------------------------------------- */
 
+
+
 export async function saveAnnouncement(input: AnnouncementInput): Promise<SaveResult> {
   await assertContentAccess();
 
@@ -393,6 +396,31 @@ export async function saveAnnouncement(input: AnnouncementInput): Promise<SaveRe
   const href = input.href.trim();
   if (href && !href.startsWith("/")) {
     return { ok: false, message: "Links must be a page on this shop, starting with /." };
+  }
+
+  /*
+    Three, and the server is the one that says so.
+
+    The panel already greys the button out at three and explains why, which is
+    what an operator sees. This is the same rule where it cannot be walked
+    past: a tab left open from before the third was added still has an enabled
+    button, a double submit is two writes, and the next thing to call this will
+    not be the form.
+
+    It matters because the failure is not local. The strip is one line across
+    the top of every page in the shop; a fourth message wraps it to two rows
+    everywhere at once, and nothing in the panel would look wrong.
+
+    Only on create — an edit to one of the existing three is not a fourth.
+  */
+  if (!input.id) {
+    const existing = await db.announcement.count();
+    if (existing >= MAX_ANNOUNCEMENTS) {
+      return {
+        ok: false,
+        message: "Three is the most a one-line strip can hold. Remove one first.",
+      };
+    }
   }
 
   const data = {
